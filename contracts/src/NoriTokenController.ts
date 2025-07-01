@@ -42,11 +42,11 @@ export class NoriTokenController
   implements FungibleTokenAdminBase
 {
   @state(PublicKey)
-  private adminPublicKey = State<PublicKey>();
+  adminPublicKey = State<PublicKey>();
 
-  async deploy(args: NoriTokenControllerDeployProps) {
-    await super.deploy(args);
-
+  async deploy(props: NoriTokenControllerDeployProps) {
+    await super.deploy(props);
+    this.adminPublicKey.set(props.adminPublicKey);
     this.account.permissions.set({
       ...Permissions.default(),
       setVerificationKey:
@@ -55,40 +55,18 @@ export class NoriTokenController
       editState: Permissions.proof(),
       send: Permissions.proof(),
     });
-
-    // this.vaultVerificationKeyHash.set(args.vaultVerificationKeyHash);
   }
 
   approveBase(forest: AccountUpdateForest): Promise<void> {
     throw Error('block updates');
   }
+  @method async setUpStorage(user: PublicKey, vk: VerificationKey) {
+    let tokenAccUpdate = AccountUpdate.createSigned(user, this.deriveTokenId());
+    // TODO: check if it's new account?
+    Provable.log('is it new?', tokenAccUpdate.account.isNew.get());
 
-  @method async setUpStorage(
-    to: PublicKey,
-    vk: VerificationKey,
-    tokenAddress: PublicKey
-  ) {
-    // const token = new FungibleToken(tokenAddress);
-    // token.deriveTokenId().assertEquals(this.deriveTokenId());
-
-    // let isNewAccount = new EscrowStorage(to, this.deriveTokenId()).account
-    //   .isNew;
-    // isNewAccount.requireEquals(Bool(true));
-
-    // let receiverUpdate = this.send({ to, amount }); //maybe todo - send 1 and always ensure it's just 1?
-    // receiverUpdate.body.mayUseToken =
-    //   AccountUpdate.MayUseToken.InheritFromParent;
-    // receiverUpdate.body.useFullCommitment = Bool(true);
-
-    let tokenAccUpdate = AccountUpdate.createSigned(to, this.deriveTokenId());
-    // tokenAccUpdate.body.mayUseToken =
-    //   AccountUpdate.MayUseToken.InheritFromParent;
-    // tokenAccUpdate.body.useFullCommitment = Bool(true);
-
-    // this.approve(tokenAccUpdate);
-    // this.
     // TODO assetEqual correct vk
-    // this.account.verificationKey
+    // could use the idea of vkMap from latest standard
     tokenAccUpdate.body.update.verificationKey = {
       isSome: Bool(true),
       value: vk,
@@ -102,21 +80,15 @@ export class NoriTokenController
         // VK upgradability here?
         setVerificationKey:
           Permissions.VerificationKey.impossibleDuringCurrentVersion(),
-        setPermissions: Permissions.proof(),
+        setPermissions: Permissions.proof(), //imposible?
       },
     };
 
-    // let mintedSoFar = tokenAccUpdate.update.appState[0].value;
-    // Provable.log(mintedSoFar, 'mintedSoFar firstWithdraw');
     AccountUpdate.setValue(
       tokenAccUpdate.update.appState[0],
-      // mintedSoFar.add(amount)
-      // amount.value
-      Poseidon.hash(to.toFields())
-      // Field(1)
+      Poseidon.hash(user.toFields())
     );
   }
-
   /** Update the verification key.
    * Note that because we have set the permissions for setting the verification key to `impossibleDuringCurrentVersion()`, this will only be possible in case of a protocol update that requires an update.
    */
@@ -140,82 +112,23 @@ export class NoriTokenController
     // await this.ensureAdminSignature(); //todo
     const amount = _accountUpdate.body.balanceChange;
     Provable.log(amount, 'balance change');
-    // Provable.log(_accountUpdate.body., 'balance change');
-
-    // Provable.log('tokenId', _accountUpdate.tokenId);
     Provable.log('pubKey', _accountUpdate.publicKey);
-    const NoriTokenControllerTokenId = this.deriveTokenId();
-    Provable.log(
-      'NoriTokenControllerTokenId in canMint',
-      NoriTokenControllerTokenId
-    );
+    const noriCoreTokenId = this.deriveTokenId();
+    Provable.log('noriCoreTokenId in canMint', noriCoreTokenId);
     let storage = new NoriStorageInterface(
       _accountUpdate.publicKey,
-      NoriTokenControllerTokenId
+      noriCoreTokenId
     );
-    // Provable.log(storage.mintedSoFar.getAndRequireEquals(), 'minted so far');
     let newUpdate = AccountUpdate.createSigned(
       _accountUpdate.publicKey,
-      NoriTokenControllerTokenId
+      noriCoreTokenId
     );
     newUpdate.account.isNew.requireEquals(Bool(false));
     storage.userKeyHash
       .getAndRequireEquals()
       .assertEquals(Poseidon.hash(_accountUpdate.publicKey.toFields()));
     await storage.increaseMintedAmount(amount);
-    // Provable.log(mintedSoFar, 'app state');
-    // AccountUpdate.setValue(
-    // _accountUpdate.update.appState[0],
-    // mintedSoFar.add(amount)
-    // Field(8)
-    // );
-    // _accountUpdate.body.update.permissions = {
-    //   isSome: Bool(true),
-    //   value: {
-    //     ...Permissions.default(),
-    //     // TODO test acc update for this with sig only
-    //     editState: Permissions.proof(),
-    //     // VK upgradability here?
-    //     setVerificationKey:
-    //       Permissions.VerificationKey.impossibleDuringCurrentVersion(),
-    //     setPermissions: Permissions.impossible(),
-    //   },
-    // };
-    // let newUpdate = AccountUpdate.createSigned(
-    //   _accountUpdate.publicKey,
-    //   _accountUpdate.tokenId
-    // );
-    // Provable.log('tokenId', _accountUpdate.tokenId);
-    // Provable.log('pubKey', _accountUpdate.publicKey);
 
-    // newUpdate.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-
-    // this.approve(newUpdate);
-    // TODO assetEqual correct vk
-    // newUpdate.body.update.verificationKey = {
-    //   isSome: Bool(true),
-    //   value: vk,
-    // };
-    // newUpdate.body.update.permissions = {
-    //   isSome: Bool(true),
-    //   value: {
-    //     ...Permissions.default(),
-    //     // TODO test acc update for this with sig only
-    //     editState: Permissions.proof(),
-    //     // VK upgradability here?
-    //     setVerificationKey:
-    //       Permissions.VerificationKey.impossibleDuringCurrentVersion(),
-    //     setPermissions: Permissions.impossible(),
-    //   },
-    // };
-
-    // let mintedSoFar = newUpdate.update.appState[0].value;
-    // Provable.log(mintedSoFar, 'mintedSoFar Admin');
-    // AccountUpdate.setValue(
-    //   newUpdate.update.appState[0],
-    //   // mintedSoFar.add(amount)
-    //   Field(6)
-    // );
     return Bool(true);
   }
 
