@@ -15,18 +15,23 @@ import {
 /** Stores  */
 export class NoriStorageInterface extends SmartContract {
   @state(Field) userKeyHash = State<Field>();
-  @state(Int64) mintedSoFar = State<Int64>();
+  @state(Int64) mintedSoFar = State<Field>();
 
-  @method
-  // .returns(AccountUpdate)
-  async increaseMintedAmount(amount: Int64) {
-    amount.isPositive().assertEquals(true);
-    let mintedSoFar = this.mintedSoFar.get();
-    this.mintedSoFar.requireEquals(mintedSoFar);
-    // Provable.log(mintedSoFaraa, 'minted so farrrrrrrr');
-    // let amount = totalAmountLockedOnEth.sub(mintedSoFar);
-    this.mintedSoFar.set(mintedSoFar.add(amount));
-    // this.self.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
-    // return this.self;
-  }
+  // @method.returns(Int64)
+  // async increaseMintedAmount(lockedSoFar: Int64) {
+  //   lockedSoFar.isPositive().assertEquals(true);
+  //   Provable.log('not therre yet');
+  //   let mintedSoFar = this.mintedSoFar.get();
+  //   Provable.log('wegothere', mintedSoFar);
+  //   this.mintedSoFar.requireEquals(mintedSoFar);
+
+  //   const amountToMint = lockedSoFar.sub(mintedSoFar);
+  //   this.mintedSoFar.set(mintedSoFar.add(amountToMint));
+  //   return amountToMint;
+  // Provable.log(mintedSoFaraa, 'minted so farrrrrrrr');
+  // let amount = totalAmountLockedOnEth.sub(mintedSoFar);
+  // this.mintedSoFar.set(mintedSoFar.add(amount));
+  // this.self.body.mayUseToken = AccountUpdate.MayUseToken.InheritFromParent;
+  // return this.self;
+  // }
 }

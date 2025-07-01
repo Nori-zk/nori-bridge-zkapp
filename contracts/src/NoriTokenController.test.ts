@@ -4,6 +4,7 @@ import {
   Cache,
   fetchAccount,
   Field,
+  Int64,
   Mina,
   Poseidon,
   PrivateKey,
@@ -17,7 +18,12 @@ import { FungibleToken } from './TokenBase.js';
 import assert from 'node:assert';
 import { test, describe, before } from 'node:test';
 import { NoriStorageInterface } from './NoriStorageInterface.js';
-import { NoriTokenController } from './NoriTokenController.js';
+import {
+  NoriTokenController,
+  MockConsenusProof,
+  MockDepositAttesterProof,
+  MockMinaAttestationProof,
+} from './NoriTokenController.js';
 
 const proofsEnabled = true;
 const fee = 1e8;
@@ -44,22 +50,23 @@ describe('NoriTokenController', async () => {
 
   before(async () => {
     // compile contracts
-    storageInterfaceVK = (
-      await NoriStorageInterface.compile({ cache: Cache.FileSystem('./cache') })
+    // storageInterfaceVK = (
+    //   await NoriStorageInterface.compile({ cache: Cache.FileSystem('./cache') })
+    // ).verificationKey;
+    // if (proofsEnabled) {
+    tokenBaseVK = (
+      await FungibleToken.compile({
+        cache: Cache.FileSystem('./cache'),
+      })
     ).verificationKey;
-    if (proofsEnabled) {
-      tokenBaseVK = (
-        await FungibleToken.compile({
-          cache: Cache.FileSystem('./cache'),
-        })
-      ).verificationKey;
 
-      noriTokenControllerVK = (
-        await NoriTokenController.compile({
-          cache: Cache.FileSystem('./cache'),
-        })
-      ).verificationKey;
-    }
+    noriTokenControllerVK = (
+      await NoriTokenController.compile({
+        cache: Cache.FileSystem('./cache'),
+      })
+    ).verificationKey;
+    // }
+    storageInterfaceVK = noriTokenControllerVK;
     // setup env
     const Local = await Mina.LocalBlockchain({
       proofsEnabled,
@@ -127,6 +134,71 @@ describe('NoriTokenController', async () => {
     );
 
     console.log('initilising and deploying contracts done');
+  });
+  test('should set up storage for Alice', async () => {
+    await txSend({
+      body: async () => {
+        AccountUpdate.fundNewAccount(alice, 1);
+        await noriTokenController.setUpStorage(alice, storageInterfaceVK);
+      },
+      sender: alice,
+      signers: [alice.key],
+    });
+    let storage = new NoriStorageInterface(
+      alice,
+      noriTokenController.deriveTokenId()
+    );
+    let userHash = await storage.userKeyHash.fetch();
+    assert.equal(
+      userHash.toBigInt(),
+      Poseidon.hash(alice.toFields()).toBigInt()
+    );
+
+    let mintedSoFar = await storage.mintedSoFar.fetch();
+    console.log('minted so far', mintedSoFar.toString());
+  });
+  test('should mint tokens for Alice', async () => {
+    const amount = Int64.from(1000);
+    const storeHash = Field(1);
+    const attesterRoot = Field(2);
+    const mockProof = Field(3);
+    const minaAttestHash = Poseidon.hash([mockProof]);
+    const ethConsensusProof = new MockConsenusProof({
+      storeHash,
+      attesterRoot,
+    });
+    const depositAttesterProof = new MockDepositAttesterProof({
+      attesterRoot,
+      minaAttestHash,
+      lockedSoFar: amount,
+    });
+    const minaAttestationProof = new MockMinaAttestationProof({
+      proof: mockProof,
+    });
+    await txSend({
+      body: async () => {
+        await noriTokenController.noriMint(
+          ethConsensusProof,
+          depositAttesterProof,
+          minaAttestationProof,
+          alice
+        );
+      },
+      sender: alice,
+      signers: [alice.key],
+    });
+  });
+
+  test('should fail if we try to set up storage for the same user again', async () => {
+    await assert.rejects(() =>
+      txSend({
+        body: async () => {
+          await noriTokenController.setUpStorage(alice, storageInterfaceVK);
+        },
+        sender: alice,
+        signers: [alice.key],
+      })
+    );
   });
 });
 

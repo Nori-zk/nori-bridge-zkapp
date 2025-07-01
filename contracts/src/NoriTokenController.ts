@@ -18,12 +18,40 @@ import {
   Struct,
   TokenContract,
   UInt64,
+  Int64,
   UInt8,
   VerificationKey,
 } from 'o1js';
 import { NoriStorageInterface } from './NoriStorageInterface.js';
 import { FungibleToken } from './TokenBase.js';
+export class MockConsenusProof extends Struct({
+  storeHash: Field,
+  attesterRoot: Field,
+}) {
+  async verify() {
+    return Bool(true);
+  }
+}
 
+export class MockDepositAttesterProof extends Struct({
+  attesterRoot: Field,
+  minaAttestHash: Field,
+  lockedSoFar: Int64,
+}) {
+  async verify() {
+    return Bool(true);
+  }
+}
+export class MockMinaAttestationProof extends Struct({
+  proof: Field,
+}) {
+  async verify() {
+    return Bool(true);
+  }
+  async hash() {
+    return Poseidon.hash([this.proof]);
+  }
+}
 export type FungibleTokenAdminBase = SmartContract & {
   canMint(accountUpdate: AccountUpdate): Promise<Bool>;
   canChangeAdmin(admin: PublicKey): Promise<Bool>;
@@ -62,10 +90,9 @@ export class NoriTokenController
   }
   @method async setUpStorage(user: PublicKey, vk: VerificationKey) {
     let tokenAccUpdate = AccountUpdate.createSigned(user, this.deriveTokenId());
-    // TODO: check if it's new account?
-    Provable.log('is it new?', tokenAccUpdate.account.isNew.get());
-
-    // TODO assetEqual correct vk
+    // TODO: check if it's new account? what if someone sent token to this address before?
+    tokenAccUpdate.account.isNew.requireEquals(Bool(true));
+    // TODO assetEqual correct vk or it's hash
     // could use the idea of vkMap from latest standard
     tokenAccUpdate.body.update.verificationKey = {
       isSome: Bool(true),
@@ -85,8 +112,12 @@ export class NoriTokenController
     };
 
     AccountUpdate.setValue(
-      tokenAccUpdate.update.appState[0],
+      tokenAccUpdate.update.appState[0], //NoriStorageInterface.userKeyHash
       Poseidon.hash(user.toFields())
+    );
+    AccountUpdate.setValue(
+      tokenAccUpdate.update.appState[1], //NoriStorageInterface.mintedSoFar
+      Field(9)
     );
   }
   /** Update the verification key.
@@ -106,28 +137,48 @@ export class NoriTokenController
     this.adminPublicKey.requireEquals(admin);
     return AccountUpdate.createSigned(admin);
   }
+  @method public async noriMint(
+    ethConsensusProof: MockConsenusProof,
+    depositAttesterProof: MockDepositAttesterProof,
+    minaAttestationProof: MockMinaAttestationProof,
+    userAddress: PublicKey //TODO pull from sig ?
+  ) {
+    await ethConsensusProof.verify();
+    await depositAttesterProof.verify();
+    await minaAttestationProof.verify();
+    //TODO when add ethProcessor
+    // ethConsensusProof.storeHash.assertEquals(ethProcessor.storeHash);
+    depositAttesterProof.attesterRoot.assertEquals(
+      ethConsensusProof.attesterRoot
+    );
+    depositAttesterProof.minaAttestHash.assertEquals(
+      await minaAttestationProof.hash()
+    );
+    const lockedSoFar = depositAttesterProof.lockedSoFar;
+    Provable.log(lockedSoFar, 'locked so far');
+    const controllerTokenId = this.deriveTokenId();
+    Provable.log('controllerTokenId in canMint', controllerTokenId);
+    let storage = new NoriStorageInterface(userAddress, controllerTokenId);
+    // let newUpdate = AccountUpdate.createSigned(
+    //   _accountUpdate.publicKey,
+    //   controllerTokenId
+    // );
+    // newUpdate.account.isNew.requireEquals(Bool(false));
+    // storage.userKeyHash
+    //   .getAndRequireEquals()
+    //   .assertEquals(Poseidon.hash(userAddress.toFields()));
+    storage.mintedSoFar.get();
+    // // Provable
+    // const amountToMint = await storage.increaseMintedAmount(
+    //   depositAttesterProof.lockedSoFar
+    // );
+    // Provable.log(amountToMint, 'amount to mint');
+  }
 
   @method.returns(Bool)
   public async canMint(_accountUpdate: AccountUpdate) {
-    // await this.ensureAdminSignature(); //todo
     const amount = _accountUpdate.body.balanceChange;
-    Provable.log(amount, 'balance change');
-    Provable.log('pubKey', _accountUpdate.publicKey);
-    const noriCoreTokenId = this.deriveTokenId();
-    Provable.log('noriCoreTokenId in canMint', noriCoreTokenId);
-    let storage = new NoriStorageInterface(
-      _accountUpdate.publicKey,
-      noriCoreTokenId
-    );
-    let newUpdate = AccountUpdate.createSigned(
-      _accountUpdate.publicKey,
-      noriCoreTokenId
-    );
-    newUpdate.account.isNew.requireEquals(Bool(false));
-    storage.userKeyHash
-      .getAndRequireEquals()
-      .assertEquals(Poseidon.hash(_accountUpdate.publicKey.toFields()));
-    await storage.increaseMintedAmount(amount);
+    Provable.log(amount, 'balance change in canMint');
 
     return Bool(true);
   }
