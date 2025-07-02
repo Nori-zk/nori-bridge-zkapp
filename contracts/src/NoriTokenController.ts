@@ -6,10 +6,8 @@ import {
   DeployArgs,
   Field,
   method,
-  Mina,
   Permissions,
   Poseidon,
-  PrivateKey,
   Provable,
   PublicKey,
   SmartContract,
@@ -18,8 +16,6 @@ import {
   Struct,
   TokenContract,
   UInt64,
-  Int64,
-  UInt8,
   VerificationKey,
 } from 'o1js';
 import { NoriStorageInterface } from './NoriStorageInterface.js';
@@ -36,7 +32,7 @@ export class MockConsenusProof extends Struct({
 export class MockDepositAttesterProof extends Struct({
   attesterRoot: Field,
   minaAttestHash: Field,
-  lockedSoFar: Int64,
+  lockedSoFar: Field,
 }) {
   async verify() {
     return Bool(true);
@@ -63,18 +59,24 @@ export type FungibleTokenAdminBase = SmartContract & {
 export interface NoriTokenControllerDeployProps
   extends Exclude<DeployArgs, undefined> {
   adminPublicKey: PublicKey;
+  tokenBaseAddress: PublicKey;
+  storageVKHash: Field;
 }
 
 export class NoriTokenController
   extends TokenContract
   implements FungibleTokenAdminBase
 {
-  @state(PublicKey)
-  adminPublicKey = State<PublicKey>();
+  @state(PublicKey) adminPublicKey = State<PublicKey>();
+  @state(PublicKey) tokenBaseAddress = State<PublicKey>();
+  @state(Field) storageVKHash = State<Field>();
+  @state(Bool) mintLock = State<Bool>();
 
   async deploy(props: NoriTokenControllerDeployProps) {
     await super.deploy(props);
     this.adminPublicKey.set(props.adminPublicKey);
+    this.tokenBaseAddress.set(props.tokenBaseAddress);
+    this.storageVKHash.set(props.storageVKHash);
     this.account.permissions.set({
       ...Permissions.default(),
       setVerificationKey:
@@ -90,10 +92,12 @@ export class NoriTokenController
   }
   @method async setUpStorage(user: PublicKey, vk: VerificationKey) {
     let tokenAccUpdate = AccountUpdate.createSigned(user, this.deriveTokenId());
-    // TODO: check if it's new account? what if someone sent token to this address before?
+    // TODO: what if someone sent token to this address before?
     tokenAccUpdate.account.isNew.requireEquals(Bool(true));
-    // TODO assetEqual correct vk or it's hash
+
     // could use the idea of vkMap from latest standard
+    const storageVKHash = this.storageVKHash.getAndRequireEquals();
+    storageVKHash.assertEquals(vk.hash);
     tokenAccUpdate.body.update.verificationKey = {
       isSome: Bool(true),
       value: vk,
@@ -102,7 +106,6 @@ export class NoriTokenController
       isSome: Bool(true),
       value: {
         ...Permissions.default(),
-        // TODO test acc update for this with sig only
         editState: Permissions.proof(),
         // VK upgradability here?
         setVerificationKey:
@@ -117,14 +120,14 @@ export class NoriTokenController
     );
     AccountUpdate.setValue(
       tokenAccUpdate.update.appState[1], //NoriStorageInterface.mintedSoFar
-      Field(9)
+      Field(0)
     );
   }
   /** Update the verification key.
-   * Note that because we have set the permissions for setting the verification key to `impossibleDuringCurrentVersion()`, this will only be possible in case of a protocol update that requires an update.
    */
   @method
   async updateVerificationKey(vk: VerificationKey) {
+    await this.ensureAdminSignature();
     this.account.verificationKey.set(vk);
   }
 
@@ -140,9 +143,10 @@ export class NoriTokenController
   @method public async noriMint(
     ethConsensusProof: MockConsenusProof,
     depositAttesterProof: MockDepositAttesterProof,
-    minaAttestationProof: MockMinaAttestationProof,
-    userAddress: PublicKey //TODO pull from sig ?
+    minaAttestationProof: MockMinaAttestationProof
   ) {
+    const userAddress = this.sender.getUnconstrained(); //TODO make user pass signature due to limit of AU
+    const tokenAddress = this.tokenBaseAddress.getAndRequireEquals();
     await ethConsensusProof.verify();
     await depositAttesterProof.verify();
     await minaAttestationProof.verify();
@@ -154,32 +158,30 @@ export class NoriTokenController
     depositAttesterProof.minaAttestHash.assertEquals(
       await minaAttestationProof.hash()
     );
-    const lockedSoFar = depositAttesterProof.lockedSoFar;
-    Provable.log(lockedSoFar, 'locked so far');
     const controllerTokenId = this.deriveTokenId();
-    Provable.log('controllerTokenId in canMint', controllerTokenId);
     let storage = new NoriStorageInterface(userAddress, controllerTokenId);
-    // let newUpdate = AccountUpdate.createSigned(
-    //   _accountUpdate.publicKey,
-    //   controllerTokenId
-    // );
-    // newUpdate.account.isNew.requireEquals(Bool(false));
-    // storage.userKeyHash
-    //   .getAndRequireEquals()
-    //   .assertEquals(Poseidon.hash(userAddress.toFields()));
-    storage.mintedSoFar.get();
-    // // Provable
-    // const amountToMint = await storage.increaseMintedAmount(
-    //   depositAttesterProof.lockedSoFar
-    // );
+
+    storage.account.isNew.requireEquals(Bool(false)); // that somehow allows to getState without index out of bounds
+    storage.userKeyHash
+      .getAndRequireEquals()
+      .assertEquals(Poseidon.hash(userAddress.toFields()));
+
+    const amountToMint = await storage.increaseMintedAmount(
+      depositAttesterProof.lockedSoFar
+    );
     // Provable.log(amountToMint, 'amount to mint');
+
+    let token = new FungibleToken(tokenAddress);
+    this.mintLock.set(Bool(false));
+    await token.mint(userAddress, UInt64.Unsafe.fromField(amountToMint));
   }
 
   @method.returns(Bool)
   public async canMint(_accountUpdate: AccountUpdate) {
-    const amount = _accountUpdate.body.balanceChange;
-    Provable.log(amount, 'balance change in canMint');
-
+    // const amount = _accountUpdate.body.balanceChange;
+    // Provable.log(amount, 'balance change in canMint');
+    this.mintLock.getAndRequireEquals().assertEquals(Bool(false));
+    this.mintLock.set(Bool(true));
     return Bool(true);
   }
 

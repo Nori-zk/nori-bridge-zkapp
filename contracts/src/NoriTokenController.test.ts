@@ -50,23 +50,22 @@ describe('NoriTokenController', async () => {
 
   before(async () => {
     // compile contracts
-    // storageInterfaceVK = (
-    //   await NoriStorageInterface.compile({ cache: Cache.FileSystem('./cache') })
-    // ).verificationKey;
-    // if (proofsEnabled) {
-    tokenBaseVK = (
-      await FungibleToken.compile({
-        cache: Cache.FileSystem('./cache'),
-      })
+    storageInterfaceVK = (
+      await NoriStorageInterface.compile({ cache: Cache.FileSystem('./cache') })
     ).verificationKey;
+    if (proofsEnabled) {
+      tokenBaseVK = (
+        await FungibleToken.compile({
+          cache: Cache.FileSystem('./cache'),
+        })
+      ).verificationKey;
 
-    noriTokenControllerVK = (
-      await NoriTokenController.compile({
-        cache: Cache.FileSystem('./cache'),
-      })
-    ).verificationKey;
-    // }
-    storageInterfaceVK = noriTokenControllerVK;
+      noriTokenControllerVK = (
+        await NoriTokenController.compile({
+          cache: Cache.FileSystem('./cache'),
+        })
+      ).verificationKey;
+    }
     // setup env
     const Local = await Mina.LocalBlockchain({
       proofsEnabled,
@@ -100,6 +99,8 @@ describe('NoriTokenController', async () => {
         AccountUpdate.fundNewAccount(deployer, 3);
         await noriTokenController.deploy({
           adminPublicKey: admin,
+          tokenBaseAddress: tokenBaseKeypair.publicKey,
+          storageVKHash: storageInterfaceVK.hash,
         });
         await tokenBase.deploy({
           symbol: 'nETH',
@@ -155,10 +156,59 @@ describe('NoriTokenController', async () => {
     );
 
     let mintedSoFar = await storage.mintedSoFar.fetch();
-    console.log('minted so far', mintedSoFar.toString());
+    assert.equal(mintedSoFar.toBigInt(), 0n, 'minted so far should be 0');
   });
-  test('should mint tokens for Alice', async () => {
-    const amount = Int64.from(1000);
+
+  test('should fail if we try to set up storage for the same user again', async () => {
+    await assert.rejects(() =>
+      txSend({
+        body: async () => {
+          await noriTokenController.setUpStorage(alice, storageInterfaceVK);
+        },
+        sender: alice,
+        signers: [alice.key],
+      })
+    );
+  });
+  test('should fail update NoriStorage without proof', async () => {
+    let storage = new NoriStorageInterface(
+      alice,
+      noriTokenController.deriveTokenId()
+    );
+    let valueBefore = await storage.mintedSoFar.fetch();
+    console.log('minted so far before failed update', valueBefore.toString());
+    await txSend({
+      body: async () => {
+        let tokenAccUpdate = AccountUpdate.createSigned(
+          alice,
+          noriTokenController.deriveTokenId()
+        );
+
+        AccountUpdate.setValue(
+          tokenAccUpdate.update.appState[1], //NoriStorageInterface.mintedSoFar
+          Field(800)
+        );
+        tokenBase.approve(tokenAccUpdate);
+        // let tokenAccUpdate = new NoriStorageInterface(
+        //   alice,
+        //   noriTokenController.deriveTokenId()
+        // );
+        // tokenAccUpdate.mintedSoFar.set(Field(999));
+      },
+      sender: alice,
+      signers: [alice.key, tokenBaseKeypair.privateKey],
+    });
+    const valueAfter = await storage.mintedSoFar.fetch();
+    console.log('minted so far after failed update', valueAfter.toString());
+    assert.equal(
+      valueAfter.toBigInt(),
+      valueBefore.toBigInt(),
+      'value should not change'
+    );
+  });
+
+  test('should mint tokens for Alice only once', async () => {
+    const amount = Field(3000);
     const storeHash = Field(1);
     const attesterRoot = Field(2);
     const mockProof = Field(3);
@@ -175,28 +225,54 @@ describe('NoriTokenController', async () => {
     const minaAttestationProof = new MockMinaAttestationProof({
       proof: mockProof,
     });
-    await txSend({
+    const tx = await txSend({
       body: async () => {
+        AccountUpdate.fundNewAccount(alice, 1);
         await noriTokenController.noriMint(
           ethConsensusProof,
           depositAttesterProof,
-          minaAttestationProof,
-          alice
+          minaAttestationProof
         );
       },
       sender: alice,
       signers: [alice.key],
     });
-  });
-
-  test('should fail if we try to set up storage for the same user again', async () => {
+    // console.log('tx ', tx.toPretty());
+    const balance = await tokenBase.getBalanceOf(alice);
+    console.log('balance of alice', balance.toString());
+    assert.equal(
+      balance.toBigInt(),
+      amount.toBigInt(),
+      'balance of alice does not match minted amount'
+    );
+    //it should fail to mint again with same values
     await assert.rejects(() =>
       txSend({
         body: async () => {
-          await noriTokenController.setUpStorage(alice, storageInterfaceVK);
+          await noriTokenController.noriMint(
+            ethConsensusProof,
+            depositAttesterProof,
+            minaAttestationProof
+          );
         },
         sender: alice,
         signers: [alice.key],
+      })
+    );
+  });
+
+  test('should fail mint on its own', async () => {
+    await assert.rejects(() =>
+      txSend({
+        body: async () => {
+          await tokenBase.mint(alice, UInt64.from(111));
+        },
+        sender: alice,
+        signers: [
+          alice.key,
+          tokenBaseKeypair.privateKey,
+          noriTokenControllerKeypair.privateKey,
+        ],
       })
     );
   });
