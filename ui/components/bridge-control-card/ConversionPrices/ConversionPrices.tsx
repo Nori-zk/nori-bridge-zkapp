@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { FaArrowUp } from "react-icons/fa";
+import { FaArrowDown, FaArrowUp } from "react-icons/fa";
 
 type ConversionPricesProps = {
   ethAmount: number;
@@ -52,15 +52,16 @@ const ConversionPrices = ({ ethAmount }: ConversionPricesProps) => {
   );
 
   return (
-    <div className="text-white flex justify-between">
+    <div className="text-white flex justify-between mt-1">
       <div className="text-xs flex items-center">
         ETH: ${ethPrice.toFixed(2)}
         <span
-          className={`ml-1 ${
+          className={`ml-2 flex ${
             parseFloat(ethChange) >= 0 ? "text-green-500" : "text-red-500"
           }`}
         >
-          {parseFloat(ethChange) >= 0 ? <FaArrowUp /> : "↓"} {ethChange}%
+          {parseFloat(ethChange) >= 0 ? <FaArrowUp /> : <FaArrowDown />}{" "}
+          {ethChange}%
         </span>{" "}
       </div>
       <div className="text-xs">
