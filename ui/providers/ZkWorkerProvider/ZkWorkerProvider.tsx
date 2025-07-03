@@ -1,4 +1,3 @@
-// src/providers/ZkappWorkerProvider.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 
