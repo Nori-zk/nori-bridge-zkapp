@@ -33,7 +33,7 @@ export const ProgressProvider = ({
   const [state, dispatch] = useReducer(progressReducer, initialState);
   const [credential, setCredential] = useState<string | undefined>(undefined);
 
-  const value = {
+  const value: ProgressContextType = {
     state,
     dispatch,
     setCredential,

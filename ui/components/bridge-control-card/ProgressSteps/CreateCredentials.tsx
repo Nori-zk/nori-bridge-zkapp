@@ -1,15 +1,14 @@
-"use client";
 import { useRef, useState } from "react";
-import { PublicKey } from "o1js";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useToast } from "@/helpers/useToast.tsx";
-import { createEcdsaCredential } from "@/lib/ecdsa-credential.ts";
 import { useAccount } from "wagmina";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 
 const CreateCredentials = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("abc");
+  const { zkappWorkerClient, isLoading } = useZkappWorker();
 
   const {
     isConnected: ethConnected,
@@ -27,13 +26,20 @@ const CreateCredentials = () => {
   const toast = useRef(rawToast);
 
   const handleCreateCredential = async () => {
+    if (!zkappWorkerClient || isLoading) {
+      console.warn(
+        `zkWorker not ready yet. client ${zkappWorkerClient} & isLoading ${isLoading}`
+      );
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const { signature, walletAddress, hashedMessage } =
         await signMessageForEcdsa(message);
-      const cred = await createEcdsaCredential(
+      const cred = await zkappWorkerClient.createEcdsaCredential(
         message,
-        PublicKey.fromBase58(address ?? ""),
+        address ?? "",
         signature,
         walletAddress
       );
@@ -47,7 +53,6 @@ const CreateCredentials = () => {
         title: "Success",
         description: "Credential created successfully!",
       });
-      setCredential(cred);
     } catch (error) {
       console.error("Error creating credential:", error);
       toast.current({
@@ -60,16 +65,25 @@ const CreateCredentials = () => {
       setIsProcessing(false);
     }
   };
+
   return (
-    <button
-      className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
-      onClick={async () => {
-        await handleCreateCredential();
-      }}
-      disabled={isProcessing}
-    >
-      {isProcessing ? "Processing..." : "Create Credential"}
-    </button>
+    <div className="flex align-center items-center justify-center mt-6 w-full text-white px-4 py-3">
+      {isLoading ? (
+        "Spinning up zkappWorker..."
+      ) : !zkappWorkerClient ? (
+        "zkappWorker is not ready."
+      ) : (
+        <button
+          className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
+          onClick={async () => {
+            await handleCreateCredential();
+          }}
+          disabled={isProcessing}
+        >
+          {isProcessing ? "Processing..." : "Create Credential"}
+        </button>
+      )}
+    </div>
   );
 };
 

@@ -160,7 +160,7 @@ export const MetaMaskWalletProvider = ({
 
   const signMessageForEcdsa = useCallback(
     async (message: string): Promise<SignMessageResult> => {
-      if (!contract) {
+      if (!isConnected) {
         toast.current({
           type: "error",
           title: "Error",
