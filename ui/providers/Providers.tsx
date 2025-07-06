@@ -4,8 +4,8 @@ import { MetaMaskWalletProvider } from "@/providers/MetaMaskWalletProvider/MetaM
 import { WagminaProvider } from "wagmina";
 import { config } from "@/config/index.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ProgressProvider } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { ZkappWorkerProvider } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
+import { BridgingProvider } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -18,11 +18,11 @@ const Providers = ({ children }: AppProvidersProps) => {
     <MetaMaskWalletProvider>
       <WagminaProvider config={config}>
         <ZkappWorkerProvider>
-          <ProgressProvider>
+          <BridgingProvider>
             <QueryClientProvider client={queryClient}>
               {children}
             </QueryClientProvider>
-          </ProgressProvider>
+          </BridgingProvider>
         </ZkappWorkerProvider>
       </WagminaProvider>
     </MetaMaskWalletProvider>

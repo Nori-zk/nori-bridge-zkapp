@@ -1,7 +1,6 @@
 "use client";
 import TextInput from "@/components/ui/TextInput.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useForm } from "react-hook-form";
 import ConversionPrices from "@/components/bridge-control-card/ConversionPrices/ConversionPrices.tsx";
 
@@ -11,7 +10,6 @@ type FormValues = {
 
 const LockTokens = () => {
   const { lockTokens } = useMetaMaskWallet();
-  const { dispatch } = useProgress();
 
   const {
     register,
@@ -29,10 +27,6 @@ const LockTokens = () => {
       const amount = parseFloat(data.amount);
       if (!isNaN(amount) && amount >= 0.004) {
         await lockTokens(amount);
-        dispatch({
-          type: "NEXT_STEP",
-          payload: { nextStep: "get_locked_tokens" },
-        });
       } else {
         console.error("Invalid amount");
       }
