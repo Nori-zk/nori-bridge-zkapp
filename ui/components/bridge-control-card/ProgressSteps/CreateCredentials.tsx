@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useToast } from "@/helpers/useToast.tsx";
 import { useAccount } from "wagmina";
@@ -37,12 +37,9 @@ const CreateCredentials = () => {
       const { signature, walletAddress, hashedMessage } =
         await signMessageForEcdsa(message);
       send({
-        type: "CREATE_CREDENTIAL",
-        message,
-        publicKey: address ?? "",
-        signature,
-        walletAddress,
+        type: "START",
       });
+      console.log(state.context.userData);
     } catch (error) {
       console.error("Error initiating credential creation:", error);
       toast.current({
@@ -52,6 +49,10 @@ const CreateCredentials = () => {
       });
     }
   };
+
+  useEffect(() => {
+    console.log("State changed:", state.value, state.context);
+  }, [state]);
 
   // Show toast on success or error from state machine
   if (state.value === "success") {
@@ -64,7 +65,7 @@ const CreateCredentials = () => {
     toast.current({
       type: "error",
       title: "Error",
-      description: state.context.error || "Failed to create credential.",
+      description: state.context.errorMessage || "Failed to create credential.",
     });
   }
 
@@ -86,9 +87,7 @@ const CreateCredentials = () => {
             {state.value === "creating" ? "Processing..." : "Create Credential"}
           </button>
           {state.value === "success" && (
-            <p className="mt-4 text-white">
-              Credential: {state.context.credential}
-            </p>
+            <p className="mt-4 text-white">Credential:</p>
           )}
         </>
       )}
