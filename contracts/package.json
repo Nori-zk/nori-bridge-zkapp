@@ -22,7 +22,10 @@
     "testw": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "lint": "npx eslint src/* --fix",
     "testn": "tsc && NODE_NO_WARNINGS=1 node --test --loader ts-node/esm",
-    "testOnly": "tsc && NODE_NO_WARNINGS=1 node --test --test-only --loader ts-node/esm"
+    "testOnly": "tsc && NODE_NO_WARNINGS=1 node --test --test-only --loader ts-node/esm",
+    "controller": "tsc && NODE_NO_WARNINGS=1 node --test ./target/src/NoriTokenController.test.js --loader ts-node/esm",
+    "nori": "tsc && NODE_NO_WARNINGS=1 node --test --loader ts-node/esm --test-name-pattern='NoriCore' ",
+    "noriOnly": "tsc && NODE_NO_WARNINGS=1 node --test --test-only --loader ts-node/esm --test-name-pattern='NoriCore' "
   },
   "devDependencies": {
     "@babel/preset-env": "^7.16.4",
@@ -41,7 +44,7 @@
     "typescript": "^5.4.5"
   },
   "peerDependencies": {
-    "o1js": "^2.3.0"
+    "o1js": "^2.6.0"
   },
   "engines": {
     "node": ">=18.14.0"
