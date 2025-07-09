@@ -1,6 +1,6 @@
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { WalletButtonTypes } from "@/types/types.ts";
-import Mina from "@/public/assets/mina.svg";
+import Mina from "@/public/assets/Mina.svg";
 import Ethereum from "@/public/assets/Ethereum.svg";
 import { useAccount, useConnect, useConnectors, useDisconnect } from "wagmina";
 import { formatDisplayAddress } from "./walletHelper.tsx";
@@ -26,7 +26,7 @@ export function useWalletButtonProps(
   const connectors = useConnectors();
   const auroWalletConnector = useMemo(
     () => connectors.find((c) => c.id === "com.aurowallet"),
-    [connectors.length] // Stabilize dependency
+    [connectors.length]
   );
   const [isConnectingWalletOpen, setIsConnectingWalletOpen] = useState(false);
 
