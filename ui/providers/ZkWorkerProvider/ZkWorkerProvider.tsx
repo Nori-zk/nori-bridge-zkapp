@@ -20,12 +20,16 @@ export const ZkappWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const spinUpWorker = async () => {
-      const client = new ZkappWorkerClient();
-      setZkappWorkerClient(client);
-      await new Promise((r) => setTimeout(r, 5000));
-      setIsLoading(false);
+      try {
+        const client = new ZkappWorkerClient();
+        setZkappWorkerClient(client);
+      } catch (error) {
+        console.error("Failed to initialize zkappWorkerClient:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    spinUpWorker().catch(console.error);
+    spinUpWorker();
   }, []);
 
   return (

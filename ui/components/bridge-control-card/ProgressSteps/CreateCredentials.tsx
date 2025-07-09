@@ -7,14 +7,11 @@ import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.ts
 
 const CreateCredentials = () => {
   const [message, setMessage] = useState<string>("abc");
-  const { zkappWorkerClient, isLoading } = useZkappWorker();
-  const { state, send } = useBridging();
-  const {
-    isConnected: ethConnected,
-    displayAddress: ethDisplayAddress,
-    signMessageForEcdsa,
-  } = useMetaMaskWallet();
-  const { isConnected, address } = useAccount();
+  const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
+  const { state, send, isLoading, isSuccess, isError } = useBridging();
+  const { isConnected: ethConnected, signMessageForEcdsa } =
+    useMetaMaskWallet();
+  const { isConnected: minaConnected, address } = useAccount();
 
   const rawToast = useToast({
     type: "error",
@@ -24,7 +21,7 @@ const CreateCredentials = () => {
   const toast = useRef(rawToast);
 
   const handleCreateCredential = async () => {
-    if (!zkappWorkerClient || isLoading) {
+    if (!zkappWorkerClient || isWorkerLoading) {
       toast.current({
         type: "error",
         title: "Error",
@@ -34,18 +31,25 @@ const CreateCredentials = () => {
     }
 
     try {
+      if (!ethConnected || !minaConnected || !address) {
+        throw new Error("Please connect both Ethereum and Mina wallets.");
+      }
       const { signature, walletAddress, hashedMessage } =
         await signMessageForEcdsa(message);
       send({
-        type: "START",
+        type: "CREATE_CREDENTIAL",
+        message: hashedMessage,
+        publicKey: address,
+        signature,
+        walletAddress,
       });
-      console.log(state.context.userData);
     } catch (error) {
       console.error("Error initiating credential creation:", error);
       toast.current({
         type: "error",
         title: "Error",
-        description: "Failed to initiate credential creation.",
+        description:
+          (error as Error).message || "Failed to initiate credential creation.",
       });
     }
   };
@@ -55,13 +59,13 @@ const CreateCredentials = () => {
   }, [state]);
 
   // Show toast on success or error from state machine
-  if (state.value === "success") {
+  if (isSuccess) {
     toast.current({
       type: "notification",
       title: "Success",
       description: "Credential created successfully!",
     });
-  } else if (state.value === "error") {
+  } else if (isError) {
     toast.current({
       type: "error",
       title: "Error",
@@ -71,7 +75,7 @@ const CreateCredentials = () => {
 
   return (
     <div className="flex align-center items-center justify-center mt-6 w-full text-white px-4 py-3">
-      {isLoading ? (
+      {isWorkerLoading ? (
         "Spinning up zkappWorker..."
       ) : !zkappWorkerClient ? (
         "zkappWorker is not ready."
@@ -80,14 +84,14 @@ const CreateCredentials = () => {
           <button
             className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
             onClick={handleCreateCredential}
-            disabled={
-              state.value === "creating" || !ethConnected || !isConnected
-            }
+            disabled={isLoading || !ethConnected || !minaConnected}
           >
-            {state.value === "creating" ? "Processing..." : "Create Credential"}
+            {isLoading ? "Processing..." : "Create Credential"}
           </button>
-          {state.value === "success" && (
-            <p className="mt-4 text-white">Credential:</p>
+          {isSuccess && state.context.credential && (
+            <p className="mt-4 text-white">
+              Credential: {state.context.credential}
+            </p>
           )}
         </>
       )}

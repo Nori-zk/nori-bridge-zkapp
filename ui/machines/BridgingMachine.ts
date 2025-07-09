@@ -1,89 +1,125 @@
-import { setup, fromPromise, assign, createMachine } from "xstate";
+import ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
+import { setup, fromPromise, assign } from "xstate";
 
 interface BridgingContext {
-  userData: any | null;
-  posts: any[] | null;
+  zkappWorkerClient: ZkappWorkerClient | null;
+  credential: string | null;
   errorMessage: string | null;
+  lastInput?: {
+    message: string;
+    publicKey: string;
+    signature: string;
+    walletAddress: string;
+  };
 }
 
-type BridgingEvents = { type: "START" } | { type: "RETRY" } | { type: "RESET" };
+type BridgingEvents =
+  | {
+      type: "CREATE_CREDENTIAL";
+      message: string;
+      publicKey: string;
+      signature: string;
+      walletAddress: string;
+    }
+  | { type: "RETRY" }
+  | { type: "RESET" }
+  | { type: "UPDATE_WORKER"; zkappWorkerClient: ZkappWorkerClient | null };
 
-const fetchUser = async (userId: string) => {
-  const response = await fetch(
-    `https://jsonplaceholder.typicode.com/users/${userId}`
-  );
-  if (!response.ok) throw new Error("Failed to fetch user");
-  return response.json();
-};
-
-const fetchPosts = async (userId: string) => {
-  const response = await fetch(
-    `https://jsonplaceholder.typicode.com/posts?userId=${userId}`
-  );
-  if (!response.ok) throw new Error("Failed to fetch posts");
-  return response.json();
-};
-
-export const bridgingMachine = setup({
+export const BridgingMachine = setup({
   types: {
     context: {} as BridgingContext,
     events: {} as BridgingEvents,
+    input: {} as { zkappWorkerClient: ZkappWorkerClient | null },
   },
   actors: {
-    fetchUser: fromPromise(({ input }: { input: { userId: string } }) =>
-      fetchUser(input.userId)
-    ),
-    fetchPosts: fromPromise(({ input }: { input: { userId: string } }) =>
-      fetchPosts(input.userId)
+    createEcdsaCredential: fromPromise(
+      async ({
+        input,
+      }: {
+        input: {
+          zkappWorkerClient: ZkappWorkerClient | null;
+          message: string;
+          publicKey: string;
+          signature: string;
+          walletAddress: string;
+        };
+      }) => {
+        if (!input.zkappWorkerClient) {
+          throw new Error("Worker not ready - bridge");
+        }
+        return input.zkappWorkerClient.createEcdsaCredential(
+          input.message,
+          input.publicKey,
+          input.signature,
+          input.walletAddress
+        );
+      }
     ),
   },
 }).createMachine({
   id: "bridging",
   initial: "idle",
-  context: {
-    userData: null,
-    posts: null,
+  context: ({ input }) => ({
+    zkappWorkerClient: input.zkappWorkerClient,
+    credential: null,
     errorMessage: null,
-  },
+    lastInput: undefined,
+  }),
   states: {
     idle: {
       on: {
-        START: {
-          target: "fetchingUser",
+        CREATE_CREDENTIAL: [
+          {
+            guard: ({ context }) => !!context.zkappWorkerClient,
+            target: "creating",
+            actions: assign({
+              credential: null,
+              errorMessage: null,
+              lastInput: ({ event }) =>
+                event.type === "CREATE_CREDENTIAL" ? event : undefined,
+            }),
+          },
+          {
+            target: "error",
+            actions: assign({
+              errorMessage: "Worker not ready - bridge",
+            }),
+          },
+        ],
+        UPDATE_WORKER: {
           actions: assign({
-            userData: null,
-            posts: null,
-            errorMessage: null,
+            zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
           }),
         },
       },
     },
-    fetchingUser: {
+    creating: {
       invoke: {
-        src: "fetchUser",
-        input: { userId: "1" },
-        onDone: {
-          target: "fetchingPosts",
-          actions: assign({
-            userData: ({ event }) => event.output,
-          }),
-        },
-        onError: {
-          target: "error",
-          actions: assign({
-            errorMessage: ({ event }) => (event.error as Error).message,
-          }),
-        },
-      },
-    },
-    fetchingPosts: {
-      invoke: {
-        src: "fetchPosts",
-        input: ({ context }) => ({ userId: context.userData.id }),
+        src: "createEcdsaCredential",
+        input: ({ context, event }) => ({
+          zkappWorkerClient: context.zkappWorkerClient,
+          message:
+            event.type === "CREATE_CREDENTIAL"
+              ? event.message
+              : context.lastInput?.message || "",
+          publicKey:
+            event.type === "CREATE_CREDENTIAL"
+              ? event.publicKey
+              : context.lastInput?.publicKey || "",
+          signature:
+            event.type === "CREATE_CREDENTIAL"
+              ? event.signature
+              : context.lastInput?.signature || "",
+          walletAddress:
+            event.type === "CREATE_CREDENTIAL"
+              ? event.walletAddress
+              : context.lastInput?.walletAddress || "",
+        }),
         onDone: {
           target: "success",
           actions: assign({
-            posts: ({ event }) => event.output,
+            credential: ({ event }) => event.output,
+            errorMessage: null,
           }),
         },
         onError: {
@@ -96,13 +132,41 @@ export const bridgingMachine = setup({
     },
     success: {
       on: {
-        RESET: "idle",
+        RESET: {
+          target: "idle",
+          actions: assign({
+            credential: null,
+            errorMessage: null,
+            lastInput: undefined,
+          }),
+        },
+        UPDATE_WORKER: {
+          actions: assign({
+            zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+          }),
+        },
       },
     },
     error: {
       on: {
-        RETRY: "fetchingUser",
-        RESET: "idle",
+        RETRY: {
+          target: "creating",
+          guard: ({ context }) =>
+            !!context.lastInput && !!context.zkappWorkerClient,
+        },
+        RESET: {
+          target: "idle",
+          actions: assign({
+            credential: null,
+            errorMessage: null,
+            lastInput: undefined,
+          }),
+        },
+        UPDATE_WORKER: {
+          actions: assign({
+            zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+          }),
+        },
       },
     },
   },

@@ -1,0 +1,5 @@
+{
+    "conventionalCommits.scopes": [
+        "CREATE_CREDENTIAL via state machine and bridging provider"
+    ]
+}

@@ -1,18 +1,36 @@
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useMemo, useEffect } from "react";
 import { useMachine } from "@xstate/react";
-import { bridgingMachine } from "@/machines/BridgingMachine.ts";
+import { BridgingMachine } from "@/machines/BridgingMachine.ts";
+import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
+import type ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 
 interface BridgingContextValue {
   state: {
     value: string;
     context: {
-      userData: any | null;
-      posts: any[] | null;
+      zkappWorkerClient: ZkappWorkerClient | null;
+      credential: string | null;
       errorMessage: string | null;
+      lastInput?: {
+        message: string;
+        publicKey: string;
+        signature: string;
+        walletAddress: string;
+      };
     };
   };
   send: (
-    event: { type: "START" } | { type: "RETRY" } | { type: "RESET" }
+    event:
+      | {
+          type: "CREATE_CREDENTIAL";
+          message: string;
+          publicKey: string;
+          signature: string;
+          walletAddress: string;
+        }
+      | { type: "RETRY" }
+      | { type: "RESET" }
+      | { type: "UPDATE_WORKER"; zkappWorkerClient: ZkappWorkerClient | null }
   ) => void;
   isLoading: boolean;
   isSuccess: boolean;
@@ -26,18 +44,28 @@ export const BridgingProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [state, send] = useMachine(bridgingMachine);
+  const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
+  const [state, send] = useMachine(BridgingMachine, {
+    input: { zkappWorkerClient },
+  });
+
+  useEffect(() => {
+    // console.log(
+    //   "zkappWorkerClient inside BridgingProvider:",
+    //   zkappWorkerClient
+    // );
+    send({ type: "UPDATE_WORKER", zkappWorkerClient });
+  }, [zkappWorkerClient, send]);
 
   const value = useMemo(
     () => ({
       state,
       send,
-      isLoading:
-        state.matches("fetchingUser") || state.matches("fetchingPosts"),
+      isLoading: state.matches("creating") || isWorkerLoading,
       isSuccess: state.matches("success"),
       isError: state.matches("error"),
     }),
-    [state, send]
+    [state, send, isWorkerLoading]
   );
 
   return (
