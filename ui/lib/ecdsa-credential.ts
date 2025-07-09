@@ -13,14 +13,18 @@ export async function createEcdsaCredential(
   signerAddress: string
 ): Promise<string> {
   try {
+    console.time("compileDependencies");
     await EcdsaEthereum.compileDependencies({
       maxMessageLength,
       proofsEnabled,
     });
+    console.timeEnd("compileDependencies");
     const EcdsaCredential = await EcdsaEthereum.Credential({
       maxMessageLength,
     });
+    console.time("compileEcdsaCredential");
     await EcdsaCredential.compile({ proofsEnabled });
+    console.timeEnd("compileEcdsaCredential");
     const { signature: parsedSignature, parityBit } =
       EcdsaEthereum.parseSignature(signature);
     const credential = await EcdsaCredential.create({

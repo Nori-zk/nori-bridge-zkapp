@@ -25,10 +25,19 @@ const StoreCredentials = () => {
         console.log("Provider:", provider);
         if (provider) {
           // @ts-ignore
-          await provider.request<"mina_storePrivateCredential">({
-            method: "mina_storePrivateCredential",
+          const { result } = await provider.request<'mina_storePrivateCredential'>({
+            method: 'mina_storePrivateCredential',
             params: [JSON.parse(credential)],
           });
+          console.log("Store Credential Result:", result);
+          if (!result.success) throw Error('Failed to store credential'); //todo don't throw error here, handle it gracefully
+          // @ts-ignore
+          // const { result } = await provider.request<'mina_requestPresentation'>({
+          //   method: 'mina_requestPresentation',
+          //   params: [{ presentationRequest: JSON.parse(requestJson) }],
+          // });
+
+
         }
       }
       setCredential(undefined);
