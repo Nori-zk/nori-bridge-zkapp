@@ -19,12 +19,14 @@ export const api = {
   ): Promise<string> => {
     try {
       const pubKey = PublicKey.fromBase58(publicKey);
+      console.time("createEcdsaCredential");
       const credential = await createEcdsaCredential(
         message,
         pubKey,
         signature,
         walletAddress
       );
+      console.timeEnd("createEcdsaCredential");
       return credential;
     } catch (error) {
       console.error("Error in worker createEcdsaCredential:", error);

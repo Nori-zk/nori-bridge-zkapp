@@ -3,7 +3,7 @@ import { EcdsaEthereum } from "mina-attestations/imported";
 import { PublicKey } from "o1js";
 
 const maxMessageLength = 3; // not maximum but actual length of the message
-const proofsEnabled = false;
+const proofsEnabled = true;
 const Message = DynamicBytes({ maxLength: maxMessageLength });
 
 export async function createEcdsaCredential(
