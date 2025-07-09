@@ -13,7 +13,7 @@ interface BridgingContextValue {
       errorMessage: string | null;
       lastInput?: {
         message: string;
-        publicKey: string;
+        address: string;
         signature: string;
         walletAddress: string;
       };
@@ -24,7 +24,7 @@ interface BridgingContextValue {
       | {
           type: "CREATE_CREDENTIAL";
           message: string;
-          publicKey: string;
+          address: string;
           signature: string;
           walletAddress: string;
         }

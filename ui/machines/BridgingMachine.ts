@@ -7,7 +7,7 @@ interface BridgingContext {
   errorMessage: string | null;
   lastInput?: {
     message: string;
-    publicKey: string;
+    address: string;
     signature: string;
     walletAddress: string;
   };
@@ -17,7 +17,7 @@ type BridgingEvents =
   | {
       type: "CREATE_CREDENTIAL";
       message: string;
-      publicKey: string;
+      address: string;
       signature: string;
       walletAddress: string;
     }
@@ -39,7 +39,7 @@ export const BridgingMachine = setup({
         input: {
           zkappWorkerClient: ZkappWorkerClient | null;
           message: string;
-          publicKey: string;
+          address: string;
           signature: string;
           walletAddress: string;
         };
@@ -49,7 +49,7 @@ export const BridgingMachine = setup({
         }
         return input.zkappWorkerClient.createEcdsaCredential(
           input.message,
-          input.publicKey,
+          input.address,
           input.signature,
           input.walletAddress
         );
@@ -102,10 +102,10 @@ export const BridgingMachine = setup({
             event.type === "CREATE_CREDENTIAL"
               ? event.message
               : context.lastInput?.message || "",
-          publicKey:
+          address:
             event.type === "CREATE_CREDENTIAL"
-              ? event.publicKey
-              : context.lastInput?.publicKey || "",
+              ? event.address
+              : context.lastInput?.address || "",
           signature:
             event.type === "CREATE_CREDENTIAL"
               ? event.signature

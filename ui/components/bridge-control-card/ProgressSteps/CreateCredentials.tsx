@@ -38,8 +38,8 @@ const CreateCredentials = () => {
         await signMessageForEcdsa(message);
       send({
         type: "CREATE_CREDENTIAL",
-        message: hashedMessage,
-        publicKey: address,
+        message,
+        address,
         signature,
         walletAddress,
       });
@@ -80,7 +80,7 @@ const CreateCredentials = () => {
       ) : !zkappWorkerClient ? (
         "zkappWorker is not ready."
       ) : (
-        <>
+        <div className="flex flex-col items-center justify-center gap-4 w-full overflow-hidden">
           <button
             className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
             onClick={handleCreateCredential}
@@ -89,11 +89,11 @@ const CreateCredentials = () => {
             {isLoading ? "Processing..." : "Create Credential"}
           </button>
           {isSuccess && state.context.credential && (
-            <p className="mt-4 text-white">
+            <p className="mt-4 text-white text-xs overflow-y-auto max-h-16 break-all w-full p-2 whitespace-pre-wrap">
               Credential: {state.context.credential}
             </p>
           )}
-        </>
+        </div>
       )}
     </div>
   );
