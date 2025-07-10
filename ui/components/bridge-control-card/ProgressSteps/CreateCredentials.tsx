@@ -21,7 +21,11 @@ const CreateCredentials = () => {
   const toast = useRef(rawToast);
 
   const handleCreateCredential = async () => {
-    if (!zkappWorkerClient || isWorkerLoading) {
+    if (
+      !zkappWorkerClient ||
+      isWorkerLoading ||
+      !state.context.zkappWorkerClient
+    ) {
       toast.current({
         type: "error",
         title: "Error",
@@ -56,43 +60,51 @@ const CreateCredentials = () => {
 
   useEffect(() => {
     console.log("State changed:", state.value, state.context);
-  }, [state]);
-
-  // Show toast on success or error from state machine
-  if (isSuccess) {
-    toast.current({
-      type: "notification",
-      title: "Success",
-      description: "Credential created successfully!",
-    });
-  } else if (isError) {
-    toast.current({
-      type: "error",
-      title: "Error",
-      description: state.context.errorMessage || "Failed to create credential.",
-    });
-  }
+    if (isSuccess && state.context.step === "store") {
+      toast.current({
+        type: "notification",
+        title: "Success",
+        description: "Credential created successfully! Ready to store.",
+      });
+    } else if (isError) {
+      toast.current({
+        type: "error",
+        title: "Error",
+        description:
+          state.context.errorMessage || "Failed to create credential.",
+      });
+    }
+  }, [state.value, state.context, isSuccess, isError]);
 
   return (
-    <div className="flex align-center items-center justify-center mt-6 w-full text-white px-4 py-3">
-      {isWorkerLoading ? (
-        "Spinning up zkappWorker..."
+    <div className="flex flex-col items-center justify-center mt-6 w-full text-white px-4 py-3">
+      {isWorkerLoading || !state.context.zkappWorkerClient ? (
+        <p>Spinning up zkappWorker...</p>
       ) : !zkappWorkerClient ? (
-        "zkappWorker is not ready."
+        <p>zkappWorker is not ready.</p>
       ) : (
         <div className="flex flex-col items-center justify-center gap-4 w-full overflow-hidden">
           <button
-            className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
+            className="mt-6 w-full text-sm text-white rounded-lg px-4 py-3 border-[1.1px] border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-colors"
             onClick={handleCreateCredential}
-            disabled={isLoading || !ethConnected || !minaConnected}
+            disabled={
+              isLoading ||
+              !ethConnected ||
+              !minaConnected ||
+              !zkappWorkerClient ||
+              isWorkerLoading ||
+              !state.context.zkappWorkerClient
+            }
           >
             {isLoading ? "Processing..." : "Create Credential"}
           </button>
-          {isSuccess && state.context.credential && (
-            <p className="mt-4 text-white text-xs overflow-y-auto max-h-16 break-all w-full p-2 whitespace-pre-wrap">
-              Credential: {state.context.credential}
-            </p>
-          )}
+          {isSuccess &&
+            state.context.credential &&
+            state.context.step === "store" && (
+              <p className="mt-2 text-white text-xs overflow-y-auto max-h-16 break-all w-full p-2 whitespace-pre-wrap">
+                Credential: {state.context.credential}
+              </p>
+            )}
         </div>
       )}
     </div>

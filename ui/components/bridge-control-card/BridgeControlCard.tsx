@@ -6,6 +6,7 @@ import { useBridging } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import CreateCredentials from "./ProgressSteps/CreateCredentials.tsx";
 import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
 import { FaArrowRight } from "react-icons/fa";
+import StoreCredentials from "@/components/bridge-control-card/ProgressSteps/StoreCredentials.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -78,7 +79,11 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             />
           </div>
           <div className="flex justify-center mt-6">
-            <CreateCredentials />
+            {state.context.step === "create" ? (
+              <CreateCredentials />
+            ) : (
+              <StoreCredentials />
+            )}
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ interface BridgingContextValue {
       zkappWorkerClient: ZkappWorkerClient | null;
       credential: string | null;
       errorMessage: string | null;
+      step: "create" | "store";
       lastInput?: {
         message: string;
         address: string;
@@ -27,6 +28,11 @@ interface BridgingContextValue {
           address: string;
           signature: string;
           walletAddress: string;
+        }
+      | {
+          type: "STORE_CREDENTIAL";
+          provider: any;
+          credential: string;
         }
       | { type: "RETRY" }
       | { type: "RESET" }
@@ -50,19 +56,22 @@ export const BridgingProvider = ({
   });
 
   useEffect(() => {
-    // console.log(
-    //   "zkappWorkerClient inside BridgingProvider:",
-    //   zkappWorkerClient
-    // );
+    console.log(
+      "zkappWorkerClient inside BridgingProvider:",
+      zkappWorkerClient
+    );
     send({ type: "UPDATE_WORKER", zkappWorkerClient });
-  }, [zkappWorkerClient, send]);
+  }, [zkappWorkerClient]);
 
   const value = useMemo(
     () => ({
       state,
       send,
-      isLoading: state.matches("creating") || isWorkerLoading,
-      isSuccess: state.matches("success"),
+      isLoading:
+        state.matches("creating") ||
+        state.matches("storing") ||
+        isWorkerLoading,
+      isSuccess: state.matches("success") || state.matches("stored"),
       isError: state.matches("error"),
     }),
     [state, send, isWorkerLoading]
@@ -78,7 +87,7 @@ export const BridgingProvider = ({
 export const useBridging = () => {
   const context = useContext(BridgingContext);
   if (!context) {
-    throw new Error("useBridging must be used within a BridgingProvider");
+    throw new Error("useBridging must be within a BridgingProvider");
   }
   return context;
 };

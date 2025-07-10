@@ -5,6 +5,7 @@ interface BridgingContext {
   zkappWorkerClient: ZkappWorkerClient | null;
   credential: string | null;
   errorMessage: string | null;
+  step: "create" | "store";
   lastInput?: {
     message: string;
     address: string;
@@ -20,6 +21,11 @@ type BridgingEvents =
       address: string;
       signature: string;
       walletAddress: string;
+    }
+  | {
+      type: "STORE_CREDENTIAL";
+      provider: any;
+      credential: string;
     }
   | { type: "RETRY" }
   | { type: "RESET" }
@@ -55,6 +61,29 @@ export const BridgingMachine = setup({
         );
       }
     ),
+    storeCredential: fromPromise(
+      async ({
+        input,
+      }: {
+        input: {
+          provider: any;
+          credential: string;
+        };
+      }) => {
+        console.log("Storing credential:", input.credential);
+        await input.provider.request({
+          method: "mina_storePrivateCredential",
+          params: [JSON.parse(input.credential)],
+        });
+
+        // console.log("Store credential result:", result);
+
+        // if (!result.success) {
+        //   throw new Error("Failed to store credential");
+        // }
+        // return result;
+      }
+    ),
   },
 }).createMachine({
   id: "bridging",
@@ -64,6 +93,7 @@ export const BridgingMachine = setup({
     credential: null,
     errorMessage: null,
     lastInput: undefined,
+    step: "create",
   }),
   states: {
     idle: {
@@ -89,6 +119,12 @@ export const BridgingMachine = setup({
         UPDATE_WORKER: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+          }),
+        },
+        STORE_CREDENTIAL: {
+          target: "error",
+          actions: assign({
+            errorMessage: "Cannot store credential before creating one",
           }),
         },
       },
@@ -120,6 +156,7 @@ export const BridgingMachine = setup({
           actions: assign({
             credential: ({ event }) => event.output,
             errorMessage: null,
+            step: "store",
           }),
         },
         onError: {
@@ -132,12 +169,61 @@ export const BridgingMachine = setup({
     },
     success: {
       on: {
+        STORE_CREDENTIAL: {
+          target: "storing",
+          actions: assign({
+            errorMessage: null,
+          }),
+        },
         RESET: {
           target: "idle",
           actions: assign({
             credential: null,
             errorMessage: null,
             lastInput: undefined,
+            step: "create",
+          }),
+        },
+        UPDATE_WORKER: {
+          actions: assign({
+            zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+          }),
+        },
+      },
+    },
+    storing: {
+      invoke: {
+        src: "storeCredential",
+        input: ({ context, event }) => ({
+          provider: event.type === "STORE_CREDENTIAL" ? event.provider : null,
+          credential:
+            event.type === "STORE_CREDENTIAL"
+              ? event.credential
+              : context.credential || "",
+        }),
+        onDone: {
+          target: "stored",
+          actions: assign({
+            errorMessage: null,
+          }),
+        },
+        onError: {
+          target: "error",
+          actions: assign({
+            errorMessage: ({ event }) => (event.error as Error).message,
+          }),
+        },
+      },
+    },
+    stored: {
+      on: {
+        RESET: {
+          target: "idle",
+          actions: assign({
+            credential: null,
+            errorMessage: null,
+            lastInput: undefined,
+            step: "create",
           }),
         },
         UPDATE_WORKER: {

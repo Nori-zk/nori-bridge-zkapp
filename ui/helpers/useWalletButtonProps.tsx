@@ -25,7 +25,7 @@ export function useWalletButtonProps(
   const { connectAsync: wagminaConnectAsync } = useConnect();
   const connectors = useConnectors();
   const auroWalletConnector = useMemo(
-    () => connectors.find((c) => c.id === "com.aurowallet"),
+    () => connectors.find((c) => c.id === "co.pallad"),
     [connectors.length]
   );
   const [isConnectingWalletOpen, setIsConnectingWalletOpen] = useState(false);
