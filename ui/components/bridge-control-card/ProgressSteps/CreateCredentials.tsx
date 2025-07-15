@@ -59,7 +59,6 @@ const CreateCredentials = () => {
   };
 
   useEffect(() => {
-    console.log("State changed:", state.value, state.context);
     if (isSuccess && state.context.step === "store") {
       toast.current({
         type: "notification",
