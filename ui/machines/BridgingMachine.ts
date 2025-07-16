@@ -1,7 +1,10 @@
 import { setup, fromPromise, assign } from "xstate";
 import type ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
+import { Contract, ethers } from "ethers";
+
 interface BridgingContext {
   zkappWorkerClient: ZkappWorkerClient | null;
+  contract: Contract | null;
   credential: string | null;
   errorMessage: string | null;
   step: "create" | "store" | "lock" | "getLockedTokens";
@@ -93,12 +96,24 @@ export const BridgingMachine = setup({
       }: {
         input: {
           zkappWorkerClient: ZkappWorkerClient | null;
+          contract: Contract;
           amount: number;
         };
       }) => {
-        throw new Error(
-          `Locking tokens is not implemented yet - ${input.amount}`
-        );
+        if (!input.amount || isNaN(input.amount)) {
+          throw new Error("Invalid amount");
+        }
+        if (
+          !input.contract ||
+          typeof input.contract.lockTokens !== "function"
+        ) {
+          throw new Error("Contract not ready or invalid");
+        }
+
+        const tx = await input.contract.lockTokens({
+          value: ethers.parseEther(input.amount.toString()),
+        });
+        await tx.wait();
       }
     ),
     getLockedTokens: fromPromise(
@@ -107,12 +122,20 @@ export const BridgingMachine = setup({
       }: {
         input: {
           zkappWorkerClient: ZkappWorkerClient | null;
+          contract: Contract;
+          lastInput?: {
+            walletAddress: string;
+          };
         };
       }) => {
-        throw new Error("getLockedTokens not implemented yet");
-
-        // const amount = await input.zkappWorkerClient.getLockedTokens(); // Assume this method exists
-        // return ethers.formatEther(amount); // Convert to string like MetaMaskWalletProvider
+        const amount = await input.contract.lockedTokens(
+          input.lastInput?.walletAddress
+        );
+        const formattedAmount = ethers.formatEther(amount);
+        console.log(
+          `Locked tokens for ${input.lastInput?.walletAddress}: ${formattedAmount}`
+        );
+        return formattedAmount;
       }
     ),
   },
@@ -121,6 +144,7 @@ export const BridgingMachine = setup({
   initial: "idle",
   context: ({ input }) => ({
     zkappWorkerClient: input.zkappWorkerClient,
+    contract: null,
     credential: null,
     errorMessage: null,
     step: "create",
@@ -319,11 +343,13 @@ export const BridgingMachine = setup({
         input: ({ context, event }) => ({
           zkappWorkerClient: context.zkappWorkerClient,
           amount: event.type === "START_LOCK" ? event.amount : 0,
+          contract: context.contract!,
         }),
         onDone: {
           target: "locked",
           actions: assign({
             errorMessage: null,
+            step: "getLockedTokens",
           }),
         },
         onError: {
@@ -373,6 +399,8 @@ export const BridgingMachine = setup({
         src: "getLockedTokens",
         input: ({ context }) => ({
           zkappWorkerClient: context.zkappWorkerClient,
+          contract: context.contract!,
+          lastInput: context.lastInput,
         }),
         onDone: {
           target: "gotLockedTokens",
