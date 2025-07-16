@@ -39,7 +39,11 @@ type BridgingEvents =
     }
   | { type: "RETRY" }
   | { type: "RESET" }
-  | { type: "UPDATE_WORKER"; zkappWorkerClient: ZkappWorkerClient | null };
+  | {
+      type: "UPDATE_MACHINE";
+      zkappWorkerClient: ZkappWorkerClient | null;
+      contract: Contract | null;
+    };
 
 export const BridgingMachine = setup({
   types: {
@@ -80,14 +84,17 @@ export const BridgingMachine = setup({
           credential: string;
         };
       }) => {
-        const result = await input.provider.request({
-          method: "mina_storePrivateCredential",
-          params: [JSON.parse(input.credential)],
-        });
-        if (!result.success) {
+        try {
+          await input.provider.request({
+            method: "mina_storePrivateCredential",
+            params: [JSON.parse(input.credential)],
+          });
+        } catch (error) {
+          // if (!result.success) {
           throw new Error("Failed to store credential");
+          // }
+          // return result;
         }
-        return result;
       }
     ),
     lockTokens: fromPromise(
@@ -172,9 +179,10 @@ export const BridgingMachine = setup({
             }),
           },
         ],
-        UPDATE_WORKER: {
+        UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+            contract: ({ event }) => event.contract,
           }),
         },
         STORE_CREDENTIAL: {
@@ -253,7 +261,7 @@ export const BridgingMachine = setup({
             lockedAmount: null,
           }),
         },
-        UPDATE_WORKER: {
+        UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
           }),
@@ -324,7 +332,7 @@ export const BridgingMachine = setup({
             lockedAmount: null,
           }),
         },
-        UPDATE_WORKER: {
+        UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
           }),
@@ -387,7 +395,7 @@ export const BridgingMachine = setup({
             lockedAmount: null,
           }),
         },
-        UPDATE_WORKER: {
+        UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
           }),
@@ -430,7 +438,7 @@ export const BridgingMachine = setup({
             lockedAmount: null,
           }),
         },
-        UPDATE_WORKER: {
+        UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
           }),
@@ -456,7 +464,7 @@ export const BridgingMachine = setup({
             lockedAmount: null,
           }),
         },
-        UPDATE_WORKER: {
+        UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
           }),

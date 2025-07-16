@@ -4,6 +4,7 @@ import { BridgingMachine } from "@/machines/BridgingMachine.ts";
 import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 import type ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 import { Contract } from "ethers";
+import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 
 interface BridgingContextValue {
   state: {
@@ -48,7 +49,11 @@ interface BridgingContextValue {
         }
       | { type: "RETRY" }
       | { type: "RESET" }
-      | { type: "UPDATE_WORKER"; zkappWorkerClient: ZkappWorkerClient | null }
+      | {
+          type: "UPDATE_MACHINE";
+          zkappWorkerClient: ZkappWorkerClient | null;
+          contract: Contract | null;
+        }
   ) => void;
   isLoading: boolean;
   isSuccess: boolean;
@@ -63,6 +68,7 @@ export const BridgingProvider = ({
   children: React.ReactNode;
 }) => {
   const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
+  const { contract } = useMetaMaskWallet();
   const [state, send] = useMachine(BridgingMachine, {
     input: { zkappWorkerClient },
   });
@@ -72,8 +78,9 @@ export const BridgingProvider = ({
       "zkappWorkerClient inside BridgingProvider:",
       zkappWorkerClient
     );
-    send({ type: "UPDATE_WORKER", zkappWorkerClient });
-  }, [zkappWorkerClient]);
+    console.log("contract inside BridgingProvider:", zkappWorkerClient);
+    send({ type: "UPDATE_MACHINE", zkappWorkerClient, contract });
+  }, [zkappWorkerClient, contract]);
 
   const value = useMemo(
     () => ({
