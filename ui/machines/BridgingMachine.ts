@@ -1,17 +1,17 @@
-import ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 import { setup, fromPromise, assign } from "xstate";
-
+import type ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 interface BridgingContext {
   zkappWorkerClient: ZkappWorkerClient | null;
   credential: string | null;
   errorMessage: string | null;
-  step: "create" | "store";
+  step: "create" | "store" | "lock" | "getLockedTokens";
   lastInput?: {
     message: string;
     address: string;
     signature: string;
     walletAddress: string;
   };
+  lockedAmount: string | null;
 }
 
 type BridgingEvents =
@@ -26,6 +26,13 @@ type BridgingEvents =
       type: "STORE_CREDENTIAL";
       provider: any;
       credential: string;
+    }
+  | {
+      type: "START_LOCK";
+      amount: number;
+    }
+  | {
+      type: "GET_LOCKED_TOKENS";
     }
   | { type: "RETRY" }
   | { type: "RESET" }
@@ -70,18 +77,42 @@ export const BridgingMachine = setup({
           credential: string;
         };
       }) => {
-        console.log("Storing credential:", input.credential);
-        await input.provider.request({
+        const result = await input.provider.request({
           method: "mina_storePrivateCredential",
           params: [JSON.parse(input.credential)],
         });
+        if (!result.success) {
+          throw new Error("Failed to store credential");
+        }
+        return result;
+      }
+    ),
+    lockTokens: fromPromise(
+      async ({
+        input,
+      }: {
+        input: {
+          zkappWorkerClient: ZkappWorkerClient | null;
+          amount: number;
+        };
+      }) => {
+        throw new Error(
+          `Locking tokens is not implemented yet - ${input.amount}`
+        );
+      }
+    ),
+    getLockedTokens: fromPromise(
+      async ({
+        input,
+      }: {
+        input: {
+          zkappWorkerClient: ZkappWorkerClient | null;
+        };
+      }) => {
+        throw new Error("getLockedTokens not implemented yet");
 
-        // console.log("Store credential result:", result);
-
-        // if (!result.success) {
-        //   throw new Error("Failed to store credential");
-        // }
-        // return result;
+        // const amount = await input.zkappWorkerClient.getLockedTokens(); // Assume this method exists
+        // return ethers.formatEther(amount); // Convert to string like MetaMaskWalletProvider
       }
     ),
   },
@@ -92,8 +123,9 @@ export const BridgingMachine = setup({
     zkappWorkerClient: input.zkappWorkerClient,
     credential: null,
     errorMessage: null,
-    lastInput: undefined,
     step: "create",
+    lastInput: undefined,
+    lockedAmount: null,
   }),
   states: {
     idle: {
@@ -125,6 +157,18 @@ export const BridgingMachine = setup({
           target: "error",
           actions: assign({
             errorMessage: "Cannot store credential before creating one",
+          }),
+        },
+        START_LOCK: {
+          target: "error",
+          actions: assign({
+            errorMessage: "Cannot lock tokens before storing credentials",
+          }),
+        },
+        GET_LOCKED_TOKENS: {
+          target: "error",
+          actions: assign({
+            errorMessage: "Cannot get locked tokens before locking",
           }),
         },
       },
@@ -182,11 +226,24 @@ export const BridgingMachine = setup({
             errorMessage: null,
             lastInput: undefined,
             step: "create",
+            lockedAmount: null,
           }),
         },
         UPDATE_WORKER: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+          }),
+        },
+        START_LOCK: {
+          target: "error",
+          actions: assign({
+            errorMessage: "Cannot lock tokens before storing credentials",
+          }),
+        },
+        GET_LOCKED_TOKENS: {
+          target: "error",
+          actions: assign({
+            errorMessage: "Cannot get locked tokens before locking",
           }),
         },
       },
@@ -205,6 +262,7 @@ export const BridgingMachine = setup({
           target: "stored",
           actions: assign({
             errorMessage: null,
+            step: "lock",
           }),
         },
         onError: {
@@ -217,6 +275,21 @@ export const BridgingMachine = setup({
     },
     stored: {
       on: {
+        START_LOCK: [
+          {
+            guard: ({ context }) => !!context.zkappWorkerClient,
+            target: "locking",
+            actions: assign({
+              errorMessage: null,
+            }),
+          },
+          {
+            target: "error",
+            actions: assign({
+              errorMessage: "Worker not ready - bridge",
+            }),
+          },
+        ],
         RESET: {
           target: "idle",
           actions: assign({
@@ -224,6 +297,109 @@ export const BridgingMachine = setup({
             errorMessage: null,
             lastInput: undefined,
             step: "create",
+            lockedAmount: null,
+          }),
+        },
+        UPDATE_WORKER: {
+          actions: assign({
+            zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+          }),
+        },
+        GET_LOCKED_TOKENS: {
+          target: "error",
+          actions: assign({
+            errorMessage: "Cannot get locked tokens before locking",
+          }),
+        },
+      },
+    },
+    locking: {
+      invoke: {
+        src: "lockTokens",
+        input: ({ context, event }) => ({
+          zkappWorkerClient: context.zkappWorkerClient,
+          amount: event.type === "START_LOCK" ? event.amount : 0,
+        }),
+        onDone: {
+          target: "locked",
+          actions: assign({
+            errorMessage: null,
+          }),
+        },
+        onError: {
+          target: "error",
+          actions: assign({
+            errorMessage: ({ event }) => (event.error as Error).message,
+          }),
+        },
+      },
+    },
+    locked: {
+      on: {
+        GET_LOCKED_TOKENS: [
+          {
+            guard: ({ context }) => !!context.zkappWorkerClient,
+            target: "gettingLockedTokens",
+            actions: assign({
+              errorMessage: null,
+            }),
+          },
+          {
+            target: "error",
+            actions: assign({
+              errorMessage: "Worker not ready - bridge",
+            }),
+          },
+        ],
+        RESET: {
+          target: "idle",
+          actions: assign({
+            credential: null,
+            errorMessage: null,
+            lastInput: undefined,
+            step: "create",
+            lockedAmount: null,
+          }),
+        },
+        UPDATE_WORKER: {
+          actions: assign({
+            zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+          }),
+        },
+      },
+    },
+    gettingLockedTokens: {
+      invoke: {
+        src: "getLockedTokens",
+        input: ({ context }) => ({
+          zkappWorkerClient: context.zkappWorkerClient,
+        }),
+        onDone: {
+          target: "gotLockedTokens",
+          actions: assign({
+            lockedAmount: ({ event }) => event.output,
+            errorMessage: null,
+            step: "getLockedTokens",
+          }),
+        },
+        onError: {
+          target: "error",
+          actions: assign({
+            errorMessage: ({ event }) => (event.error as Error).message,
+          }),
+        },
+      },
+    },
+    gotLockedTokens: {
+      on: {
+        RESET: {
+          target: "idle",
+          actions: assign({
+            credential: null,
+            errorMessage: null,
+            lastInput: undefined,
+            step: "create",
+            lockedAmount: null,
           }),
         },
         UPDATE_WORKER: {
@@ -238,7 +414,9 @@ export const BridgingMachine = setup({
         RETRY: {
           target: "creating",
           guard: ({ context }) =>
-            !!context.lastInput && !!context.zkappWorkerClient,
+            !!context.lastInput &&
+            !!context.zkappWorkerClient &&
+            context.step === "create",
         },
         RESET: {
           target: "idle",
@@ -246,6 +424,8 @@ export const BridgingMachine = setup({
             credential: null,
             errorMessage: null,
             lastInput: undefined,
+            step: "create",
+            lockedAmount: null,
           }),
         },
         UPDATE_WORKER: {

@@ -11,13 +11,14 @@ interface BridgingContextValue {
       zkappWorkerClient: ZkappWorkerClient | null;
       credential: string | null;
       errorMessage: string | null;
-      step: "create" | "store";
+      step: "create" | "store" | "lock" | "getLockedTokens";
       lastInput?: {
         message: string;
         address: string;
         signature: string;
         walletAddress: string;
       };
+      lockedAmount: string | null;
     };
   };
   send: (
@@ -33,6 +34,13 @@ interface BridgingContextValue {
           type: "STORE_CREDENTIAL";
           provider: any;
           credential: string;
+        }
+      | {
+          type: "START_LOCK";
+          amount: number;
+        }
+      | {
+          type: "GET_LOCKED_TOKENS";
         }
       | { type: "RETRY" }
       | { type: "RESET" }
@@ -70,8 +78,14 @@ export const BridgingProvider = ({
       isLoading:
         state.matches("creating") ||
         state.matches("storing") ||
+        state.matches("locking") ||
+        state.matches("gettingLockedTokens") ||
         isWorkerLoading,
-      isSuccess: state.matches("success") || state.matches("stored"),
+      isSuccess:
+        state.matches("success") ||
+        state.matches("stored") ||
+        state.matches("locked") ||
+        state.matches("gotLockedTokens"),
       isError: state.matches("error"),
     }),
     [state, send, isWorkerLoading]
