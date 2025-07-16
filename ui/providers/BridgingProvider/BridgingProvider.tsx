@@ -3,12 +3,14 @@ import { useMachine } from "@xstate/react";
 import { BridgingMachine } from "@/machines/BridgingMachine.ts";
 import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 import type ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
+import { Contract } from "ethers";
 
 interface BridgingContextValue {
   state: {
     value: string;
     context: {
       zkappWorkerClient: ZkappWorkerClient | null;
+      contract: Contract | null;
       credential: string | null;
       errorMessage: string | null;
       step: "create" | "store" | "lock" | "getLockedTokens";
@@ -38,9 +40,11 @@ interface BridgingContextValue {
       | {
           type: "START_LOCK";
           amount: number;
+          contract: Contract | null;
         }
       | {
           type: "GET_LOCKED_TOKENS";
+          contract: Contract | null;
         }
       | { type: "RETRY" }
       | { type: "RESET" }

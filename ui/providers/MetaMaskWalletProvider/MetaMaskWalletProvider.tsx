@@ -26,6 +26,7 @@ interface MetaMaskWalletContextType {
   displayAddress: string | null;
   isConnected: boolean;
   lockedAmount: string | null;
+  contract: Contract | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   signMessage: () => Promise<void>;
@@ -331,6 +332,7 @@ export const MetaMaskWalletProvider = ({
       displayAddress: formatDisplayAddress(walletAddress),
       isConnected,
       lockedAmount,
+      contract,
       connect,
       disconnect,
       signMessage,
@@ -343,6 +345,7 @@ export const MetaMaskWalletProvider = ({
       walletAddress,
       isConnected,
       lockedAmount,
+      contract,
       connect,
       disconnect,
       signMessage,

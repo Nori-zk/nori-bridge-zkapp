@@ -5,6 +5,7 @@ import ConversionPrices from "@/components/bridge-control-card/ConversionPrices/
 import { useToast } from "@/helpers/useToast.tsx";
 import { useBridging } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import { useRef } from "react";
+import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 
 type FormValues = {
   amount: string;
@@ -12,6 +13,7 @@ type FormValues = {
 
 const LockTokens = () => {
   const { state, send, isLoading, isSuccess, isError } = useBridging();
+  const { contract } = useMetaMaskWallet();
   const rawToast = useToast({
     type: "error",
     title: "Error",
@@ -41,9 +43,18 @@ const LockTokens = () => {
         });
         return;
       }
+      if (contract === null) {
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: "Contract is not initialized.",
+        });
+        return;
+      }
       send({
         type: "START_LOCK",
         amount,
+        contract: contract,
       });
     } catch (error) {
       console.error("Error locking tokens:", error);

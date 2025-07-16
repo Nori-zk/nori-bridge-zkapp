@@ -5,6 +5,8 @@ import { useRef } from "react";
 
 const GetLockTokens = () => {
   const { state, send, isLoading, isSuccess, isError } = useBridging();
+  const { contract } = useMetaMaskWallet();
+
   const rawToast = useToast({
     type: "error",
     title: "Error",
@@ -14,7 +16,15 @@ const GetLockTokens = () => {
 
   const handleGetLockedTokens = async () => {
     try {
-      send({ type: "GET_LOCKED_TOKENS" });
+      if (contract === null) {
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: "Contract is not initialized.",
+        });
+        return;
+      }
+      send({ type: "GET_LOCKED_TOKENS", contract: contract });
     } catch (error) {
       console.error("Error getting locked tokens:", error);
       toast.current({
