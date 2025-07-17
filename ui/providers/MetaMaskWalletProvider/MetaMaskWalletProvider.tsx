@@ -26,13 +26,12 @@ interface MetaMaskWalletContextType {
   displayAddress: string | null;
   isConnected: boolean;
   lockedAmount: string | null;
+  contract: Contract | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   signMessage: () => Promise<void>;
   signMessageForEcdsa: (message: string) => Promise<SignMessageResult>;
   bridgeOperator: () => Promise<void>;
-  lockTokens: (amount: number) => Promise<void>;
-  getLockedTokens: () => Promise<void>;
 }
 
 declare global {
@@ -158,37 +157,37 @@ export const MetaMaskWalletProvider = ({
     }
   }, [signer, toast]);
 
-  const signMessageForEcdsa = useCallback(
-    async (message: string): Promise<SignMessageResult> => {
-      if (!isConnected) {
-        toast.current({
-          type: "error",
-          title: "Error",
-          description: "Please connect wallet first.",
-        });
-        throw new Error("Wallet not connected");
-      }
-      try {
-        const parseHex = (hex: string) => ethers.getBytes(hex);
-        const hashMessage = (msg: string) => parseHex(ethers.id(msg));
-        const hashedMessage = ethers.hexlify(hashMessage(message));
-        const signature = await window.ethereum.request({
-          method: "personal_sign",
-          params: [hashedMessage, walletAddress!],
-        });
-        return { signature, walletAddress: walletAddress!, hashedMessage };
-      } catch (error) {
-        console.error("Error calling signMessageForEcdsa:", error);
-        toast.current({
-          type: "error",
-          title: "Error",
-          description: "Error calling sign message for ECDSA.",
-        });
-        throw error;
-      }
-    },
-    [signer, walletAddress, toast]
-  );
+   const signMessageForEcdsa = useCallback(
+     async (message: string): Promise<SignMessageResult> => {
+       if (!isConnected) {
+         toast.current({
+           type: "error",
+           title: "Error",
+           description: "Please connect wallet first.",
+         });
+         throw new Error("Wallet not connected");
+       }
+       try {
+         const parseHex = (hex: string) => ethers.getBytes(hex);
+         const hashMessage = (msg: string) => parseHex(ethers.id(msg));
+         const hashedMessage = ethers.hexlify(hashMessage(message));
+         const signature = await window.ethereum.request({
+           method: "personal_sign",
+           params: [hashedMessage, walletAddress!],
+         });
+         return { signature, walletAddress: walletAddress!, hashedMessage };
+       } catch (error) {
+         console.error("Error calling signMessageForEcdsa:", error);
+         toast.current({
+           type: "error",
+           title: "Error",
+           description: "Error calling sign message for ECDSA.",
+         });
+         throw error;
+       }
+     },
+     [signer, walletAddress, toast]
+   );
 
   const bridgeOperator = useCallback(async () => {
     if (!contract) {
@@ -216,65 +215,6 @@ export const MetaMaskWalletProvider = ({
     }
   }, [contract, toast]);
 
-  const lockTokens = useCallback(
-    async (amount: number) => {
-      if (!contract) {
-        toast.current({
-          type: "error",
-          title: "Error",
-          description: "Please connect wallet first.",
-        });
-        return;
-      }
-      try {
-        const tx = await contract.lockTokens({
-          value: ethers.parseEther(amount.toString()),
-        });
-        await tx.wait();
-        toast.current({
-          type: "notification",
-          title: "Success",
-          description: "Tokens locked successfully!",
-        });
-      } catch (error) {
-        console.error("Error calling lockTokens:", error);
-        toast.current({
-          type: "error",
-          title: "Error",
-          description: "Error locking tokens.",
-        });
-      }
-    },
-    [contract, toast]
-  );
-
-  const getLockedTokens = useCallback(async () => {
-    if (!contract || !walletAddress) {
-      toast.current({
-        type: "error",
-        title: "Error",
-        description: "Please connect wallet first.",
-      });
-      return;
-    }
-    try {
-      const amount = await contract.lockedTokens(walletAddress);
-      const formattedAmount = ethers.formatEther(amount);
-      setLockedAmount(formattedAmount);
-      toast.current({
-        type: "notification",
-        title: "Locked Tokens",
-        description: `You have ${formattedAmount} tokens locked.`,
-      });
-    } catch (error) {
-      console.error("Error fetching locked tokens:", error);
-      toast.current({
-        type: "error",
-        title: "Error",
-        description: "Error getting locked tokens.",
-      });
-    }
-  }, [contract, walletAddress, toast]);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -331,25 +271,23 @@ export const MetaMaskWalletProvider = ({
       displayAddress: formatDisplayAddress(walletAddress),
       isConnected,
       lockedAmount,
+      contract,
       connect,
       disconnect,
       signMessage,
       signMessageForEcdsa,
       bridgeOperator,
-      lockTokens,
-      getLockedTokens,
     }),
     [
       walletAddress,
       isConnected,
       lockedAmount,
+      contract,
       connect,
       disconnect,
       signMessage,
       signMessageForEcdsa,
       bridgeOperator,
-      lockTokens,
-      getLockedTokens,
     ]
   );
 

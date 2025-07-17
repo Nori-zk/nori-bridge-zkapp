@@ -1,17 +1,14 @@
-"use client";
-import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
-import { FaArrowRight } from "react-icons/fa";
 import { useEffect, useState } from "react";
-import { progressSteps } from "@/static_data.ts";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import { ProgressStep } from "@/types/types.ts";
+import { useBridging } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import CreateCredentials from "./ProgressSteps/CreateCredentials.tsx";
-import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
+import { FaArrowRight } from "react-icons/fa";
 import StoreCredentials from "@/components/bridge-control-card/ProgressSteps/StoreCredentials.tsx";
 import LockTokens from "./ProgressSteps/LockTokens.tsx";
-import GetLockTokens from "./ProgressSteps/GetLockedTokens.tsx";
+import GetLockedTokens from "./ProgressSteps/GetLockedTokens.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -19,30 +16,16 @@ type BridgeControlCardProps = {
   height?: number;
 };
 
-const stepComponents: Record<ProgressStep, React.ComponentType> = {
-  create_credential: CreateCredentials,
-  store_credential: StoreCredentials,
-  lock_tokens: LockTokens,
-  get_locked_tokens: GetLockTokens,
-};
-
 const BridgeControlCard = (props: BridgeControlCardProps) => {
-  const [displayProgressSteps, setDisplayProgressSteps] = useState(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
-
-  const { state } = useProgress();
   const { title, width, height } = props;
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
-
-  const CurrentStepComponent = stepComponents[state.currentStep];
+  const { state } = useBridging();
 
   useEffect(() => {
     setIsMounted(true);
-    if (progressSteps.length > 0) {
-      setDisplayProgressSteps(true);
-    }
   }, []);
 
   const minaButtonContent = isMounted
@@ -80,7 +63,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
       <div className="flex flex-col items-center justify-center h-full">
         <h1 className="text-center text-white text-3xl mb-6">{title}</h1>
         <div className="w-3/4">
-          <div className="flex text-white justify-between items-center ">
+          <div className="flex text-white justify-between items-center">
             <WalletButton
               id="eth-btn"
               types={"Ethereum"}
@@ -98,59 +81,16 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             />
           </div>
           <div className="flex justify-center mt-6">
-            <CurrentStepComponent />
-          </div>
-          {/* <>
-            {!ethConnected ? (
-              <button
-                className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
-                onClick={async () => {}}
-              >
-                {"Connect Wallet"}
-              </button>
+            {state.context.step === "create" ? (
+              <CreateCredentials />
+            ) : state.context.step === "store" ? (
+              <StoreCredentials />
+            ) : state.context.step === "lock" ? (
+              <LockTokens />
             ) : (
-              <div className="w-full flex">
-                <button
-                  className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
-                  onClick={async () => {
-                    await handleCreateCredential();
-                  }}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? "Processing..." : "Create Credential"}
-                </button>
-              </div>
+              <GetLockedTokens />
             )}
-          </>
-          {credential !== undefined && (
-            <div className="w-full flex">
-              <button
-                className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
-                onClick={async () => {
-                  await handleStoreCredential();
-                }}
-                disabled={isProcessing}
-              >
-                {isProcessing ? "Processing..." : "Store Credential"}
-              </button>
-            </div>
-          )} */}
-
-          {/* {ethConnected && minaConnected && (
-            <div>
-              <div className="flex flex-col items-center m-6">
-                <div className="text-white">
-                  Wallet Linking Is Required For The First Time
-                </div>
-                <div className="text-lightGreen">
-                  Bridge Contracts Are Compiling
-                </div>
-              </div>
-              {displayProgressSteps && (
-                <ProgressTracker steps={progressSteps} />
-              )}
-            </div>
-          )} */}
+          </div>
         </div>
       </div>
     </div>

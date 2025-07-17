@@ -1,17 +1,25 @@
 "use client";
 import TextInput from "@/components/ui/TextInput.tsx";
-import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useForm } from "react-hook-form";
 import ConversionPrices from "@/components/bridge-control-card/ConversionPrices/ConversionPrices.tsx";
+import { useToast } from "@/helpers/useToast.tsx";
+import { useBridging } from "@/providers/BridgingProvider/BridgingProvider.tsx";
+import { useRef } from "react";
+import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 
 type FormValues = {
   amount: string;
 };
 
 const LockTokens = () => {
-  const { lockTokens } = useMetaMaskWallet();
-  const { dispatch } = useProgress();
+  const { state, send, isLoading, isSuccess, isError } = useBridging();
+  const { contract } = useMetaMaskWallet();
+  const rawToast = useToast({
+    type: "error",
+    title: "Error",
+    description: "",
+  });
+  const toast = useRef(rawToast);
 
   const {
     register,
@@ -27,17 +35,34 @@ const LockTokens = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       const amount = parseFloat(data.amount);
-      if (!isNaN(amount) && amount >= 0.004) {
-        await lockTokens(amount);
-        dispatch({
-          type: "NEXT_STEP",
-          payload: { nextStep: "get_locked_tokens" },
+      if (isNaN(amount) || amount < 0.004) {
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: "Amount must be at least 0.004 ETH.",
         });
-      } else {
-        console.error("Invalid amount");
+        return;
       }
+      if (contract === null) {
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: "Contract is not initialized.",
+        });
+        return;
+      }
+      send({
+        type: "START_LOCK",
+        amount,
+        contract: contract,
+      });
     } catch (error) {
       console.error("Error locking tokens:", error);
+      toast.current({
+        type: "error",
+        title: "Error",
+        description: "Failed to initiate token locking.",
+      });
     }
   };
 
@@ -70,9 +95,18 @@ const LockTokens = () => {
       <button
         type="submit"
         className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
+        disabled={isLoading}
       >
-        Lock Tokens
+        {isLoading ? "Processing..." : "Lock Tokens"}
       </button>
+      {isSuccess && state.context.step === "getLockedTokens" && (
+        <p className="mt-4 text-white text-sm">Tokens locked successfully!</p>
+      )}
+      {isError && state.context.errorMessage && (
+        <p className="mt-4 text-red-500 text-sm">
+          {state.context.errorMessage}
+        </p>
+      )}
     </form>
   );
 };

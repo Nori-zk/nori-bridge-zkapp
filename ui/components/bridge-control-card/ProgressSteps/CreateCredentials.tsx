@@ -1,22 +1,17 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useToast } from "@/helpers/useToast.tsx";
 import { useAccount } from "wagmina";
-import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+import { useBridging } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 
 const CreateCredentials = () => {
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("abc");
-  const { zkappWorkerClient, isLoading } = useZkappWorker();
-
-  const {
-    isConnected: ethConnected,
-    displayAddress: ethDisplayAddress,
-    signMessageForEcdsa,
-  } = useMetaMaskWallet();
-  const { isConnected, address } = useAccount();
-  const { dispatch, setCredential } = useProgress();
+  const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
+  const { state, send, isLoading, isSuccess, isError } = useBridging();
+  const { isConnected: ethConnected, signMessageForEcdsa } =
+    useMetaMaskWallet();
+  const { isConnected: minaConnected, address } = useAccount();
 
   const rawToast = useToast({
     type: "error",
@@ -26,62 +21,90 @@ const CreateCredentials = () => {
   const toast = useRef(rawToast);
 
   const handleCreateCredential = async () => {
-    if (!zkappWorkerClient || isLoading) {
-      console.warn(
-        `zkWorker not ready yet. client ${zkappWorkerClient} & isLoading ${isLoading}`
-      );
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const { signature, walletAddress, hashedMessage } =
-        await signMessageForEcdsa(message);
-      const cred = await zkappWorkerClient.createEcdsaCredential(
-        message,
-        address ?? "",
-        signature,
-        walletAddress
-      );
-      setCredential(cred);
-      dispatch({
-        type: "NEXT_STEP",
-        payload: { nextStep: "store_credential" },
-      });
-      toast.current({
-        type: "notification",
-        title: "Success",
-        description: "Credential created successfully!",
-      });
-    } catch (error) {
-      console.error("Error creating credential:", error);
+    if (
+      !zkappWorkerClient ||
+      isWorkerLoading ||
+      !state.context.zkappWorkerClient
+    ) {
       toast.current({
         type: "error",
         title: "Error",
-        description: "Failed to create credential. Please try again.",
+        description: "Worker not ready. Please try again.",
       });
-      setCredential(undefined);
-    } finally {
-      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      if (!ethConnected || !minaConnected || !address) {
+        throw new Error("Please connect both Ethereum and Mina wallets.");
+      }
+      const { signature, walletAddress, hashedMessage } =
+        await signMessageForEcdsa(message);
+      send({
+        type: "CREATE_CREDENTIAL",
+        message,
+        address,
+        signature,
+        walletAddress,
+      });
+    } catch (error) {
+      console.error("Error initiating credential creation:", error);
+      toast.current({
+        type: "error",
+        title: "Error",
+        description:
+          (error as Error).message || "Failed to initiate credential creation.",
+      });
     }
   };
 
+  useEffect(() => {
+    if (isSuccess && state.context.step === "store") {
+      toast.current({
+        type: "notification",
+        title: "Success",
+        description: "Credential created successfully! Ready to store.",
+      });
+    } else if (isError) {
+      toast.current({
+        type: "error",
+        title: "Error",
+        description:
+          state.context.errorMessage || "Failed to create credential.",
+      });
+    }
+  }, [state.value, state.context, isSuccess, isError]);
+
   return (
-    <div className="flex align-center items-center justify-center mt-6 w-full text-white px-4 py-3">
-      {isLoading ? (
-        "Spinning up zkappWorker..."
+    <div className="flex flex-col items-center justify-center mt-6 w-full text-white px-4 py-3">
+      {isWorkerLoading || !state.context.zkappWorkerClient ? (
+        <p>Spinning up zkappWorker...</p>
       ) : !zkappWorkerClient ? (
-        "zkappWorker is not ready."
+        <p>zkappWorker is not ready.</p>
       ) : (
-        <button
-          className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
-          onClick={async () => {
-            await handleCreateCredential();
-          }}
-          disabled={isProcessing}
-        >
-          {isProcessing ? "Processing..." : "Create Credential"}
-        </button>
+        <div className="flex flex-col items-center justify-center gap-4 w-full overflow-hidden">
+          <button
+            className="mt-6 w-full text-sm text-white rounded-lg px-4 py-3 border-[1.1px] border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            onClick={handleCreateCredential}
+            disabled={
+              isLoading ||
+              !ethConnected ||
+              !minaConnected ||
+              !zkappWorkerClient ||
+              isWorkerLoading ||
+              !state.context.zkappWorkerClient
+            }
+          >
+            {isLoading ? "Processing..." : "Create Credential"}
+          </button>
+          {isSuccess &&
+            state.context.credential &&
+            state.context.step === "store" && (
+              <p className="mt-2 text-white text-xs overflow-y-auto max-h-16 break-all w-full p-2 whitespace-pre-wrap">
+                Credential: {state.context.credential}
+              </p>
+            )}
+        </div>
       )}
     </div>
   );
