@@ -133,7 +133,7 @@ any --> idle: RESET
 | `fromPromise()`   | Wraps async functions as machine actors |
 
 ### 🚀 Usage
-In Your App or Component
+In App or Component
 
 ```ts
 const [state, send] = useMachine(BridgingMachine, {
@@ -210,6 +210,6 @@ step: "create" | "store" | "lock" | "getLockedTokens" | "newStep";
 
 ### ✅ What is UPDATE_MACHINE for?
 
-The UPDATE_MACHINE event in your BridgingMachine is used to dynamically inject or update dependencies in the machine’s context after it has already started running. When you initialize the XState machine via useMachine(BridgingMachine, { input: { zkappWorkerClient } }), you can only pass the initial context (in this case, zkappWorkerClient). But in your app, some values like zkappWorkerClient and contract may become available asynchronously (e.g., once a wallet connects or a worker initializes).
+The UPDATE_MACHINE event in this BridgingMachine is used to dynamically inject or update dependencies in the machine’s context after it has already started running. When we initialize the XState machine via useMachine(BridgingMachine, { input: { zkappWorkerClient } }), we can only pass the initial context (in this case, zkappWorkerClient). But in this app, some values like zkappWorkerClient and contract may become available asynchronously (e.g., once a wallet connects or a worker initializes).
 
-Since XState’s machine context is immutable after setup, unless you explicitly allow updates using an event like UPDATE_MACHINE, this is the only way to safely mutate the machine’s state to include those late-loaded dependencies.
+Since XState’s machine context is immutable after setup, unless we explicitly allow updates using an event like UPDATE_MACHINE, this is the only way to safely mutate the machine’s state to include those late-loaded dependencies.
