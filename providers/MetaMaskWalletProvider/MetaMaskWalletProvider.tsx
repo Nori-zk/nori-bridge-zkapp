@@ -13,7 +13,7 @@ import { BrowserProvider, Contract, ethers, Signer } from "ethers";
 import { useToast } from "@/helpers/useToast.tsx";
 import { openExternalLink } from "@/helpers/navigation.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import contractABI from "@/contractABI.json" with { type: "json" };
+import { noriTokenBridgeJson } from "@nori-zk/ethereum-token-bridge";
 
 interface SignMessageResult {
   signature: string;
@@ -78,7 +78,7 @@ export const MetaMaskWalletProvider = ({
 
   const initializeContract = useCallback(async (signer: Signer) => {
     const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
-    return new Contract(contractAddress, contractABI, signer);
+    return new Contract(contractAddress, noriTokenBridgeJson.abi, signer);
   }, []);
 
   const connect = useCallback(async () => {
@@ -157,37 +157,37 @@ export const MetaMaskWalletProvider = ({
     }
   }, [signer, toast]);
 
-   const signMessageForEcdsa = useCallback(
-     async (message: string): Promise<SignMessageResult> => {
-       if (!isConnected) {
-         toast.current({
-           type: "error",
-           title: "Error",
-           description: "Please connect wallet first.",
-         });
-         throw new Error("Wallet not connected");
-       }
-       try {
-         const parseHex = (hex: string) => ethers.getBytes(hex);
-         const hashMessage = (msg: string) => parseHex(ethers.id(msg));
-         const hashedMessage = ethers.hexlify(hashMessage(message));
-         const signature = await window.ethereum.request({
-           method: "personal_sign",
-           params: [hashedMessage, walletAddress!],
-         });
-         return { signature, walletAddress: walletAddress!, hashedMessage };
-       } catch (error) {
-         console.error("Error calling signMessageForEcdsa:", error);
-         toast.current({
-           type: "error",
-           title: "Error",
-           description: "Error calling sign message for ECDSA.",
-         });
-         throw error;
-       }
-     },
-     [signer, walletAddress, toast]
-   );
+  const signMessageForEcdsa = useCallback(
+    async (message: string): Promise<SignMessageResult> => {
+      if (!isConnected) {
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: "Please connect wallet first.",
+        });
+        throw new Error("Wallet not connected");
+      }
+      try {
+        const parseHex = (hex: string) => ethers.getBytes(hex);
+        const hashMessage = (msg: string) => parseHex(ethers.id(msg));
+        const hashedMessage = ethers.hexlify(hashMessage(message));
+        const signature = await window.ethereum.request({
+          method: "personal_sign",
+          params: [hashedMessage, walletAddress!],
+        });
+        return { signature, walletAddress: walletAddress!, hashedMessage };
+      } catch (error) {
+        console.error("Error calling signMessageForEcdsa:", error);
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: "Error calling sign message for ECDSA.",
+        });
+        throw error;
+      }
+    },
+    [signer, walletAddress, toast]
+  );
 
   const bridgeOperator = useCallback(async () => {
     if (!contract) {
@@ -214,7 +214,6 @@ export const MetaMaskWalletProvider = ({
       });
     }
   }, [contract, toast]);
-
 
   useEffect(() => {
     const checkConnection = async () => {

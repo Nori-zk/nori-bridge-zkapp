@@ -15,6 +15,7 @@ interface BridgingContext {
     walletAddress: string;
   };
   lockedAmount: string | null;
+  attestationHash?: string;
 }
 
 type BridgingEvents =
@@ -33,6 +34,7 @@ type BridgingEvents =
   | {
       type: "START_LOCK";
       amount: number;
+      attestationHash: string;
     }
   | {
       type: "GET_LOCKED_TOKENS";
@@ -105,20 +107,25 @@ export const BridgingMachine = setup({
           zkappWorkerClient: ZkappWorkerClient | null;
           contract: Contract;
           amount: number;
+          attestationHash: string;
         };
       }) => {
         if (!input.amount || isNaN(input.amount)) {
           throw new Error("Invalid amount");
         }
-        if (
-          !input.contract ||
-          typeof input.contract.lockTokens !== "function"
-        ) {
-          throw new Error("Contract not ready or invalid");
-        }
 
-        const tx = await input.contract.lockTokens({
-          value: ethers.parseEther(input.amount.toString()),
+        const fakeAttestationHash = "12345";
+
+        const parsedAmount = parseFloat(fakeAttestationHash);
+
+        const value = ethers.parseEther(input.amount.toString());
+
+        console.log(
+          `Locking tokens with amount: ${input.amount}, attestationHash: ${parsedAmount}`
+        );
+
+        const tx = await input.contract.lockTokens(parsedAmount, {
+          value,
         });
         await tx.wait();
       }
@@ -313,6 +320,8 @@ export const BridgingMachine = setup({
             target: "locking",
             actions: assign({
               errorMessage: null,
+              attestationHash: ({ event }) =>
+                event.type === "START_LOCK" ? event.attestationHash : undefined,
             }),
           },
           {
@@ -330,6 +339,7 @@ export const BridgingMachine = setup({
             lastInput: undefined,
             step: "create",
             lockedAmount: null,
+            attestationHash: undefined, // optional: clear on reset
           }),
         },
         UPDATE_MACHINE: {
@@ -351,6 +361,8 @@ export const BridgingMachine = setup({
         input: ({ context, event }) => ({
           zkappWorkerClient: context.zkappWorkerClient,
           amount: event.type === "START_LOCK" ? event.amount : 0,
+          attestationHash:
+            event.type === "START_LOCK" ? event.attestationHash : "",
           contract: context.contract!,
         }),
         onDone: {
