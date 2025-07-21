@@ -113,17 +113,12 @@ export const BridgingMachine = setup({
         if (!input.amount || isNaN(input.amount)) {
           throw new Error("Invalid amount");
         }
-
         const fakeAttestationHash = "12345";
-
         const parsedAmount = parseFloat(fakeAttestationHash);
-
         const value = ethers.parseEther(input.amount.toString());
-
         console.log(
           `Locking tokens with amount: ${input.amount}, attestationHash: ${parsedAmount}`
         );
-
         const tx = await input.contract.lockTokens(parsedAmount, {
           value,
         });
@@ -142,8 +137,11 @@ export const BridgingMachine = setup({
           };
         };
       }) => {
+        const fakeAttestationHash = "12345";
+        const parsedAmount = parseFloat(fakeAttestationHash);
         const amount = await input.contract.lockedTokens(
-          input.lastInput?.walletAddress
+          input.lastInput?.walletAddress,
+          parsedAmount
         );
         const formattedAmount = ethers.formatEther(amount);
         console.log(
