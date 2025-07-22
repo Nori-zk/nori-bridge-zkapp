@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useAccount } from "wagmina";
+import { Connector, useAccount } from "wagmina";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 import { useBridging } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import CreateCredentials from "./ProgressSteps/CreateCredentials.tsx";
@@ -9,6 +9,7 @@ import { FaArrowRight } from "react-icons/fa";
 import StoreCredentials from "@/components/bridge-control-card/ProgressSteps/StoreCredentials.tsx";
 import LockTokens from "./ProgressSteps/LockTokens.tsx";
 import GetLockedTokens from "./ProgressSteps/GetLockedTokens.tsx";
+import { compileEcdsaSpec } from "@/lib/ecdsa-credential.ts";
 
 type BridgeControlCardProps = {
   title: string;
@@ -21,7 +22,11 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const { title, width, height } = props;
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
-  const { isConnected: minaConnected, address: minaAddress } = useAccount();
+  const {
+    isConnected: minaConnected,
+    address: minaAddress,
+    connector,
+  } = useAccount();
   const { state } = useBridging();
 
   useEffect(() => {
@@ -81,7 +86,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             />
           </div>
           <div className="flex justify-center mt-6">
-            {state.context.step === "create" ? (
+            {/* {state.context.step === "create" ? (
               <CreateCredentials />
             ) : state.context.step === "store" ? (
               <StoreCredentials />
@@ -89,7 +94,42 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               <LockTokens />
             ) : (
               <GetLockedTokens />
-            )}
+            )} */}
+            <button
+              className="w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
+              // onClick={handleGetLockedTokens}
+              // disabled={isLoading}
+              onClick={async () => {
+                console.log("Button clicked for obtaining attestation");
+                const requestJson = await compileEcdsaSpec();
+
+                if (!connector && requestJson === undefined) {
+                  console.log("Connector or request is not available....");
+                  return;
+                }
+                // type Provider = {
+                //   request<M>(params: { method: M; params?: any; context?: any }): Promise<any>;
+                // };
+                const provider = (await (
+                  connector as Connector
+                ).getProvider()) as unknown;
+
+                const { result } =
+                  await provider.request<"mina_requestPresentation">({
+                    method: "mina_requestPresentation",
+                    params: [
+                      {
+                        presentationRequest: JSON.parse(requestJson as string),
+                      },
+                    ],
+                  });
+
+                console.log("Result from provider request:", result);
+              }}
+            >
+              {/* {isLoading ? "Processing..." : "Get Locked Tokens"} */}
+              Obtain Attestation
+            </button>
           </div>
         </div>
       </div>
