@@ -17,7 +17,7 @@ const CreateCredentials = () => {
   } = useMetaMaskWallet();
   const { isConnected, address } = useAccount();
   const { dispatch, setCredential } = useProgress();
-
+  const { connector } = useAccount();
   const rawToast = useToast({
     type: "error",
     title: "Error",
@@ -35,14 +35,23 @@ const CreateCredentials = () => {
 
     setIsProcessing(true);
     try {
-      const { signature, walletAddress, hashedMessage } =
-        await signMessageForEcdsa(message);
-      const cred = await zkappWorkerClient.createEcdsaCredential(
-        message,
-        address ?? "",
-        signature,
-        walletAddress
-      );
+      if (connector) {
+        const provider = await connector.getProvider();
+        // @ts-ignore
+        const { result } = await provider.request<'mina_requestPresentation'>({
+          method: 'mina_requestPresentation',
+          params: [{ presentationRequest: '' }],
+        });
+        console.log("Request Presentation Result:", result);
+      }
+      // const { signature, walletAddress, hashedMessage } =
+      //   await signMessageForEcdsa(message);
+      // const cred = await zkappWorkerClient.createEcdsaCredential(
+      //   message,
+      //   address ?? "",
+      //   signature,
+      //   walletAddress
+      // );
       setCredential(cred);
       dispatch({
         type: "NEXT_STEP",
