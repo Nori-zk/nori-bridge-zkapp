@@ -3,7 +3,7 @@ import { EcdsaEthereum } from "mina-attestations/imported";
 import { PublicKey } from "o1js";
 
 const maxMessageLength = 3;
-const proofsEnabled = true;
+const proofsEnabled = false;
 const Message = DynamicBytes({ maxLength: maxMessageLength });
 
 export async function createEcdsaCredential(
@@ -13,14 +13,6 @@ export async function createEcdsaCredential(
   signerAddress: string
 ): Promise<string> {
   try {
-    await EcdsaEthereum.compileDependencies({
-      maxMessageLength,
-      proofsEnabled,
-    });
-    const EcdsaCredential = await EcdsaEthereum.Credential({
-      maxMessageLength,
-    });
-    await EcdsaCredential.compile({ proofsEnabled });
     const { signature: parsedSignature, parityBit } =
       EcdsaEthereum.parseSignature(signature);
     const credential = await EcdsaCredential.create({
@@ -40,6 +32,23 @@ export async function createEcdsaCredential(
     return credentialJson;
   } catch (error) {
     console.error("Error creating ECDSA credential:", error);
+    throw error;
+  }
+}
+
+export async function compileEcdsaCredentialDependencies(): Promise<any> {
+  try {
+    await EcdsaEthereum.compileDependencies({
+      maxMessageLength,
+      proofsEnabled,
+    });
+    const EcdsaCredential = await EcdsaEthereum.Credential({
+      maxMessageLength,
+    });
+    await EcdsaCredential.compile({ proofsEnabled });
+    return EcdsaCredential;
+  } catch (error) {
+    console.error("Error compiling ECDSA credential dependencies:", error);
     throw error;
   }
 }

@@ -1,6 +1,10 @@
-import { createEcdsaCredential } from "@/lib/ecdsa-credential.ts";
+import {
+  compileEcdsaCredentialDependencies,
+  createEcdsaCredential,
+} from "@/lib/ecdsa-credential.ts";
 import { Mina, PublicKey } from "o1js";
 import * as Comlink from "comlink";
+import { init } from "next/dist/compiled/webpack/webpack";
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -28,6 +32,22 @@ export const api = {
       return credential;
     } catch (error) {
       console.error("Error in worker createEcdsaCredential:", error);
+      throw error;
+    }
+  },
+
+  initialiseCredential: async (): Promise<any> => {
+    try {
+      console.log("Worker initialiseCredential.");
+      const compiledEcdsaCredential =
+        await compileEcdsaCredentialDependencies();
+      console.log(
+        "Finished Worker initialiseCredential.",
+        compiledEcdsaCredential
+      );
+      return compiledEcdsaCredential;
+    } catch (error) {
+      console.error("Error during worker initialiseCredential:", error);
       throw error;
     }
   },

@@ -16,6 +16,8 @@ export const ZkappWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [zkappWorkerClient, setZkappWorkerClient] =
     useState<ZkappWorkerClient | null>(null);
+  const [compiledEcdsaCredential, setCompiledEcdsaCredential] =
+    useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -31,6 +33,29 @@ export const ZkappWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     spinUpWorker();
   }, []);
+
+  useEffect(() => {
+    if (!zkappWorkerClient) return;
+
+    const initialise = async () => {
+      try {
+        // Perform your follow-up initialisation here
+        const result = await zkappWorkerClient.initialiseCredential();
+        console.log("Credential initialised, useEffect:", result);
+        setCompiledEcdsaCredential(result);
+      } catch (err) {
+        console.error("Credential initialisation failed:", err);
+      }
+    };
+
+    initialise();
+  }, [zkappWorkerClient]);
+
+  useEffect(() => {
+    if (compiledEcdsaCredential) {
+      console.log("ECDSA Credential dependencies compiled successfully.");
+    }
+  }, [compiledEcdsaCredential]);
 
   return (
     <ZkappWorkerContext.Provider value={{ zkappWorkerClient, isLoading }}>

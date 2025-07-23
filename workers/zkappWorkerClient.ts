@@ -28,4 +28,11 @@ export default class ZkappWorkerClient {
       walletAddress
     );
   }
+
+  async initialiseCredential(): Promise<any> {
+    // Placeholder for any initialization logic if needed
+    const result = await this.remoteApi.initialiseCredential();
+    console.log("Worker client initCred value:", result);
+    return result;
+  }
 }
