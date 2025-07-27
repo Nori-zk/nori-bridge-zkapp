@@ -9,6 +9,7 @@ import { FaArrowRight } from "react-icons/fa";
 import StoreCredentials from "@/components/bridge-control-card/ProgressSteps/StoreCredentials.tsx";
 import LockTokens from "./ProgressSteps/LockTokens.tsx";
 import GetLockedTokens from "./ProgressSteps/GetLockedTokens.tsx";
+import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -23,6 +24,11 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
   const { state } = useBridging();
+  const {
+    zkappWorkerClient,
+    isLoading: isWorkerLoading,
+    compiledEcdsaCredential,
+  } = useZkappWorker();
 
   useEffect(() => {
     setIsMounted(true);
@@ -80,8 +86,14 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               content={minaButtonContent}
             />
           </div>
-          <div className="flex justify-center mt-6">
-            {state.context.step === "create" ? (
+          <div className="flex justify-center mt-6 text-white">
+            {isWorkerLoading || !state.context.zkappWorkerClient ? (
+              <p>Spinning up zkappWorker...</p>
+            ) : !zkappWorkerClient ? (
+              <p>zkappWorker is not ready.</p>
+            ) : !compiledEcdsaCredential ? (
+              <p>Running step compiledEcdsaCredential...</p>
+            ) : state.context.step === "create" ? (
               <CreateCredentials />
             ) : state.context.step === "store" ? (
               <StoreCredentials />

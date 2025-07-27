@@ -29,10 +29,28 @@ export default class ZkappWorkerClient {
     );
   }
 
-  async initialiseCredential(): Promise<any> {
+  async initialiseCredential(): Promise<boolean> {
     // Placeholder for any initialization logic if needed
     const result = await this.remoteApi.initialiseCredential();
     console.log("Worker client initCred value:", result);
+    return result;
+  }
+
+  async loadTokenContracts(): Promise<void> {
+    console.log("Worker client loadTokenContracts called.");
+    await this.remoteApi.loadContracts({});
+  }
+
+  async initialiseTokenContracts(
+    tokenAddress: string,
+    controllerAddress: string
+  ): Promise<boolean> {
+    // Placeholder for token contract initialization logic
+    const result = await this.remoteApi.initContractsInstance({
+      tokenAddress: tokenAddress,
+      controllerAddress: controllerAddress,
+    });
+    console.log("Worker client initialiseTokenContracts called.");
     return result;
   }
 }

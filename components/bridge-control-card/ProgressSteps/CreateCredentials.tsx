@@ -77,35 +77,29 @@ const CreateCredentials = () => {
 
   return (
     <div className="flex flex-col items-center justify-center mt-6 w-full text-white px-4 py-3">
-      {isWorkerLoading || !state.context.zkappWorkerClient ? (
-        <p>Spinning up zkappWorker...</p>
-      ) : !zkappWorkerClient ? (
-        <p>zkappWorker is not ready.</p>
-      ) : (
-        <div className="flex flex-col items-center justify-center gap-4 w-full overflow-hidden">
-          <button
-            className="mt-6 w-full text-sm text-white rounded-lg px-4 py-3 border-[1.1px] border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-            onClick={handleCreateCredential}
-            disabled={
-              isLoading ||
-              !ethConnected ||
-              !minaConnected ||
-              !zkappWorkerClient ||
-              isWorkerLoading ||
-              !state.context.zkappWorkerClient
-            }
-          >
-            {isLoading ? "Processing..." : "Create Credential"}
-          </button>
-          {isSuccess &&
-            state.context.credential &&
-            state.context.step === "store" && (
-              <p className="mt-2 text-white text-xs overflow-y-auto max-h-16 break-all w-full p-2 whitespace-pre-wrap">
-                Credential: {state.context.credential}
-              </p>
-            )}
-        </div>
-      )}
+      <div className="flex flex-col items-center justify-center gap-4 w-full overflow-hidden">
+        <button
+          className="mt-6 w-full text-sm text-white rounded-lg px-4 py-3 border-[1.1px] border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          onClick={handleCreateCredential}
+          disabled={
+            isLoading ||
+            !ethConnected ||
+            !minaConnected ||
+            !zkappWorkerClient ||
+            isWorkerLoading ||
+            !state.context.zkappWorkerClient
+          }
+        >
+          {isLoading ? "Processing..." : "Create Credential"}
+        </button>
+        {isSuccess &&
+          state.context.credential &&
+          state.context.step === "store" && (
+            <p className="mt-2 text-white text-xs overflow-y-auto max-h-16 break-all w-full p-2 whitespace-pre-wrap">
+              Credential: {state.context.credential}
+            </p>
+          )}
+      </div>
     </div>
   );
 };

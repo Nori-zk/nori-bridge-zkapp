@@ -3,19 +3,20 @@ import { EcdsaEthereum } from "mina-attestations/imported";
 import { PublicKey } from "o1js";
 
 const maxMessageLength = 3;
-const proofsEnabled = false;
+const proofsEnabled = true;
 const Message = DynamicBytes({ maxLength: maxMessageLength });
 
 export async function createEcdsaCredential(
   message: string,
   minaPubKey: PublicKey,
   signature: string,
-  signerAddress: string
+  signerAddress: string,
+  compiledEcdsaCredential: any
 ): Promise<string> {
   try {
     const { signature: parsedSignature, parityBit } =
       EcdsaEthereum.parseSignature(signature);
-    const credential = await EcdsaCredential.create({
+    const credential = await compiledEcdsaCredential.create({
       owner: minaPubKey,
       publicInput: {
         signerAddress: EcdsaEthereum.parseAddress(signerAddress),
