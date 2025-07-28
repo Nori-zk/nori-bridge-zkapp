@@ -7,12 +7,13 @@ interface BridgingContext {
   contract: Contract | null;
   credential: string | null;
   errorMessage: string | null;
-  step: "create" | "store" | "lock" | "getLockedTokens";
+  step: "create" | "obtain" | "lock" | "getLockedTokens";
   lastInput?: {
     message: string;
     address: string;
     signature: string;
     walletAddress: string;
+    provider: any;
   };
   lockedAmount: string | null;
   attestationHash?: string;
@@ -25,11 +26,10 @@ type BridgingEvents =
       address: string;
       signature: string;
       walletAddress: string;
+      provider: any;
     }
   | {
-      type: "STORE_CREDENTIAL";
-      provider: any;
-      credential: string;
+      type: "OBTAIN_CREDENTIAL";
     }
   | {
       type: "START_LOCK";
@@ -64,39 +64,43 @@ export const BridgingMachine = setup({
           address: string;
           signature: string;
           walletAddress: string;
+          provider: any;
+        };
+      }) => {
+        try {
+          if (!input.zkappWorkerClient) {
+            throw new Error("Worker not ready - bridge");
+          }
+          const credential =
+            await input.zkappWorkerClient.createEcdsaCredential(
+              input.message,
+              input.address,
+              input.signature,
+              input.walletAddress
+            );
+          await input.provider.request({
+            method: "mina_storePrivateCredential",
+            params: [JSON.parse(credential)],
+          });
+          return credential;
+        } catch (error) {
+          console.error("Failed to create and store credential:", error);
+          throw new Error("Failed to create and store credential");
+        }
+      }
+    ),
+    obtainCredential: fromPromise(
+      async ({
+        input,
+      }: {
+        input: {
+          zkappWorkerClient: ZkappWorkerClient | null;
         };
       }) => {
         if (!input.zkappWorkerClient) {
           throw new Error("Worker not ready - bridge");
         }
-        return input.zkappWorkerClient.createEcdsaCredential(
-          input.message,
-          input.address,
-          input.signature,
-          input.walletAddress
-        );
-      }
-    ),
-    storeCredential: fromPromise(
-      async ({
-        input,
-      }: {
-        input: {
-          provider: any;
-          credential: string;
-        };
-      }) => {
-        try {
-          await input.provider.request({
-            method: "mina_storePrivateCredential",
-            params: [JSON.parse(input.credential)],
-          });
-        } catch (error) {
-          // if (!result.success) {
-          throw new Error("Failed to store credential");
-          // }
-          // return result;
-        }
+        return input.zkappWorkerClient.obtainCredential();
       }
     ),
     lockTokens: fromPromise(
@@ -190,16 +194,16 @@ export const BridgingMachine = setup({
             contract: ({ event }) => event.contract,
           }),
         },
-        STORE_CREDENTIAL: {
+        OBTAIN_CREDENTIAL: {
           target: "error",
           actions: assign({
-            errorMessage: "Cannot store credential before creating one",
+            errorMessage: "Cannot obtain credential before creating one",
           }),
         },
         START_LOCK: {
           target: "error",
           actions: assign({
-            errorMessage: "Cannot lock tokens before storing credentials",
+            errorMessage: "Cannot lock tokens before obtaining credentials",
           }),
         },
         GET_LOCKED_TOKENS: {
@@ -231,13 +235,17 @@ export const BridgingMachine = setup({
             event.type === "CREATE_CREDENTIAL"
               ? event.walletAddress
               : context.lastInput?.walletAddress || "",
+          provider:
+            event.type === "CREATE_CREDENTIAL"
+              ? event.provider
+              : context.lastInput?.provider || null,
         }),
         onDone: {
           target: "success",
           actions: assign({
             credential: ({ event }) => event.output,
             errorMessage: null,
-            step: "store",
+            step: "obtain",
           }),
         },
         onError: {
@@ -250,8 +258,8 @@ export const BridgingMachine = setup({
     },
     success: {
       on: {
-        STORE_CREDENTIAL: {
-          target: "storing",
+        OBTAIN_CREDENTIAL: {
+          target: "obtaining",
           actions: assign({
             errorMessage: null,
           }),
@@ -274,7 +282,7 @@ export const BridgingMachine = setup({
         START_LOCK: {
           target: "error",
           actions: assign({
-            errorMessage: "Cannot lock tokens before storing credentials",
+            errorMessage: "Cannot lock tokens before obtaining credentials",
           }),
         },
         GET_LOCKED_TOKENS: {
@@ -285,18 +293,14 @@ export const BridgingMachine = setup({
         },
       },
     },
-    storing: {
+    obtaining: {
       invoke: {
-        src: "storeCredential",
-        input: ({ context, event }) => ({
-          provider: event.type === "STORE_CREDENTIAL" ? event.provider : null,
-          credential:
-            event.type === "STORE_CREDENTIAL"
-              ? event.credential
-              : context.credential || "",
+        src: "obtainCredential",
+        input: ({ context }) => ({
+          zkappWorkerClient: context.zkappWorkerClient,
         }),
         onDone: {
-          target: "stored",
+          target: "obtained",
           actions: assign({
             errorMessage: null,
             step: "lock",
@@ -310,7 +314,7 @@ export const BridgingMachine = setup({
         },
       },
     },
-    stored: {
+    obtained: {
       on: {
         START_LOCK: [
           {
@@ -337,7 +341,7 @@ export const BridgingMachine = setup({
             lastInput: undefined,
             step: "create",
             lockedAmount: null,
-            attestationHash: undefined, // optional: clear on reset
+            attestationHash: undefined,
           }),
         },
         UPDATE_MACHINE: {

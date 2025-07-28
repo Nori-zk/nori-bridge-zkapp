@@ -6,7 +6,7 @@ import { useBridging } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import CreateCredentials from "./ProgressSteps/CreateCredentials.tsx";
 import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
 import { FaArrowRight } from "react-icons/fa";
-import StoreCredentials from "@/components/bridge-control-card/ProgressSteps/StoreCredentials.tsx";
+import ObtainCredentials from "@/components/bridge-control-card/ProgressSteps/ObtainCredentials.tsx";
 import LockTokens from "./ProgressSteps/LockTokens.tsx";
 import GetLockedTokens from "./ProgressSteps/GetLockedTokens.tsx";
 import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
@@ -95,8 +95,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               <p>Running step compiledEcdsaCredential...</p>
             ) : state.context.step === "create" ? (
               <CreateCredentials />
-            ) : state.context.step === "store" ? (
-              <StoreCredentials />
+            ) : state.context.step === "obtain" ? (
+              <ObtainCredentials />
             ) : state.context.step === "lock" ? (
               <LockTokens />
             ) : (

@@ -14,14 +14,16 @@ interface BridgingContextValue {
       contract: Contract | null;
       credential: string | null;
       errorMessage: string | null;
-      step: "create" | "store" | "lock" | "getLockedTokens";
+      step: "create" | "obtain" | "lock" | "getLockedTokens";
       lastInput?: {
         message: string;
         address: string;
         signature: string;
         walletAddress: string;
+        provider: any;
       };
       lockedAmount: string | null;
+      attestationHash?: string;
     };
   };
   send: (
@@ -32,21 +34,11 @@ interface BridgingContextValue {
           address: string;
           signature: string;
           walletAddress: string;
-        }
-      | {
-          type: "STORE_CREDENTIAL";
           provider: any;
-          credential: string;
         }
-      | {
-          type: "START_LOCK";
-          amount: number;
-          contract: Contract | null;
-        }
-      | {
-          type: "GET_LOCKED_TOKENS";
-          contract: Contract | null;
-        }
+      | { type: "OBTAIN_CREDENTIAL" }
+      | { type: "START_LOCK"; amount: number; attestationHash: string }
+      | { type: "GET_LOCKED_TOKENS" }
       | { type: "RETRY" }
       | { type: "RESET" }
       | {
@@ -78,9 +70,9 @@ export const BridgingProvider = ({
       "zkappWorkerClient inside BridgingProvider:",
       zkappWorkerClient
     );
-    console.log("contract inside BridgingProvider:", zkappWorkerClient);
+    console.log("contract inside BridgingProvider:", contract);
     send({ type: "UPDATE_MACHINE", zkappWorkerClient, contract });
-  }, [zkappWorkerClient, contract]);
+  }, [zkappWorkerClient, contract, send]);
 
   const value = useMemo(
     () => ({
@@ -88,13 +80,13 @@ export const BridgingProvider = ({
       send,
       isLoading:
         state.matches("creating") ||
-        state.matches("storing") ||
+        state.matches("obtaining") ||
         state.matches("locking") ||
         state.matches("gettingLockedTokens") ||
         isWorkerLoading,
       isSuccess:
         state.matches("success") ||
-        state.matches("stored") ||
+        state.matches("obtained") ||
         state.matches("locked") ||
         state.matches("gotLockedTokens"),
       isError: state.matches("error"),

@@ -24,7 +24,7 @@ const GetLockTokens = () => {
         });
         return;
       }
-      send({ type: "GET_LOCKED_TOKENS", contract: contract });
+      send({ type: "GET_LOCKED_TOKENS" });
     } catch (error) {
       console.error("Error getting locked tokens:", error);
       toast.current({

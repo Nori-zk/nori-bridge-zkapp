@@ -11,7 +11,7 @@ const CreateCredentials = () => {
   const { state, send, isLoading, isSuccess, isError } = useBridging();
   const { isConnected: ethConnected, signMessageForEcdsa } =
     useMetaMaskWallet();
-  const { isConnected: minaConnected, address } = useAccount();
+  const { isConnected: minaConnected, address, connector } = useAccount();
 
   const rawToast = useToast({
     type: "error",
@@ -38,6 +38,13 @@ const CreateCredentials = () => {
       if (!ethConnected || !minaConnected || !address) {
         throw new Error("Please connect both Ethereum and Mina wallets.");
       }
+      if (!connector) {
+        throw new Error("No provider or credential available.");
+      }
+      const provider = await connector.getProvider();
+      if (!provider) {
+        throw new Error("Failed to get provider.");
+      }
       const { signature, walletAddress, hashedMessage } =
         await signMessageForEcdsa(message);
       send({
@@ -46,6 +53,7 @@ const CreateCredentials = () => {
         address,
         signature,
         walletAddress,
+        provider,
       });
     } catch (error) {
       console.error("Error initiating credential creation:", error);
@@ -59,7 +67,7 @@ const CreateCredentials = () => {
   };
 
   useEffect(() => {
-    if (isSuccess && state.context.step === "store") {
+    if (isSuccess && state.context.step === "obtain") {
       toast.current({
         type: "notification",
         title: "Success",
@@ -94,7 +102,7 @@ const CreateCredentials = () => {
         </button>
         {isSuccess &&
           state.context.credential &&
-          state.context.step === "store" && (
+          state.context.step === "obtain" && (
             <p className="mt-2 text-white text-xs overflow-y-auto max-h-16 break-all w-full p-2 whitespace-pre-wrap">
               Credential: {state.context.credential}
             </p>

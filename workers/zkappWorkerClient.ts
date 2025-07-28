@@ -53,4 +53,15 @@ export default class ZkappWorkerClient {
     console.log("Worker client initialiseTokenContracts called.");
     return result;
   }
+
+  async obtainCredential(): Promise<string> {
+    try {
+      const credential = await this.remoteApi.obtainCredential();
+      console.log("Worker client obtainCredential called.");
+      return credential;
+    } catch (error) {
+      console.error("Error obtaining credential from worker:", error);
+      throw error;
+    }
+  }
 }

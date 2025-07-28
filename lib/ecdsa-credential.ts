@@ -1,6 +1,13 @@
-import { Credential, DynamicBytes } from "mina-attestations";
 import { EcdsaEthereum } from "mina-attestations/imported";
-import { PublicKey } from "o1js";
+import { PrivateKey, PublicKey } from "o1js";
+import {
+  Credential,
+  DynamicBytes,
+  Operation,
+  Presentation,
+  PresentationRequest,
+  PresentationSpec,
+} from "mina-attestations";
 
 const maxMessageLength = 3;
 const proofsEnabled = true;
@@ -50,6 +57,55 @@ export async function compileEcdsaCredentialDependencies(): Promise<any> {
     return EcdsaCredential;
   } catch (error) {
     console.error("Error compiling ECDSA credential dependencies:", error);
+    throw error;
+  }
+}
+
+export async function obtainCredential(
+  compiledEcdsaCredential: any
+): Promise<string> {
+  try {
+    const spec = compiledEcdsaCredential.spec;
+
+    const sp = PresentationSpec(
+      {
+        ecdsaCredential: spec,
+      },
+      ({ ecdsaCredential }) => ({
+        outputClaim: Operation.record({
+          owner: Operation.owner,
+          issuer: Operation.publicInput(ecdsaCredential),
+          messageHash: Operation.hash(
+            Operation.property(ecdsaCredential, "message")
+          ),
+        }),
+      })
+    );
+    const precompiled = await Presentation.precompile(sp);
+
+    // class ProvablePresentation extends precompiled.ProvablePresentation {}
+
+    const zkapp = PrivateKey.randomKeypair();
+    const zkAppAddress = zkapp.publicKey;
+    const request = PresentationRequest.zkAppFromCompiled(
+      precompiled,
+      {
+        // expectedHash:
+        //   Field.from(
+        //     18699229017320908759966161953655543095099977724769778101335726001838446055234
+        //   ),
+      },
+      {
+        // this added context ensures that the presentation can't be used outside the target zkApp
+        publicKey: zkAppAddress,
+        // tokenId: Field(0),
+        methodName: "verifyPresentation",
+      }
+    );
+    // request.inputContext.type
+    return PresentationRequest.toJSON(request);
+  } catch (error) {
+    console.error("Error obtaining ECDSA credential:", error);
     throw error;
   }
 }

@@ -1,6 +1,7 @@
 import {
   compileEcdsaCredentialDependencies,
   createEcdsaCredential,
+  obtainCredential,
 } from "@/lib/ecdsa-credential.ts";
 import { Mina, PublicKey, Field } from "o1js";
 import * as Comlink from "comlink";
@@ -119,6 +120,16 @@ export const api = {
       );
     } catch (error) {
       console.error("Error during worker initialiseTokenContracts:", error);
+      throw error;
+    }
+  },
+
+  obtainCredential: async (): Promise<string> => {
+    try {
+      const credential = await obtainCredential(state.compiledEcdsaCredential);
+      return credential;
+    } catch (error) {
+      console.error("Error obtaining credential:", error);
       throw error;
     }
   },
