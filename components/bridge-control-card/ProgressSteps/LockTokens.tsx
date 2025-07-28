@@ -54,7 +54,8 @@ const LockTokens = () => {
       send({
         type: "START_LOCK",
         amount,
-        contract: contract,
+        attestationHash: state.context.attestationHash || "",
+        // contract: contract,
       });
     } catch (error) {
       console.error("Error locking tokens:", error);

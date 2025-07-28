@@ -21,31 +21,32 @@ interface BridgingContext {
 
 type BridgingEvents =
   | {
-      type: "CREATE_CREDENTIAL";
-      message: string;
-      address: string;
-      signature: string;
-      walletAddress: string;
-      provider: any;
-    }
+    type: "CREATE_CREDENTIAL";
+    message: string;
+    address: string;
+    signature: string;
+    walletAddress: string;
+    provider: any;
+  }
   | {
-      type: "OBTAIN_CREDENTIAL";
-    }
+    type: "OBTAIN_CREDENTIAL";
+    provider: any;
+  }
   | {
-      type: "START_LOCK";
-      amount: number;
-      attestationHash: string;
-    }
+    type: "START_LOCK";
+    amount: number;
+    attestationHash: string;
+  }
   | {
-      type: "GET_LOCKED_TOKENS";
-    }
+    type: "GET_LOCKED_TOKENS";
+  }
   | { type: "RETRY" }
   | { type: "RESET" }
   | {
-      type: "UPDATE_MACHINE";
-      zkappWorkerClient: ZkappWorkerClient | null;
-      contract: Contract | null;
-    };
+    type: "UPDATE_MACHINE";
+    zkappWorkerClient: ZkappWorkerClient | null;
+    contract: Contract | null;
+  };
 
 export const BridgingMachine = setup({
   types: {
@@ -95,12 +96,25 @@ export const BridgingMachine = setup({
       }: {
         input: {
           zkappWorkerClient: ZkappWorkerClient | null;
+          provider: any;
         };
       }) => {
         if (!input.zkappWorkerClient) {
           throw new Error("Worker not ready - bridge");
         }
-        return input.zkappWorkerClient.obtainCredential();
+        const request = await input.zkappWorkerClient.obtainPresentationRequest();
+        console.log("Obtained presentation request:", request.slice(0, 100), "...");
+        const result = await input.provider.request({
+          method: "mina_requestPresentation",
+          params: [
+            {
+              presentationRequest: JSON.parse(request as string),
+            },
+          ],
+        });
+        console.log("Presentation result:", result);
+
+        return result
       }
     ),
     lockTokens: fromPromise(
@@ -296,8 +310,12 @@ export const BridgingMachine = setup({
     obtaining: {
       invoke: {
         src: "obtainCredential",
-        input: ({ context }) => ({
+        input: ({ context, event }) => ({
           zkappWorkerClient: context.zkappWorkerClient,
+          provider:
+            event.type === "OBTAIN_CREDENTIAL"
+              ? event.provider
+              : context.lastInput?.provider || null,
         }),
         onDone: {
           target: "obtained",

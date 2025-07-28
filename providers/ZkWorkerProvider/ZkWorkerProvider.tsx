@@ -56,20 +56,20 @@ export const ZkappWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (!zkappWorkerClient || !compiledEcdsaCredential) return;
-    const initialiseTokenContracts = async () => {
-      try {
-        await zkappWorkerClient.loadTokenContracts();
-        console.log("Token contracts loaded successfully.");
-        await zkappWorkerClient.initialiseTokenContracts(
-          PrivateKey.random().toPublicKey().toBase58(),
-          PrivateKey.random().toPublicKey().toBase58()
-        );
-        // await zkappWorkerClient.compileContracts({});
-      } catch (error) {
-        console.error("Error during worker client initialisation:", error);
-      }
-    };
-    initialiseTokenContracts();
+    // const initialiseTokenContracts = async () => {
+    //   try {
+    //     await zkappWorkerClient.loadTokenContracts();
+    //     console.log("Token contracts loaded successfully.");
+    //     await zkappWorkerClient.initialiseTokenContracts(
+    //       PrivateKey.random().toPublicKey().toBase58(),
+    //       PrivateKey.random().toPublicKey().toBase58()
+    //     );
+    //     // await zkappWorkerClient.compileContracts({});
+    //   } catch (error) {
+    //     console.error("Error during worker client initialisation:", error);
+    //   }
+    // };
+    // initialiseTokenContracts();
   }, [compiledEcdsaCredential, zkappWorkerClient]);
 
   return (

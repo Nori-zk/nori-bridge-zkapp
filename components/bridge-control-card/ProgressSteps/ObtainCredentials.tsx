@@ -28,6 +28,7 @@ const ObtainCredentials = () => {
       }
       send({
         type: "OBTAIN_CREDENTIAL",
+        provider
       });
     } catch (error) {
       console.error("Error initiating credential obtaining:", error);
@@ -54,7 +55,7 @@ const ObtainCredentials = () => {
       </button>
       {isSuccess && state.context.step === "obtain" && (
         <p className="mt-4 text-white text-sm">
-          Credential obtained successfully!
+          Credential stored successfully!
         </p>
       )}
       {isError && state.context.errorMessage && (

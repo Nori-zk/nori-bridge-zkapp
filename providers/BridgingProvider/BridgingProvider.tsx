@@ -29,23 +29,26 @@ interface BridgingContextValue {
   send: (
     event:
       | {
-          type: "CREATE_CREDENTIAL";
-          message: string;
-          address: string;
-          signature: string;
-          walletAddress: string;
-          provider: any;
-        }
-      | { type: "OBTAIN_CREDENTIAL" }
+        type: "CREATE_CREDENTIAL";
+        message: string;
+        address: string;
+        signature: string;
+        walletAddress: string;
+        provider: any;
+      }
+      | {
+        type: "OBTAIN_CREDENTIAL";
+        provider: any;
+      }
       | { type: "START_LOCK"; amount: number; attestationHash: string }
       | { type: "GET_LOCKED_TOKENS" }
       | { type: "RETRY" }
       | { type: "RESET" }
       | {
-          type: "UPDATE_MACHINE";
-          zkappWorkerClient: ZkappWorkerClient | null;
-          contract: Contract | null;
-        }
+        type: "UPDATE_MACHINE";
+        zkappWorkerClient: ZkappWorkerClient | null;
+        contract: Contract | null;
+      }
   ) => void;
   isLoading: boolean;
   isSuccess: boolean;

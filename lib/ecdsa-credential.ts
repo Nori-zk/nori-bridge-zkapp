@@ -61,7 +61,7 @@ export async function compileEcdsaCredentialDependencies(): Promise<any> {
   }
 }
 
-export async function obtainCredential(
+export async function obtainPresentationRequest(
   compiledEcdsaCredential: any
 ): Promise<string> {
   try {
@@ -82,7 +82,7 @@ export async function obtainCredential(
       })
     );
     const precompiled = await Presentation.precompile(sp);
-
+    console.log("Precompiled presentation spec:");
     // class ProvablePresentation extends precompiled.ProvablePresentation {}
 
     const zkapp = PrivateKey.randomKeypair();
@@ -103,6 +103,7 @@ export async function obtainCredential(
       }
     );
     // request.inputContext.type
+    console.log("Presentation request created");
     return PresentationRequest.toJSON(request);
   } catch (error) {
     console.error("Error obtaining ECDSA credential:", error);

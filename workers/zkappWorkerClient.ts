@@ -54,13 +54,13 @@ export default class ZkappWorkerClient {
     return result;
   }
 
-  async obtainCredential(): Promise<string> {
+  async obtainPresentationRequest(): Promise<string> {
     try {
-      const credential = await this.remoteApi.obtainCredential();
-      console.log("Worker client obtainCredential called.");
+      const credential = await this.remoteApi.obtainPresentationRequest();
+      console.log("Worker client obtainPresentationRequest called.");
       return credential;
     } catch (error) {
-      console.error("Error obtaining credential from worker:", error);
+      console.error("Error obtainPresentationRequest from worker:", error);
       throw error;
     }
   }
