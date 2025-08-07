@@ -21,32 +21,32 @@ interface BridgingContext {
 
 type BridgingEvents =
   | {
-    type: "CREATE_CREDENTIAL";
-    message: string;
-    address: string;
-    signature: string;
-    walletAddress: string;
-    provider: any;
-  }
+      type: "CREATE_CREDENTIAL";
+      message: string;
+      address: string;
+      signature: string;
+      walletAddress: string;
+      provider: any;
+    }
   | {
-    type: "OBTAIN_CREDENTIAL";
-    provider: any;
-  }
+      type: "OBTAIN_CREDENTIAL";
+      provider: any;
+    }
   | {
-    type: "START_LOCK";
-    amount: number;
-    attestationHash: string;
-  }
+      type: "START_LOCK";
+      amount: number;
+      attestationHash: string;
+    }
   | {
-    type: "GET_LOCKED_TOKENS";
-  }
+      type: "GET_LOCKED_TOKENS";
+    }
   | { type: "RETRY" }
   | { type: "RESET" }
   | {
-    type: "UPDATE_MACHINE";
-    zkappWorkerClient: ZkappWorkerClient | null;
-    contract: Contract | null;
-  };
+      type: "UPDATE_MACHINE";
+      zkappWorkerClient: ZkappWorkerClient | null;
+      contract: Contract | null;
+    };
 
 export const BridgingMachine = setup({
   types: {
@@ -102,8 +102,8 @@ export const BridgingMachine = setup({
         if (!input.zkappWorkerClient) {
           throw new Error("Worker not ready - bridge");
         }
-        const request = await input.zkappWorkerClient.obtainPresentationRequest();
-        console.log("Obtained presentation request:", request.slice(0, 100), "...");
+        const request =
+          await input.zkappWorkerClient.obtainPresentationRequest();
         const result = await input.provider.request({
           method: "mina_requestPresentation",
           params: [
@@ -113,8 +113,7 @@ export const BridgingMachine = setup({
           ],
         });
         console.log("Presentation result:", result);
-
-        return result
+        return { credential: result, request };
       }
     ),
     lockTokens: fromPromise(
@@ -320,6 +319,7 @@ export const BridgingMachine = setup({
         onDone: {
           target: "obtained",
           actions: assign({
+            credential: ({ event }) => event.output.credential,
             errorMessage: null,
             step: "lock",
           }),

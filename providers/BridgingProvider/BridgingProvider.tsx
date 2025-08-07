@@ -5,6 +5,7 @@ import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.ts
 import type ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 import { Contract } from "ethers";
 import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
+import { useAccount } from "wagmina";
 
 interface BridgingContextValue {
   state: {
@@ -29,26 +30,26 @@ interface BridgingContextValue {
   send: (
     event:
       | {
-        type: "CREATE_CREDENTIAL";
-        message: string;
-        address: string;
-        signature: string;
-        walletAddress: string;
-        provider: any;
-      }
+          type: "CREATE_CREDENTIAL";
+          message: string;
+          address: string;
+          signature: string;
+          walletAddress: string;
+          provider: any;
+        }
       | {
-        type: "OBTAIN_CREDENTIAL";
-        provider: any;
-      }
+          type: "OBTAIN_CREDENTIAL";
+          provider: any;
+        }
       | { type: "START_LOCK"; amount: number; attestationHash: string }
       | { type: "GET_LOCKED_TOKENS" }
       | { type: "RETRY" }
       | { type: "RESET" }
       | {
-        type: "UPDATE_MACHINE";
-        zkappWorkerClient: ZkappWorkerClient | null;
-        contract: Contract | null;
-      }
+          type: "UPDATE_MACHINE";
+          zkappWorkerClient: ZkappWorkerClient | null;
+          contract: Contract | null;
+        }
   ) => void;
   isLoading: boolean;
   isSuccess: boolean;
@@ -63,7 +64,8 @@ export const BridgingProvider = ({
   children: React.ReactNode;
 }) => {
   const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
-  const { contract } = useMetaMaskWallet();
+  const { contract, walletAddress: ethAddress } = useMetaMaskWallet();
+  const { address: minaAddress } = useAccount();
   const [state, send] = useMachine(BridgingMachine, {
     input: { zkappWorkerClient },
   });
@@ -96,6 +98,21 @@ export const BridgingProvider = ({
     }),
     [state, send, isWorkerLoading]
   );
+
+  useEffect(() => {
+    if (state.context.credential && minaAddress && ethAddress) {
+      try {
+        const data = {
+          credential: state.context.credential,
+          minaAddress: minaAddress,
+          ethAddress: ethAddress,
+        };
+        localStorage.setItem("nori-credential-data", JSON.stringify(data));
+      } catch (error) {
+        console.error("Error storing in localStorage:", error);
+      }
+    }
+  }, [state.context.credential, minaAddress, ethAddress]);
 
   return (
     <BridgingContext.Provider value={value}>
