@@ -202,6 +202,7 @@ export const BridgingMachine = setup({
           },
         ],
         UPDATE_MACHINE: {
+          target: "initializeStartingStep",
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
             contract: ({ event }) => event.contract,
@@ -226,6 +227,30 @@ export const BridgingMachine = setup({
           }),
         },
       },
+    },
+    initializeStartingStep: {
+      entry: assign((context) => {
+        const storedCredential = localStorage.getItem("nori-credential-data");
+        if (storedCredential) {
+          return {
+            credential: storedCredential,
+            step: "lock",
+          };
+        }
+        return {
+          credential: null,
+          step: "create",
+        };
+      }),
+      always: [
+        {
+          target: "obtained",
+          guard: ({ context }) => !!context.credential,
+        },
+        {
+          target: "idle",
+        },
+      ],
     },
     creating: {
       invoke: {
