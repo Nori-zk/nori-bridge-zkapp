@@ -92,7 +92,6 @@ export const BridgingProvider = ({
         } = JSON.parse(storedData);
 
         if (storedMina === minaAddress && storedEth === ethAddress) {
-          console.log("conditional 1");
           send({
             type: "UPDATE_MACHINE",
             zkappWorkerClient,
