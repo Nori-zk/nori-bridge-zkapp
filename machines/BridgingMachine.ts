@@ -46,6 +46,8 @@ type BridgingEvents =
       type: "UPDATE_MACHINE";
       zkappWorkerClient: ZkappWorkerClient | null;
       contract: Contract | null;
+      credential?: string | null;
+      step?: "create" | "obtain" | "lock" | "getLockedTokens";
     };
 
 export const BridgingMachine = setup({
@@ -202,10 +204,12 @@ export const BridgingMachine = setup({
           },
         ],
         UPDATE_MACHINE: {
-          target: "initializeStartingStep",
+          target: "idle",
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
             contract: ({ event }) => event.contract,
+            credential: ({ event }) => event.credential ?? null,
+            step: ({ event }) => event.step ?? "create",
           }),
         },
         OBTAIN_CREDENTIAL: {
@@ -227,30 +231,6 @@ export const BridgingMachine = setup({
           }),
         },
       },
-    },
-    initializeStartingStep: {
-      entry: assign((context) => {
-        const storedCredential = localStorage.getItem("nori-credential-data");
-        if (storedCredential) {
-          return {
-            credential: storedCredential,
-            step: "lock",
-          };
-        }
-        return {
-          credential: null,
-          step: "create",
-        };
-      }),
-      always: [
-        {
-          target: "obtained",
-          guard: ({ context }) => !!context.credential,
-        },
-        {
-          target: "idle",
-        },
-      ],
     },
     creating: {
       invoke: {
@@ -315,6 +295,9 @@ export const BridgingMachine = setup({
         UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+            contract: ({ event }) => event.contract,
+            credential: ({ event }) => event.credential ?? null,
+            step: ({ event }) => event.step ?? context.step,
           }),
         },
         START_LOCK: {
@@ -390,6 +373,9 @@ export const BridgingMachine = setup({
         UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+            contract: ({ event }) => event.contract,
+            credential: ({ event }) => event.credential ?? null,
+            step: ({ event }) => event.step ?? context.step,
           }),
         },
         GET_LOCKED_TOKENS: {
@@ -455,6 +441,9 @@ export const BridgingMachine = setup({
         UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+            contract: ({ event }) => event.contract,
+            credential: ({ event }) => event.credential ?? null,
+            step: ({ event }) => event.step ?? context.step,
           }),
         },
       },
@@ -498,6 +487,9 @@ export const BridgingMachine = setup({
         UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+            contract: ({ event }) => event.contract,
+            credential: ({ event }) => event.credential ?? null,
+            step: ({ event }) => event.step ?? context.step,
           }),
         },
       },
@@ -524,6 +516,9 @@ export const BridgingMachine = setup({
         UPDATE_MACHINE: {
           actions: assign({
             zkappWorkerClient: ({ event }) => event.zkappWorkerClient,
+            contract: ({ event }) => event.contract,
+            credential: ({ event }) => event.credential ?? null,
+            step: ({ event }) => event.step ?? context.step,
           }),
         },
       },

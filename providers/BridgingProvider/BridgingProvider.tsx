@@ -49,6 +49,8 @@ interface BridgingContextValue {
           type: "UPDATE_MACHINE";
           zkappWorkerClient: ZkappWorkerClient | null;
           contract: Contract | null;
+          credential?: string | null;
+          step?: "create" | "obtain" | "lock" | "getLockedTokens";
         }
   ) => void;
   isLoading: boolean;
@@ -79,6 +81,75 @@ export const BridgingProvider = ({
     send({ type: "UPDATE_MACHINE", zkappWorkerClient, contract });
   }, [zkappWorkerClient, contract, send]);
 
+  useEffect(() => {
+    try {
+      const storedData = localStorage.getItem("nori-credential-data");
+      if (storedData) {
+        const {
+          credential,
+          minaAddress: storedMina,
+          ethAddress: storedEth,
+        } = JSON.parse(storedData);
+
+        if (storedMina === minaAddress && storedEth === ethAddress) {
+          console.log("conditional 1");
+          send({
+            type: "UPDATE_MACHINE",
+            zkappWorkerClient,
+            contract,
+            credential,
+            step: "lock",
+          });
+        } else {
+          send({
+            type: "UPDATE_MACHINE",
+            zkappWorkerClient,
+            contract,
+            credential: null,
+            step: "create",
+          });
+        }
+      } else {
+        send({
+          type: "UPDATE_MACHINE",
+          zkappWorkerClient,
+          contract,
+          credential: null,
+          step: "create",
+        });
+      }
+    } catch (error) {
+      console.error("Error reading from localStorage:", error);
+      send({
+        type: "UPDATE_MACHINE",
+        zkappWorkerClient,
+        contract,
+        credential: null,
+        step: "create",
+      });
+    }
+  }, [zkappWorkerClient, contract, minaAddress, ethAddress, send]);
+
+  useEffect(() => {
+    if (
+      state.matches("obtained") &&
+      state.context.credential &&
+      minaAddress &&
+      ethAddress
+    ) {
+      try {
+        const data = {
+          credential: state.context.credential,
+          minaAddress: minaAddress,
+          ethAddress: ethAddress,
+        };
+        localStorage.setItem("nori-credential-data", JSON.stringify(data));
+      } catch (error) {
+        console.error("Error storing in localStorage:", error);
+      }
+    }
+  }, [state.value, state.context.credential, minaAddress, ethAddress]);
+
   const value = useMemo(
     () => ({
       state,
@@ -98,21 +169,6 @@ export const BridgingProvider = ({
     }),
     [state, send, isWorkerLoading]
   );
-
-  useEffect(() => {
-    if (state.context.credential && minaAddress && ethAddress) {
-      try {
-        const data = {
-          credential: state.context.credential,
-          minaAddress: minaAddress,
-          ethAddress: ethAddress,
-        };
-        localStorage.setItem("nori-credential-data", JSON.stringify(data));
-      } catch (error) {
-        console.error("Error storing in localStorage:", error);
-      }
-    }
-  }, [state.context.credential, minaAddress, ethAddress]);
 
   return (
     <BridgingContext.Provider value={value}>
