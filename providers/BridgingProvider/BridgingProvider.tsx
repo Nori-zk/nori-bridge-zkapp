@@ -83,7 +83,9 @@ export const BridgingProvider = ({
 
   useEffect(() => {
     try {
-      const storedData = localStorage.getItem("nori-credential-data");
+      const storedData = localStorage.getItem(
+        `credential:${ethAddress}:${minaAddress}`
+      );
       if (storedData) {
         const {
           credential,
@@ -142,7 +144,10 @@ export const BridgingProvider = ({
           minaAddress: minaAddress,
           ethAddress: ethAddress,
         };
-        localStorage.setItem("nori-credential-data", JSON.stringify(data));
+        localStorage.setItem(
+          `credential:${ethAddress}:${minaAddress}`,
+          JSON.stringify(data)
+        );
       } catch (error) {
         console.error("Error storing in localStorage:", error);
       }
