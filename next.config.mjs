@@ -20,12 +20,21 @@ const nextConfig = {
       config.externals.push("o1js"); // https://nextjs.org/docs/app/api-reference/next-config-js/serverExternalPackages
     }
 
-    config.module.rules.push({
-      test: /\.svg$/,
-      use: ["@svgr/webpack"],
-    });
+    config.module.rules.push(
+      {
+        test: /\.svg$/,
+        use: ["@svgr/webpack"],
+      },
+      { test: /\.wasm$/, type: "webassembly/async" }
+    );
 
-    config.experiments = { ...config.experiments, topLevelAwait: true };
+    config.experiments = {
+      ...config.experiments,
+      topLevelAwait: true,
+      asyncWebAssembly: true,
+    };
+
+    config.target = ["web", "es2022"];
     return config;
   },
 

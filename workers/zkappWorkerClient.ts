@@ -29,12 +29,25 @@ export default class ZkappWorkerClient {
     );
   }
 
+  async obtainPresentationRequest(): Promise<string> {
+    try {
+      const credential = await this.remoteApi.obtainPresentationRequest();
+      console.log("Worker client obtainPresentationRequest called.");
+      return credential;
+    } catch (error) {
+      console.error("Error obtainPresentationRequest from worker:", error);
+      throw error;
+    }
+  }
+
   async initialiseCredential(): Promise<boolean> {
     // Placeholder for any initialization logic if needed
     const result = await this.remoteApi.initialiseCredential();
     console.log("Worker client initCred value:", result);
-    return result;
+    return true; //result;
   }
+
+  // The below methods will NOT work as written. More dependancies are required we should really be using a 2nd worker based on TokenMintWorker
 
   async loadTokenContracts(): Promise<void> {
     console.log("Worker client loadTokenContracts called.");
@@ -52,16 +65,5 @@ export default class ZkappWorkerClient {
     });
     console.log("Worker client initialiseTokenContracts called.");
     return result;
-  }
-
-  async obtainPresentationRequest(): Promise<string> {
-    try {
-      const credential = await this.remoteApi.obtainPresentationRequest();
-      console.log("Worker client obtainPresentationRequest called.");
-      return credential;
-    } catch (error) {
-      console.error("Error obtainPresentationRequest from worker:", error);
-      throw error;
-    }
   }
 }

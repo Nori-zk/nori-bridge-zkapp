@@ -46,7 +46,7 @@ export const api = {
         pubKey,
         signature,
         walletAddress,
-        state.compiledEcdsaCredential
+        //state.compiledEcdsaCredential
       );
       return credential;
     } catch (error) {
@@ -57,14 +57,29 @@ export const api = {
 
   initialiseCredential: async (): Promise<boolean> => {
     try {
-      const compiled = await compileEcdsaCredentialDependencies();
-      state.compiledEcdsaCredential = compiled;
-      return compiled !== null;
+      await compileEcdsaCredentialDependencies(); // const compiled = 
+      //state.compiledEcdsaCredential = compiled;
+      //return compiled !== null;
+      return true;
     } catch (error) {
       console.error("Error during worker initialiseCredential:", error);
       throw error;
     }
   },
+
+
+  obtainPresentationRequest: async (): Promise<string> => {
+    try {
+      const credential = await obtainPresentationRequest(); // state.compiledEcdsaCredential
+      return credential;
+    } catch (error) {
+      console.error("Error obtaining credential:", error);
+      throw error;
+    }
+  },
+
+  // The below code will currently not work as it is written. More dependancies are needed to be compiled.
+  // Really we should be using the other worker.... TokenMintWorker as it is setup to do this already!
 
   loadContracts: async (args: {}) => {
     state.FungibleToken = FungibleToken;
@@ -120,16 +135,6 @@ export const api = {
       );
     } catch (error) {
       console.error("Error during worker initialiseTokenContracts:", error);
-      throw error;
-    }
-  },
-
-  obtainPresentationRequest: async (): Promise<string> => {
-    try {
-      const credential = await obtainPresentationRequest(state.compiledEcdsaCredential);
-      return credential;
-    } catch (error) {
-      console.error("Error obtaining credential:", error);
       throw error;
     }
   },

@@ -50,6 +50,16 @@ type BridgingEvents =
       step?: "create" | "obtain" | "lock" | "getLockedTokens";
     };
 
+const bridgingGuards = {
+  hasWorker: ({ context }: { context: BridgingContext }) =>
+    !!context.zkappWorkerClient,
+
+  hasLastInputAndWorker: ({ context }: { context: BridgingContext }) =>
+    !!context.lastInput &&
+    !!context.zkappWorkerClient &&
+    context.step === "create",
+};
+
 export const BridgingMachine = setup({
   types: {
     context: {} as BridgingContext,
@@ -170,6 +180,7 @@ export const BridgingMachine = setup({
       }
     ),
   },
+  guards: bridgingGuards,
 }).createMachine({
   id: "bridging",
   initial: "idle",
@@ -187,7 +198,7 @@ export const BridgingMachine = setup({
       on: {
         CREATE_CREDENTIAL: [
           {
-            guard: ({ context }) => !!context.zkappWorkerClient,
+            guard: "hasWorker",
             target: "creating",
             actions: assign({
               credential: null,
@@ -344,7 +355,7 @@ export const BridgingMachine = setup({
       on: {
         START_LOCK: [
           {
-            guard: ({ context }) => !!context.zkappWorkerClient,
+            guard: "hasWorker",
             target: "locking",
             actions: assign({
               errorMessage: null,
@@ -498,10 +509,7 @@ export const BridgingMachine = setup({
       on: {
         RETRY: {
           target: "creating",
-          guard: ({ context }) =>
-            !!context.lastInput &&
-            !!context.zkappWorkerClient &&
-            context.step === "create",
+          guard: "hasLastInputAndWorker",
         },
         RESET: {
           target: "idle",

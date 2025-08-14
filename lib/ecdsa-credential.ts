@@ -1,5 +1,44 @@
-import { EcdsaEthereum } from "mina-attestations/imported";
-import { PrivateKey, PublicKey } from "o1js";
+import { CredentialAttestationWorker } from "@nori-zk/mina-token-bridge/pure-workers";
+import { PublicKey } from "o1js";
+
+// Use the pre prepared credential attestation logic.
+const credWorker = new CredentialAttestationWorker();
+
+export async function createEcdsaCredential(
+  message: string,
+  minaPubKey: PublicKey,
+  signature: string,
+  signerAddress: string,
+): Promise<string> {
+  try {
+    return credWorker.computeCredential(message, signature, signerAddress, minaPubKey.toBase58());
+  } catch (error) {
+    console.error("Error creating ECDSA credential:", error);
+    throw error;
+  }
+}
+
+export async function compileEcdsaCredentialDependencies(): Promise<void> {
+  try {
+    await credWorker.compile();
+  } catch (error) {
+    console.error("Error compiling ECDSA credential dependencies:", error);
+    throw error;
+  }
+}
+
+const noriTokenControllerAddressBase58 = 'B62qjjbAsmyjEYkUQQbwzVLBxUc66cLp48vxgT582UxK15t1E3LPUNs'; // FIXME move this to an environment variable
+
+export async function obtainPresentationRequest(): Promise<string> {
+  try {
+    return credWorker.computeEcdsaSigPresentationRequest(noriTokenControllerAddressBase58);
+  } catch (error) {
+    console.error("Error obtaining ECDSA credential:", error);
+    throw error;
+  }
+}
+
+/*
 import {
   Credential,
   DynamicBytes,
@@ -74,9 +113,9 @@ export async function obtainPresentationRequest(
       ({ ecdsaCredential }) => ({
         outputClaim: Operation.record({
           owner: Operation.owner,
-          issuer: Operation.publicInput(ecdsaCredential),
+          issuer: Operation.publicInput(ecdsaCredential as unknown as any), // This needs a better fix
           messageHash: Operation.hash(
-            Operation.property(ecdsaCredential, "message")
+            Operation.property(ecdsaCredential as unknown as any, "message") // This needs a better fix
           ),
         }),
       })
@@ -110,3 +149,4 @@ export async function obtainPresentationRequest(
     throw error;
   }
 }
+*/
