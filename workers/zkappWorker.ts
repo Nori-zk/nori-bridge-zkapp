@@ -1,8 +1,8 @@
-import {
+/*import {
   compileEcdsaCredentialDependencies,
   createEcdsaCredential,
   obtainPresentationRequest,
-} from "@/lib/ecdsa-credential.ts";
+} from "@/lib/ecdsa-credential.ts";*/
 import { Mina, PublicKey, Field } from "o1js";
 import * as Comlink from "comlink";
 import {
@@ -10,6 +10,9 @@ import {
   NoriStorageInterface,
   NoriTokenController,
 } from "@nori-zk/mina-token-bridge";
+import { CredentialAttestationWorker } from "@nori-zk/mina-token-bridge/pure-workers";
+
+const credWorker = new CredentialAttestationWorker();
 
 type Transaction = Awaited<ReturnType<typeof Mina.transaction>>;
 
@@ -32,6 +35,8 @@ const state = {
   tokenVerificationKey: null as null | VerificationKeyData,
 };
 
+const noriTokenControllerAddressBase58 = 'B62qjjbAsmyjEYkUQQbwzVLBxUc66cLp48vxgT582UxK15t1E3LPUNs'; // FIXME move this to an environment variable
+
 export const api = {
   createEcdsaCredential: async (
     message: string,
@@ -40,15 +45,18 @@ export const api = {
     walletAddress: string
   ): Promise<string> => {
     try {
-      const pubKey = PublicKey.fromBase58(publicKey);
-      const credential = await createEcdsaCredential(
+      //const pubKey = PublicKey.fromBase58(publicKey);
+      /*const credential = await createEcdsaCredential(
         message,
         pubKey,
         signature,
         walletAddress,
         state.compiledEcdsaCredential
       );
-      return credential;
+      return credential;*/
+      const cred = credWorker.computeCredential(message, signature, walletAddress, publicKey);
+      console.log('computeCredential cred', cred);
+      return cred;
     } catch (error) {
       console.error("Error in worker createEcdsaCredential:", error);
       throw error;
@@ -57,16 +65,19 @@ export const api = {
 
   initialiseCredential: async (): Promise<boolean> => {
     try {
-      const compiled = await compileEcdsaCredentialDependencies();
-      state.compiledEcdsaCredential = compiled;
-      return compiled !== null;
+      //const compiled = await compileEcdsaCredentialDependencies();
+      //state.compiledEcdsaCredential = compiled;
+      console.log('Compiling cred deps');
+      await credWorker.compile();
+      console.log('Compiled cred');
+      return true; //compiled !== null;
     } catch (error) {
       console.error("Error during worker initialiseCredential:", error);
       throw error;
     }
   },
 
-  loadContracts: async (args: {}) => {
+  /*loadContracts: async (args: {}) => {
     state.FungibleToken = FungibleToken;
     state.NoriStorageInterface = NoriStorageInterface;
     state.NoriTokenController = NoriTokenController;
@@ -122,12 +133,13 @@ export const api = {
       console.error("Error during worker initialiseTokenContracts:", error);
       throw error;
     }
-  },
+  },*/
 
   obtainPresentationRequest: async (): Promise<string> => {
     try {
-      const credential = await obtainPresentationRequest(state.compiledEcdsaCredential);
-      return credential;
+      //const credential = await obtainPresentationRequest(state.compiledEcdsaCredential);
+      //return credential;
+      return credWorker.computeEcdsaSigPresentationRequest(noriTokenControllerAddressBase58);
     } catch (error) {
       console.error("Error obtaining credential:", error);
       throw error;

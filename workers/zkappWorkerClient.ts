@@ -7,10 +7,12 @@ export default class ZkappWorkerClient {
   remoteApi: Comlink.Remote<typeof import("@/workers/zkappWorker.ts").api>;
 
   constructor() {
+    console.log('initing worker');
     // Initialize the worker from the zkappWorker module
     const worker = new Worker(new URL("./zkappWorker.ts", import.meta.url), {
       type: "module",
     });
+    console.log('inited worker');
     // Wrap the worker with Comlink to enable direct method invocation
     this.remoteApi = Comlink.wrap(worker);
   }
@@ -36,12 +38,12 @@ export default class ZkappWorkerClient {
     return result;
   }
 
-  async loadTokenContracts(): Promise<void> {
+  /*async loadTokenContracts(): Promise<void> {
     console.log("Worker client loadTokenContracts called.");
     await this.remoteApi.loadContracts({});
-  }
+  }*/
 
-  async initialiseTokenContracts(
+  /*async initialiseTokenContracts(
     tokenAddress: string,
     controllerAddress: string
   ): Promise<boolean> {
@@ -52,7 +54,7 @@ export default class ZkappWorkerClient {
     });
     console.log("Worker client initialiseTokenContracts called.");
     return result;
-  }
+  }*/
 
   async obtainPresentationRequest(): Promise<string> {
     try {
