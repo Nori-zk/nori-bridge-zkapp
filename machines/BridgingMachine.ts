@@ -2,6 +2,65 @@ import { setup, fromPromise, assign } from "xstate";
 import type ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 import { Contract, ethers } from "ethers";
 
+// Import below concern bridge deposit observables
+// See here https://github.com/Nori-zk/nori-bridge-sdk/blob/FIX/tree-shake/contracts/mina/token-bridge/src/machines/deposit.ts
+// and here https://github.com/Nori-zk/nori-bridge-sdk/blob/FIX/tree-shake/contracts/mina/token-bridge/src/machines/deposit.spec.ts
+/*
+import { getReconnectingBridgeSocket$ } from '@nori-zk/mina-token-bridge/rx/socket';
+
+import {
+  getBridgeStateTopic$,
+  getBridgeTimingsTopic$,
+  getEthStateTopic$,
+} from '@nori-zk/mina-token-bridge/rx/topics';
+
+import {
+  BridgeDepositProcessingStatus,
+  bridgeStatusesKnownEnoughToLockUnsafe,
+  bridgeStatusesKnownEnoughToLockSafe,
+  getDepositProcessingStatus$,
+  // Observable triggers:
+  // CanMint observable:
+  getCanMint$, // cycles through states of 'Waiting', 'ReadyToMint' and 'MissedMintingOpportunity'
+  CanMintStatus,
+  // CanComputeEthProof observable:
+  getCanComputeEthProof$, // cycles through states of 'Waiting', 'CanCompute', or 'MissedMintingOpportunity'
+  CanComputEthProof,
+} from '@nori-zk/mina-token-bridge/rx/deposit';
+*/
+
+/*
+Note the gotchas in the tests in the link above:
+
+let depositMachine: ReturnType<typeof getDepositMachine>;
+const { bridgeSocket$ } = getReconnectingBridgeSocket$();
+
+// Seem to need to add share replay to avoid contention.
+const ethStateTopic$ = getEthStateTopic$(bridgeSocket$).pipe(
+    shareReplay(1)
+);
+const bridgeStateTopic$ = getBridgeStateTopic$(bridgeSocket$).pipe(
+    shareReplay(1)
+);
+const bridgeTimingsTopic$ = getBridgeTimingsTopic$(bridgeSocket$).pipe(
+    shareReplay(1)
+);
+// Turn the topics into hot observables... (this is slightly annoying to have to do)
+ethStateTopic$.subscribe();
+bridgeStateTopic$.subscribe();
+bridgeTimingsTopic$.subscribe();
+
+You must ensure we only have one global reference to bridgeSocket$, ethStateTopic$, bridgeTimingsTopic$ and bridgeStateTopic$
+They must have:
+.pipe(
+    shareReplay(1)
+)
+Applied to them.
+
+And you must turn them into hot observables aka the subscribe to them immediately within your global service. Otherwise they react very slowly 
+to bridge state changes.
+*/
+
 interface BridgingContext {
   zkappWorkerClient: ZkappWorkerClient | null;
   contract: Contract | null;

@@ -1,20 +1,37 @@
-import * as Comlink from "comlink";
+import { createProxyFromSpec } from "@nori-zk/mina-token-bridge/worker";
+import { WorkerParent } from "@nori-zk/mina-token-bridge/browser/worker/parent";
+import { CredentialAttestationWorkerSpec } from "@nori-zk/mina-token-bridge/workers/specs";
+
+const noriTokenControllerAddressBase58 =
+  "B62qjjbAsmyjEYkUQQbwzVLBxUc66cLp48vxgT582UxK15t1E3LPUNs"; // This should be an env var! Will change in testnet vs production
 
 export default class ZkappWorkerClient {
-  // ---------------------------------------------------------------------------------------
-  worker: Worker;
-  // Proxy to interact with the worker's methods as if they were local
-  remoteApi: Comlink.Remote<typeof import("@/workers/zkappWorker.ts").api>;
+  #credentialAttestationWorker: ReturnType<
+    typeof createProxyFromSpec<typeof CredentialAttestationWorkerSpec>
+  >;
+
+  #ready: Promise<void> | undefined;
+
+  // Use this function to know if the worker has fully loaded. Method calls will be buffered until this resolves.
+  ready() {
+    return this.#ready;
+  }
 
   constructor() {
-    console.log('initing worker');
-    // Initialize the worker from the zkappWorker module
     const worker = new Worker(new URL("./zkappWorker.ts", import.meta.url), {
       type: "module",
     });
-    console.log('inited worker');
-    // Wrap the worker with Comlink to enable direct method invocation
-    this.remoteApi = Comlink.wrap(worker);
+
+    const workerParent = new WorkerParent(worker);
+
+    this.#ready = workerParent.ready();
+
+    this.#credentialAttestationWorker = createProxyFromSpec(
+      workerParent,
+      CredentialAttestationWorkerSpec
+    );
+
+    console.log("Worker proxy created in constructor");
   }
 
   async createEcdsaCredential(
@@ -23,42 +40,26 @@ export default class ZkappWorkerClient {
     signature: string,
     walletAddress: string
   ): Promise<string> {
-    return await this.remoteApi.createEcdsaCredential(
+    return await this.#credentialAttestationWorker.computeCredential(
       message,
-      publicKey,
       signature,
+      publicKey,
       walletAddress
     );
   }
 
   async initialiseCredential(): Promise<boolean> {
-    // Placeholder for any initialization logic if needed
-    const result = await this.remoteApi.initialiseCredential();
+    const result = await this.#credentialAttestationWorker.compile();
     console.log("Worker client initCred value:", result);
-    return result;
+    return true;
   }
-
-  /*async loadTokenContracts(): Promise<void> {
-    console.log("Worker client loadTokenContracts called.");
-    await this.remoteApi.loadContracts({});
-  }*/
-
-  /*async initialiseTokenContracts(
-    tokenAddress: string,
-    controllerAddress: string
-  ): Promise<boolean> {
-    // Placeholder for token contract initialization logic
-    const result = await this.remoteApi.initContractsInstance({
-      tokenAddress: tokenAddress,
-      controllerAddress: controllerAddress,
-    });
-    console.log("Worker client initialiseTokenContracts called.");
-    return result;
-  }*/
 
   async obtainPresentationRequest(): Promise<string> {
     try {
-      const credential = await this.remoteApi.obtainPresentationRequest();
+      const credential =
+        await this.#credentialAttestationWorker.computeEcdsaSigPresentationRequest(
+          noriTokenControllerAddressBase58
+        );
       console.log("Worker client obtainPresentationRequest called.");
       return credential;
     } catch (error) {
