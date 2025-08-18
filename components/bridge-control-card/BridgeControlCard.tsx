@@ -13,13 +13,13 @@ import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.ts
 
 type BridgeControlCardProps = {
   title: string;
-  width?: number;
-  height?: number;
+  width?: string;
+  height?: string;
 };
 
 const BridgeControlCard = (props: BridgeControlCardProps) => {
   const [isMounted, setIsMounted] = useState<boolean>(false);
-  const { title, width, height } = props;
+  const { title } = props;
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
@@ -43,68 +43,208 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   return (
     <div
       style={{
-        width,
-        height,
+        width: props.width, // Fixed width in pixels
+        height: props.height, // Fixed height in pixels
+        position: "relative", // Ensure positioning context for children
+        overflow: "hidden", // Prevent any overflow from affecting size
         boxShadow:
-          "-21px 0px 15px -15px lightGreen, 21px 0px 15px -15px LightGreen",
+          "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen",
         borderRadius: "20px",
-        border: "0.5px solid var(--lightGreen)",
       }}
     >
-      <div
-        className="absolute inset-0 rounded-2xl pointer-events-none"
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="70 0 830 475"
+        width="830" // Fixed width
+        height="475" // Fixed height
         style={{
-          background:
-            "linear-gradient(90deg, transparent, transparent), linear-gradient(180deg, transparent, transparent), linear-gradient(270deg, transparent, transparent), linear-gradient(0deg, transparent, transparent)",
-          backgroundSize: "100% 1px, 1px 100%, 100% 1px, 1px 100%",
-          backgroundPosition: "0 0, 100% 0, 0 100%, 0 0",
-          backgroundRepeat: "no-repeat",
-          mask: "radial-gradient(circle at top left, lightGreen 0%, rgba(6, 59, 231, 0.3) 20%, transparent 50%),radial-gradient(circle at top right, rgba(204, 21, 21, 0.8) 0%, rgba(34, 197, 94, 0.3) 20%, transparent 50%),radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.8) 0%, rgba(34, 197, 94, 0.3) 20%, transparent 50%),radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.8) 0%, rgba(34, 197, 94, 0.3) 20%, transparent 50%)",
-          maskComposite: "source-over",
-          WebkitMaskComposite: "source-over",
-          border: "1px solid lightGreen)",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          display: "block",
         }}
-      ></div>
-
-      <div className="flex flex-col items-center justify-center h-full">
-        <h1 className="text-center text-white text-3xl mb-6">{title}</h1>
-        <div className="w-3/4">
-          <div className="flex text-white justify-between items-center">
-            <WalletButton
-              id="eth-btn"
-              types={"Ethereum"}
-              content={
-                ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
-              }
-            />
-            <div className="flex items-center justify-center w-7 h-7 text-black bg-white rounded-full mx-2">
-              <FaArrowRight />
+      >
+        <g filter="url(#filter0_d_273_5871)">
+          <rect
+            x="70"
+            width="830"
+            height="475"
+            rx="20"
+            fill="#060A08"
+            fill-opacity="0.1"
+            shape-rendering="crispEdges"
+          />
+          <rect
+            x="70"
+            width="830"
+            height="475"
+            rx="20"
+            fill="url(#paint0_radial_273_5871)"
+            fill-opacity="0.2"
+            shape-rendering="crispEdges"
+          />
+          <rect
+            x="70.5"
+            y="0.5"
+            width="829"
+            height="474"
+            rx="19.5"
+            stroke="url(#paint1_linear_273_5871)"
+            stroke-opacity="0.1"
+            shape-rendering="crispEdges"
+          />
+          <rect
+            x="70.5"
+            y="0.5"
+            width="829"
+            height="474"
+            rx="19.5"
+            stroke="url(#paint2_radial_273_5871)"
+            shape-rendering="crispEdges"
+          />
+          <rect
+            x="70.5"
+            y="0.5"
+            width="829"
+            height="474"
+            rx="19.5"
+            stroke="url(#paint3_radial_273_5871)"
+            shape-rendering="crispEdges"
+          />
+        </g>
+        <foreignObject x="70" y="0" width="830" height="475">
+          <div className="flex flex-col items-center justify-center h-full">
+            <h1 className="text-center text-white text-3xl mb-6">{title}</h1>
+            <div className="w-3/4">
+              <div className="flex text-white justify-between items-center">
+                <WalletButton
+                  id="eth-btn"
+                  types={"Ethereum"}
+                  content={
+                    ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
+                  }
+                />
+                <div className="flex items-center justify-center w-7 h-7 text-black bg-white rounded-full mx-2">
+                  <FaArrowRight />
+                </div>
+                <WalletButton
+                  id="mina-btn"
+                  types={"Mina"}
+                  content={minaButtonContent}
+                />
+              </div>
+              <div className="flex justify-center mt-6 text-white">
+                {isWorkerLoading || !state.context.zkappWorkerClient ? (
+                  <p>Spinning up zkappWorker...</p>
+                ) : !zkappWorkerClient ? (
+                  <p>zkappWorker is not ready.</p>
+                ) : !compiledEcdsaCredential ? (
+                  <p>Running step compiledEcdsaCredential...</p>
+                ) : state.context.step === "create" ? (
+                  <CreateCredentials />
+                ) : state.context.step === "obtain" ? (
+                  <ObtainCredentials />
+                ) : state.context.step === "lock" ? (
+                  <LockTokens />
+                ) : (
+                  <GetLockedTokens />
+                )}
+              </div>
             </div>
-            <WalletButton
-              id="mina-btn"
-              types={"Mina"}
-              content={minaButtonContent}
+          </div>
+        </foreignObject>
+        <defs>
+          <filter
+            id="filter0_d_273_5871"
+            x="0"
+            y="-20"
+            width="970"
+            height="635"
+            filterUnits="userSpaceOnUse"
+            color-interpolation-filters="sRGB"
+          >
+            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+            <feColorMatrix
+              in="SourceAlpha"
+              type="matrix"
+              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+              result="hardAlpha"
             />
-          </div>
-          <div className="flex justify-center mt-6 text-white">
-            {isWorkerLoading || !state.context.zkappWorkerClient ? (
-              <p>Spinning up zkappWorker...</p>
-            ) : !zkappWorkerClient ? (
-              <p>zkappWorker is not ready.</p>
-            ) : !compiledEcdsaCredential ? (
-              <p>Running step compiledEcdsaCredential...</p>
-            ) : state.context.step === "create" ? (
-              <CreateCredentials />
-            ) : state.context.step === "obtain" ? (
-              <ObtainCredentials />
-            ) : state.context.step === "lock" ? (
-              <LockTokens />
-            ) : (
-              <GetLockedTokens />
-            )}
-          </div>
-        </div>
-      </div>
+            <feMorphology
+              radius="50"
+              operator="erode"
+              in="SourceAlpha"
+              result="effect1_dropShadow_273_5871"
+            />
+            <feOffset dx="-20" dy="70" dx="20" />
+            <feGaussianBlur stdDeviation="60" />
+            <feComposite in2="hardAlpha" operator="out" />
+            <feColorMatrix
+              type="matrix"
+              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0"
+            />
+            <feBlend
+              mode="normal"
+              in2="BackgroundImageFix"
+              result="effect1_dropShadow_273_5871"
+            />
+            <feBlend
+              mode="normal"
+              in="SourceGraphic"
+              in2="effect1_dropShadow_273_5871"
+              result="shape"
+            />
+          </filter>
+          <radialGradient
+            id="paint0_radial_273_5871"
+            cx="0"
+            cy="0"
+            r="1"
+            gradientUnits="userSpaceOnUse"
+            gradientTransform="translate(70) rotate(33.5305) scale(995.691 588.873)"
+          >
+            <stop stop-color="#03FF9F" stop-opacity="0.2" />
+            <stop offset="0.2" stop-color="#03FF9F" stop-opacity="0.1" />
+            <stop offset="0.48476" stop-color="#03FF9F" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient
+            id="paint1_linear_273_5871"
+            x1="485"
+            y1="0"
+            x2="485"
+            y2="475"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop stop-color="white" />
+            <stop offset="1" stop-color="#999999" />
+          </linearGradient>
+          <radialGradient
+            id="paint2_radial_273_5871"
+            cx="0"
+            cy="0"
+            r="1"
+            gradientUnits="userSpaceOnUse"
+            gradientTransform="translate(70) rotate(90) scale(264.137 225.049)"
+          >
+            <stop stop-color="#64E18E" />
+            <stop offset="0.25" stop-color="#1F6344" />
+            <stop offset="1" stop-color="#1F6344" stop-opacity="0" />
+          </radialGradient>
+          <radialGradient
+            id="paint3_radial_273_5871"
+            cx="0"
+            cy="0"
+            r="1"
+            gradientUnits="userSpaceOnUse"
+            gradientTransform="translate(900) rotate(90) scale(254.99 244.107)"
+          >
+            <stop stop-color="#64E18E" />
+            <stop offset="0.25" stop-color="#1F6344" />
+            <stop offset="1" stop-color="#1F6344" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+      </svg>
     </div>
   );
 };

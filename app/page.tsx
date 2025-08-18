@@ -17,16 +17,14 @@ export default function Home() {
           <Nori className="scale-[0.75]" />
         </div>
         <div className="flex flex-grow w-full justify-center items-center h-full">
-          <div className="w-1/4 h-[450px]">
-            {ethConnected && minaConnected && <ScrollingWSS />}
-          </div>
-          <div className="1/2">
+          <div className="w-1/4 h-[450px]">{<ScrollingWSS />}</div>
+          <>
             <BridgeControlCard
               title={"First connect wallets"}
-              width={750}
-              height={500}
+              width={"780"}
+              height={"450"}
             />
-          </div>
+          </>
           <div className="w-1/4 h-[450px]">
             {ethConnected && minaConnected && <ScrollingBridge />}
           </div>
