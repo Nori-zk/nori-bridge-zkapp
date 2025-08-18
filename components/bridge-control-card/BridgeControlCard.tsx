@@ -43,10 +43,10 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   return (
     <div
       style={{
-        width: props.width, // Fixed width in pixels
-        height: props.height, // Fixed height in pixels
-        position: "relative", // Ensure positioning context for children
-        overflow: "hidden", // Prevent any overflow from affecting size
+        width: props.width,
+        height: props.height,
+        position: "relative",
+        overflow: "hidden",
         boxShadow:
           "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen",
         borderRadius: "20px",
@@ -56,10 +56,10 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="70 0 830 475"
-        width="830" // Fixed width
-        height="475" // Fixed height
+        width="830"
+        height="475"
         style={{
-          position: "absolute",
+          // position: "absolute",
           top: 0,
           left: 0,
           display: "block",
@@ -72,8 +72,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             height="475"
             rx="20"
             fill="#060A08"
-            fill-opacity="0.1"
-            shape-rendering="crispEdges"
+            fillOpacity="0.1"
+            shapeRendering="crispEdges"
           />
           <rect
             x="70"
@@ -81,8 +81,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             height="475"
             rx="20"
             fill="url(#paint0_radial_273_5871)"
-            fill-opacity="0.2"
-            shape-rendering="crispEdges"
+            fillOpacity="0.2"
+            shapeRendering="crispEdges"
           />
           <rect
             x="70.5"
@@ -91,8 +91,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             height="474"
             rx="19.5"
             stroke="url(#paint1_linear_273_5871)"
-            stroke-opacity="0.1"
-            shape-rendering="crispEdges"
+            strokeOpacity="0.1"
+            shapeRendering="crispEdges"
           />
           <rect
             x="70.5"
@@ -101,7 +101,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             height="474"
             rx="19.5"
             stroke="url(#paint2_radial_273_5871)"
-            shape-rendering="crispEdges"
+            shapeRendering="crispEdges"
           />
           <rect
             x="70.5"
@@ -110,7 +110,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             height="474"
             rx="19.5"
             stroke="url(#paint3_radial_273_5871)"
-            shape-rendering="crispEdges"
+            shapeRendering="crispEdges"
           />
         </g>
         <foreignObject x="70" y="0" width="830" height="475">
@@ -162,9 +162,9 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             width="970"
             height="635"
             filterUnits="userSpaceOnUse"
-            color-interpolation-filters="sRGB"
+            colorInterpolationFilters="sRGB"
           >
-            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
             <feColorMatrix
               in="SourceAlpha"
               type="matrix"
@@ -204,9 +204,9 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             gradientUnits="userSpaceOnUse"
             gradientTransform="translate(70) rotate(33.5305) scale(995.691 588.873)"
           >
-            <stop stop-color="#03FF9F" stop-opacity="0.2" />
-            <stop offset="0.2" stop-color="#03FF9F" stop-opacity="0.1" />
-            <stop offset="0.48476" stop-color="#03FF9F" stop-opacity="0" />
+            <stop stopColor="#03FF9F" stopOpacity="0.2" />
+            <stop offset="0.2" stopColor="#03FF9F" stopOpacity="0.1" />
+            <stop offset="0.48476" stopColor="#03FF9F" stopOpacity="0" />
           </radialGradient>
           <linearGradient
             id="paint1_linear_273_5871"
@@ -216,8 +216,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             y2="475"
             gradientUnits="userSpaceOnUse"
           >
-            <stop stop-color="white" />
-            <stop offset="1" stop-color="#999999" />
+            <stop stopColor="white" />
+            <stop offset="1" stopColor="#999999" />
           </linearGradient>
           <radialGradient
             id="paint2_radial_273_5871"
@@ -227,9 +227,9 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             gradientUnits="userSpaceOnUse"
             gradientTransform="translate(70) rotate(90) scale(264.137 225.049)"
           >
-            <stop stop-color="#64E18E" />
-            <stop offset="0.25" stop-color="#1F6344" />
-            <stop offset="1" stop-color="#1F6344" stop-opacity="0" />
+            <stop stopColor="#64E18E" />
+            <stop offset="0.25" stopColor="#1F6344" />
+            <stop offset="1" stopColor="#1F6344" stopOpacity="0" />
           </radialGradient>
           <radialGradient
             id="paint3_radial_273_5871"
@@ -239,9 +239,9 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
             gradientUnits="userSpaceOnUse"
             gradientTransform="translate(900) rotate(90) scale(254.99 244.107)"
           >
-            <stop stop-color="#64E18E" />
-            <stop offset="0.25" stop-color="#1F6344" />
-            <stop offset="1" stop-color="#1F6344" stop-opacity="0" />
+            <stop stopColor="#64E18E" />
+            <stop offset="0.25" stopColor="#1F6344" />
+            <stop offset="1" stopColor="#1F6344" stopOpacity="0" />
           </radialGradient>
         </defs>
       </svg>
