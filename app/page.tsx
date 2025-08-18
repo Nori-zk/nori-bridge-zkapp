@@ -6,6 +6,7 @@ import ScrollingBridge from "@/components/panels/ScrollingBridge/ScrollingBridge
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import ScrollingWSS from "@/components/panels/ScrollingWSS/ScrollingWSS.tsx";
 import { useAccount } from "wagmina";
+import Notification from "@/components/ui/Notification/Notification.tsx";
 
 export default function Home() {
   const { isConnected: ethConnected } = useMetaMaskWallet();
@@ -17,7 +18,9 @@ export default function Home() {
           <Nori className="scale-[0.75]" />
         </div>
         <div className="flex flex-grow w-full justify-center items-center h-full">
-          <div className="w-1/4 h-[450px]">{<ScrollingWSS />}</div>
+          <div className="w-1/4 h-[450px]">
+            {ethConnected && minaConnected && <ScrollingWSS />}
+          </div>
           <>
             <BridgeControlCard
               title={"First connect wallets"}
@@ -29,7 +32,12 @@ export default function Home() {
             {ethConnected && minaConnected && <ScrollingBridge />}
           </div>
         </div>
-        <div className="text-white/30 text-xs m-2 flex justify-end z-10">
+        <div>
+          <Notification
+            content={"Wallet Linking Is Required For The First Time"}
+          />
+        </div>
+        <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
           Powered by{" "}
           <a
             href="https://www.coingecko.com/en/api"

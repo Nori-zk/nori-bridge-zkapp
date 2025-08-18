@@ -11,6 +11,7 @@ import LockTokens from "./ProgressSteps/LockTokens.tsx";
 import GetLockedTokens from "./ProgressSteps/GetLockedTokens.tsx";
 import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 import BridgeControlCardSVG from "./BridgeControlCardSVG.tsx";
+import ConnectWallets from "./ProgressSteps/ConnectWallets.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -49,13 +50,17 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
         position: "relative",
         overflow: "hidden",
         boxShadow:
-          "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen",
+          ethConnected && minaConnected
+            ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
+            : "none",
         borderRadius: "20px",
       }}
     >
       <BridgeControlCardSVG width={props.width} height={props.height}>
         <div className="flex flex-col items-center justify-center h-full">
-          <h1 className="text-center text-white text-3xl mb-6">{title}</h1>
+          <h1 className="text-center text-white text-4xl mb-6 font-[400]">
+            {title}
+          </h1>
           <div className="w-3/4">
             <div className="flex text-white justify-between items-center">
               <WalletButton
@@ -81,6 +86,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 <p>zkappWorker is not ready.</p>
               ) : !compiledEcdsaCredential ? (
                 <p>Running step compiledEcdsaCredential...</p>
+              ) : !(ethConnected && minaConnected) ? (
+                <ConnectWallets />
               ) : state.context.step === "create" ? (
                 <CreateCredentials />
               ) : state.context.step === "obtain" ? (
