@@ -7,7 +7,7 @@ type TokenMintWorkerInst = InstanceType<
   ReturnType<typeof createProxy<typeof TokenMintWorkerType>>
 >;
 
-// Both of these need to be configurable env vars, will be different for production / production
+// Both of these need to be configurable env vars, will be different for testnet / production
 const noriTokenControllerAddressBase58 =
   "B62qjjbAsmyjEYkUQQbwzVLBxUc66cLp48vxgT582UxK15t1E3LPUNs";
 const noriTokenBaseBase58 =
