@@ -1,37 +1,39 @@
-import { createProxyFromSpec } from "@nori-zk/mina-token-bridge/worker";
-import { WorkerParent } from "@nori-zk/mina-token-bridge/browser/worker/parent";
-import { CredentialAttestationWorkerSpec } from "@nori-zk/mina-token-bridge/workers/specs";
+import { createProxy } from "@nori-zk/workers";
+import { WorkerParent } from "@nori-zk/workers/browser/parent";
+import { type CredentialAttestationWorker as CredentialAttestationWorkerType } from "@nori-zk/mina-token-bridge/workers/defs";
+
+type CredentialAttestationWorkerInst = InstanceType<
+  ReturnType<typeof createProxy<typeof CredentialAttestationWorkerType>>
+>;
 
 const noriTokenControllerAddressBase58 =
   "B62qjjbAsmyjEYkUQQbwzVLBxUc66cLp48vxgT582UxK15t1E3LPUNs"; // This should be an env var! Will change in testnet vs production
 
 export default class ZkappWorkerClient {
-  #credentialAttestationWorker: ReturnType<
-    typeof createProxyFromSpec<typeof CredentialAttestationWorkerSpec>
-  >;
-
+  #credentialAttestationWorker: CredentialAttestationWorkerInst;
   #ready: Promise<void> | undefined;
-
-  // Use this function to know if the worker has fully loaded. Method calls will be buffered until this resolves.
-  ready() {
-    return this.#ready;
-  }
 
   constructor() {
     const worker = new Worker(new URL("./zkappWorker.ts", import.meta.url), {
       type: "module",
     });
-
     const workerParent = new WorkerParent(worker);
-
-    this.#ready = workerParent.ready();
-
-    this.#credentialAttestationWorker = createProxyFromSpec(
-      workerParent,
-      CredentialAttestationWorkerSpec
-    );
-
+    const CredentialAttestationWorker =
+      createProxy<typeof CredentialAttestationWorkerType>(workerParent);
+    this.#credentialAttestationWorker = new CredentialAttestationWorker();
+    this.#ready = this.#credentialAttestationWorker.ready;
     console.log("Worker proxy created in constructor");
+  }
+
+  // Terminate the worker when your done with it.
+  terminate() {
+    this.#credentialAttestationWorker.terminate();
+  }
+
+  // Use this function to know if the worker has fully loaded. Method calls will be buffered until this resolves.
+  // So you don't actually have to await this. You can use the worker methods straight away :)
+  ready() {
+    return this.#ready;
   }
 
   async createEcdsaCredential(

@@ -1,7 +1,11 @@
-import { createProxyFromSpec } from "@nori-zk/mina-token-bridge/worker";
-import { WorkerParent } from "@nori-zk/mina-token-bridge/browser/worker/parent";
-import { TokenMintWorkerWorkerSpec } from "@nori-zk/mina-token-bridge/workers/specs";
+import { createProxy } from "@nori-zk/workers";
+import { WorkerParent } from "@nori-zk/workers/browser/parent";
+import { type TokenMintWorker as TokenMintWorkerType } from "@nori-zk/mina-token-bridge/workers/defs";
 import { JsonProof, NetworkId } from "o1js";
+
+type TokenMintWorkerInst = InstanceType<
+  ReturnType<typeof createProxy<typeof TokenMintWorkerType>>
+>;
 
 // Both of these need to be configurable env vars, will be different for production / production
 const noriTokenControllerAddressBase58 =
@@ -10,10 +14,8 @@ const noriTokenBaseBase58 =
   "B62qjRLSRy5M1eEndnDyvT9ND8wdiNE3UpnH1KSoTgQyEtwNgDfebxx";
 
 export default class ZkappMintWorkerClient {
-  #mintWorker: ReturnType<
-    typeof createProxyFromSpec<typeof TokenMintWorkerWorkerSpec>
-  >;
-
+  #mintWorker: TokenMintWorkerInst;
+  #ready: Promise<void> | undefined;
   #noriTokenControllerVerificationKeySafe:
     | {
         data: string;
@@ -21,28 +23,27 @@ export default class ZkappMintWorkerClient {
       }
     | undefined;
 
-  #ready: Promise<void> | undefined;
-
-  // Use this function to know if the worker has fully loaded. Method calls will be buffered until this resolves.
-  ready() {
-    return this.#ready;
-  }
-
   constructor() {
     const worker = new Worker(new URL("./mintWorker.ts", import.meta.url), {
       type: "module",
     });
-
     const workerParent = new WorkerParent(worker);
-
-    this.#ready = workerParent.ready();
-
-    this.#mintWorker = createProxyFromSpec(
-      workerParent,
-      TokenMintWorkerWorkerSpec
-    );
-
+    const TokenMintWorker =
+      createProxy<typeof TokenMintWorkerType>(workerParent);
+    this.#mintWorker = new TokenMintWorker();
+    this.#ready = this.#mintWorker.ready;
     console.log("Worker proxy created in constructor");
+  }
+
+  // Terminate the worker when your done with it.
+  terminate() {
+    this.#mintWorker.terminate();
+  }
+
+  // Use this function to know if the worker has fully loaded. Method calls will be buffered until this resolves.
+  // So you don't actually have to await this. You can use the worker methods straight away :)
+  ready() {
+    return this.#ready;
   }
 
   async compile() {
