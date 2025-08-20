@@ -12,6 +12,8 @@ const noriTokenControllerAddressBase58 =
 export default class ZkappWorkerClient {
   #credentialAttestationWorker: CredentialAttestationWorkerInst;
   #ready: Promise<void> | undefined;
+  #compiled = false;
+  #terminated = false;
 
   constructor() {
     const worker = new Worker(new URL("./zkappWorker.ts", import.meta.url), {
@@ -28,6 +30,7 @@ export default class ZkappWorkerClient {
   // Terminate the worker when your done with it.
   terminate() {
     this.#credentialAttestationWorker.terminate();
+    this.#terminated = true;
   }
 
   // Use this function to know if the worker has fully loaded. Method calls will be buffered until this resolves.
@@ -42,6 +45,9 @@ export default class ZkappWorkerClient {
     signature: string,
     walletAddress: string
   ): Promise<string> {
+    if (this.#terminated) throw new Error("Worker has been terminated.");
+    if (!this.#compiled)
+      throw new Error("Need to call compile before using this function.");
     return await this.#credentialAttestationWorker.computeCredential(
       message,
       signature,
@@ -51,12 +57,18 @@ export default class ZkappWorkerClient {
   }
 
   async initialiseCredential(): Promise<boolean> {
+    if (this.#terminated) throw new Error("Worker has been terminated.");
+    if (this.#compiled) return true;
     const result = await this.#credentialAttestationWorker.compile();
     console.log("Worker client initCred value:", result);
+    this.#compiled = true;
     return true;
   }
 
   async obtainPresentationRequest(): Promise<string> {
+    if (this.#terminated) throw new Error("Worker has been terminated.");
+    if (!this.#compiled)
+      throw new Error("Need to call compile before using this function.");
     try {
       const credential =
         await this.#credentialAttestationWorker.computeEcdsaSigPresentationRequest(
