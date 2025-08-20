@@ -14,6 +14,7 @@ const ProgressTrackerConnector = ({
   const color =
     isCompleted || isNextActive ? "var(--lightGreen)" : "var(--connectedGreen)";
 
+  //TODO: can we move to using the Connector.svg file?
   return (
     <motion.div
       initial={{ width: 0 }}
