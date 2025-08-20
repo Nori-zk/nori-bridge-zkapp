@@ -49,7 +49,7 @@ export default function Home() {
             show={!ethConnected || !minaConnected}
           />
         </div>
-        <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
+        <div className="mb-2 text-white/30 text-xs flex justify-end z-10 mx-2">
           Powered by{" "}
           <a
             href="https://www.coingecko.com/en/api"

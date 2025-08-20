@@ -7,9 +7,9 @@ type NotificationProps = {
 const Notification = ({ content, show = false }: NotificationProps) => {
   return (
     <div
-      className={`rounded-tr-xl rounded-tl-xl mb-2 px-8 fixed left-1/2 -translate-x-1/2 z-50 bg-green-900 transition-all duration-500 ${
+      className={`rounded-tr-xl rounded-tl-xl mb-8 px-8 fixed left-1/2 -translate-x-1/2 z-50 bg-green-900 transition-all duration-500 ${
         show
-          ? "translate-y-0 opacity-100"
+          ? "translate-y-0 opacity-100 -bottom-8"
           : "translate-y-full opacity-0 pointer-events-none"
       }`}
     >
