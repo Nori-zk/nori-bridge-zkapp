@@ -7,6 +7,7 @@ import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWa
 import ScrollingWSS from "@/components/panels/ScrollingWSS/ScrollingWSS.tsx";
 import { useAccount } from "wagmina";
 import Notification from "@/components/ui/Notification/Notification.tsx";
+import Flip from "@/public/assets/Flip.svg";
 
 export default function Home() {
   const { isConnected: ethConnected } = useMetaMaskWallet();
@@ -21,13 +22,23 @@ export default function Home() {
           <div className="w-1/4 h-[450px]">
             {ethConnected && minaConnected && <ScrollingWSS />}
           </div>
-          <>
+          <div className="relative inline-block">
             <BridgeControlCard
               title={"First connect wallets"}
               width={"780"}
               height={"450"}
             />
-          </>
+            <button
+              onClick={() => console.log("Flip pressed")}
+              className="absolute -top-1 -right-11 z-20 transition-all duration-300 ease-in-out hover:scale-110 hover:rotate-6"
+            >
+              <Flip
+                width={65}
+                height={65}
+                className="scale-[0.82] fill-red-100 transition-colors duration-300 ease-in-out group-hover:fill-red-300"
+              />
+            </button>
+          </div>
           <div className="w-1/4 h-[450px]">
             {ethConnected && minaConnected && <ScrollingBridge />}
           </div>
@@ -35,6 +46,7 @@ export default function Home() {
         <div>
           <Notification
             content={"Wallet Linking Is Required For The First Time"}
+            show={!ethConnected || !minaConnected}
           />
         </div>
         <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
