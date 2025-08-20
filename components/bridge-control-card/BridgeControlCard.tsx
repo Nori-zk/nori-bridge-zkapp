@@ -12,6 +12,8 @@ import GetLockedTokens from "./ProgressSteps/GetLockedTokens.tsx";
 import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 import BridgeControlCardSVG from "./BridgeControlCardSVG.tsx";
 import ConnectWallets from "./ProgressSteps/ConnectWallets.tsx";
+import { progressSteps } from "@/static_data.ts";
+import ProgressTracker from "../ui/ProgressTracker/ProgressTracker.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -21,6 +23,8 @@ type BridgeControlCardProps = {
 
 const BridgeControlCard = (props: BridgeControlCardProps) => {
   const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [displayProgressSteps, setDisplayProgressSteps] = useState(false);
+
   const { title } = props;
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
@@ -34,6 +38,9 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
 
   useEffect(() => {
     setIsMounted(true);
+    if (progressSteps.length > 0) {
+      setDisplayProgressSteps(true);
+    }
   }, []);
 
   const minaButtonContent = isMounted
@@ -79,7 +86,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 content={minaButtonContent}
               />
             </div>
-            <div className="flex justify-center mt-6 text-white">
+            <div className="flex justify-center mt-1 text-white">
               {isWorkerLoading || !state.context.zkappWorkerClient ? (
                 <p>Spinning up zkappWorker...</p>
               ) : !zkappWorkerClient ? (
@@ -99,6 +106,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               )}
             </div>
           </div>
+          {displayProgressSteps && <ProgressTracker steps={progressSteps} />}
         </div>
       </BridgeControlCardSVG>
     </div>
