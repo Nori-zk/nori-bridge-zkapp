@@ -29,12 +29,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
-  const { state } = useBridging();
-  const {
-    zkappWorkerClient,
-    isLoading: isWorkerLoading,
-    compiledEcdsaCredential,
-  } = useZkappWorker();
+  const { state, credential, compiledEcdsaCredential } = useBridging();
+  const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
 
   useEffect(() => {
     setIsMounted(true);
@@ -91,9 +87,11 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 <p>Spinning up zkappWorker...</p>
               ) : !zkappWorkerClient ? (
                 <p>zkappWorker is not ready.</p>
-              ) : !compiledEcdsaCredential ? (
+              ) : !credential && !compiledEcdsaCredential ? (
                 <p>Running step compiledEcdsaCredential...</p>
-              ) : !(ethConnected && minaConnected) ? (
+              ) : !(ethConnected && minaConnected) ||
+                !ethConnected ||
+                !minaConnected ? (
                 <ConnectWallets />
               ) : state.context.step === "create" ? (
                 <CreateCredentials />
