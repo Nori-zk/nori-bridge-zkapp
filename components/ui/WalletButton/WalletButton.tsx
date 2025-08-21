@@ -77,7 +77,7 @@ const WalletButton = ({
       )}
     >
       <div className="m-1">{logo}</div>
-      <div className="m-1">{displayAddress}</div>
+      <div className="m-3 text-lg">{displayAddress}</div>
     </button>
   );
 };
