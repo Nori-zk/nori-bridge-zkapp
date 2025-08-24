@@ -27,8 +27,8 @@ export const ZkappWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
     const spinUpWorker = async () => {
       try {
         console.log('initing ZkappWorkerClient');
-        const client = new ZkappWorkerClient();
-        setZkappWorkerClient(client);
+        // const client = new ZkappWorkerClient();
+        // setZkappWorkerClient(client);
       } catch (error) {
         console.error("Failed to initialize zkappWorkerClient:", error);
       } finally {
@@ -44,7 +44,7 @@ export const ZkappWorkerProvider: React.FC<{ children: React.ReactNode }> = ({
     const initialiseCredential = async () => {
       try {
         // Perform your follow-up initialisation here
-        const result = await zkappWorkerClient.initialiseCredential();
+        // const result = await zkappWorkerClient.initialiseCredential();
         console.log("Credential initialised, useEffect:", result);
         setCompiledEcdsaCredential(result);
       } catch (err) {

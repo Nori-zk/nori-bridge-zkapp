@@ -1,4 +1,5 @@
 import {
+	assign,
 	// assign,
 	fromObservable,
 	fromPromise,
@@ -286,6 +287,16 @@ const computeMintTx = fromPromise(
 		return mintTxStr;
 	}
 );
+const submitMintTx = fromPromise(
+	async ({ input }: { input: { mintTx: string } }) => {
+		// In a real implementation, this would submit the transaction to the Mina network
+		console.log("Submitting mint transaction:", input.mintTx);
+		// Simulate network delay
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+		console.log("Mint transaction submitted successfully");
+		return true;
+	}
+);
 
 export const getDepositMachine = (topics: {
 	ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
@@ -298,7 +309,16 @@ export const getDepositMachine = (topics: {
 			events: {} as DepositMintEvents,
 		},
 		guards: {
-			//TODO
+			hasComputedEthProof: ({ context }) => context.computedEthProof !== null,
+			hasDepositMintTx: ({ context }) => context.depositMintTx !== null,
+			hasActiveDepositNumber: ({ context }) =>
+				context.activeDepositNumber !== null,
+			canComputeEthProof: ({ context }) =>
+				context.canComputeStatus === "CanCompute",
+			canMint: ({ context }) => context.canMintStatus === "ReadyToMint",
+			isMissedOpportunity: ({ context }) =>
+				context.canComputeStatus === "MissedMintingOpportunity" ||
+				context.canMintStatus === "MissedMintingOpportunity",
 		},
 		actors: {
 			depositProcessingStatusActor,
@@ -311,6 +331,7 @@ export const getDepositMachine = (topics: {
 			setupStorage,
 			computeEthProof,
 			computeMintTx,
+			submitMintTx,
 		},
 	}).createMachine({
 		id: "depositMint",
@@ -343,6 +364,289 @@ export const getDepositMachine = (topics: {
 			needsToFundAccount: false,
 			errorMessage: null,
 		},
-		states: {},
-		on: {},
+		states: {
+			// Boot: hydrate state and determine next steps
+			checking: {
+				entry: assign({
+					activeDepositNumber: (() => {
+						const v = safeLS.get(LS_KEYS.activeDepositNumber);
+						if (v) return parseInt(v);
+						return null;
+					})(),
+					computedEthProof: (() => {
+						const v = safeLS.get(LS_KEYS.computedEthProof);
+						if (v) return JSON.parse(v); // would that parse correctly?
+						return null;
+					})() as JsonProof | null,
+					depositMintTx: safeLS.get(LS_KEYS.depositMintTx),
+					errorMessage: null,
+				}),
+				always: [
+					{
+						target: "hasComputedEthProof",
+						guard: "hasComputedEthProof",
+					},
+					{ target: "hasDepositMintTx", guard: "hasDepositMintTx" },
+					{
+						target: "hasActiveDepositNumber",
+						guard: "hasActiveDepositNumber",
+					},
+					{ target: "noActiveDepositNumber" },
+				],
+			},
+			// User needs to configure deposit number
+			noActiveDepositNumber: {
+				on: {
+					SET_DEPOSIT_NUMBER: {
+						target: "hasActiveDepositNumber",
+						actions: assign({
+							activeDepositNumber: ({ event }) => {
+								console.log("Setting activeDepositNumber:", event.value);
+								safeLS.set(LS_KEYS.activeDepositNumber, event.value.toString());
+								return event.value;
+							},
+						}),
+					},
+				},
+			},
+
+			hasActiveDepositNumber: {
+				entry: assign({
+					processingStatus: () => null as null,
+					canComputeStatus: () => null as null,
+					canMintStatus: () => null as null,
+					errorMessage: null,
+				}),
+				invoke: [
+					{
+						id: "depositProcessingStatus",
+						src: "depositProcessingStatusActor",
+						input: ({ context }) => ({
+							depositBlockNumber: context.activeDepositNumber!,
+							ethStateTopic$: context.ethStateTopic$!,
+							bridgeStateTopic$: context.bridgeStateTopic$!,
+							bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+						}),
+						onSnapshot: {
+							actions: assign({
+								processingStatus: ({ event }) => {
+									console.log(
+										"onSnapshotdepositProcessingStatus",
+										event.snapshot.context
+									);
+									return event.snapshot.context ?? null;
+								},
+							}),
+						},
+					},
+					{
+						id: "canComputeEthProof",
+						src: "canComputeEthProofActor",
+						input: ({ context }) => ({
+							depositBlockNumber: context.activeDepositNumber!,
+							ethStateTopic$: context.ethStateTopic$!,
+							bridgeStateTopic$: context.bridgeStateTopic$!,
+							bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+						}),
+						onSnapshot: {
+							actions: assign({
+								canComputeStatus: ({ event }) => {
+									console.log("onSnapshotcanComputeEthProof", event);
+									return event.snapshot.context ?? null;
+								},
+							}),
+						},
+					},
+					{
+						id: "canMint",
+						src: "canMintActor",
+						input: ({ context }) => ({
+							depositBlockNumber: context.activeDepositNumber!,
+							ethStateTopic$: context.ethStateTopic$!,
+							bridgeStateTopic$: context.bridgeStateTopic$!,
+							bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+						}),
+						onSnapshot: {
+							actions: assign({
+								canMintStatus: ({ event }) => {
+									console.log("onSnapshotcanMintActor", event);
+									return event.snapshot.context ?? null;
+								},
+							}),
+						},
+					},
+				],
+				always: [
+					{
+						target: "checkingCanCompute",
+						guard: "canComputeEthProof",
+					},
+					{
+						target: "missedOpportunity",
+						guard: "isMissedOpportunity",
+					},
+				],
+			},
+			checkingCanCompute: {
+				invoke: {
+					src: "canComputeEthProofActor",
+					input: ({ context }) => ({
+						depositBlockNumber: context.activeDepositNumber!,
+						ethStateTopic$: context.ethStateTopic$!,
+						bridgeStateTopic$: context.bridgeStateTopic$!,
+						bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+					}),
+					onSnapshot: {
+						actions: assign({
+							canComputeStatus: ({ event }) => event.snapshot.context ?? null,
+						}),
+					},
+				},
+				always: [
+					{
+						target: "computingEthProof",
+						guard: "canComputeEthProof",
+					},
+					{
+						target: "missedOpportunity",
+						guard: "isMissedOpportunity",
+					},
+				],
+			},
+			computingEthProof: {
+				invoke: {
+					src: "computeEthProof",
+					input: ({ context }) => ({
+						worker: context.mintWorker!,
+						depositBlockNumber: context.activeDepositNumber!,
+						ethSenderAddress: context.ethSenderAddress!,
+						presentationJsonStr: context.presentationJsonStr!,
+					}),
+					onDone: {
+						actions: assign({
+							computedEthProof: ({ event }) => {
+								const proof = event.output;
+								window.localStorage.setItem(
+									"computedEthProof",
+									JSON.stringify(proof)
+								);
+								return proof;
+							},
+						}),
+						target: "checking",
+					},
+				},
+			},
+
+			hasComputedEthProof: {
+				entry: assign({
+					canMintStatus: () => null as null,
+				}),
+				invoke: {
+					src: "canMintActor",
+					input: ({ context }) => ({
+						depositBlockNumber: context.activeDepositNumber!,
+						ethStateTopic$: context.ethStateTopic$!,
+						bridgeStateTopic$: context.bridgeStateTopic$!,
+						bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+					}),
+					onSnapshot: {
+						actions: assign({
+							canMintStatus: ({ event }) => event.snapshot.context ?? null,
+						}),
+					},
+				},
+				always: [
+					{ target: "buildingMintTx", guard: "canMint" },
+					{
+						target: "missedOpportunity",
+						guard: "isMissedOpportunity",
+					},
+					{ target: "hasComputedEthProof" },
+				],
+			},
+			buildingMintTx: {
+				invoke: {
+					src: "computeMintTx",
+					input: ({ context }) => ({
+						worker: context.mintWorker!,
+						minaSenderAddress: context.minaSenderAddress!,
+						ethProof: context.computedEthProof!,
+						presentationJsonStr: context.presentationJsonStr!,
+						needsToFundAccount: context.needsToFundAccount,
+					}),
+					onDone: {
+						actions: assign({
+							depositMintTx: ({ event }) => {
+								const tx = event.output;
+								window.localStorage.setItem("depositMintTx", tx);
+								return tx;
+							},
+						}),
+						target: "checking",
+					},
+				},
+			},
+			hasDepositMintTx: {
+				on: {
+					SUBMIT_MINT_TX: {
+						target: "submittingMintTx",
+					},
+				},
+			},
+			submittingMintTx: {
+				invoke: {
+					src: "submitMintTx",
+					input: ({ context }) => ({
+						mintTx: context.depositMintTx!,
+					}),
+					onDone: {
+						target: "completed",
+						actions: () => {
+							window.localStorage.removeItem("activeDepositNumber");
+							window.localStorage.removeItem("depositMintTx");
+							window.localStorage.removeItem("computedEthProof");
+						},
+					},
+				},
+			},
+
+			missedOpportunity: {
+				type: "final",
+				entry: () => console.log("Missed minting opportunity"), // here we should most likley clear localStorage and context
+			},
+
+			completed: {
+				type: "final",
+				entry: () => console.log("Deposit completed successfully"),
+			},
+		},
+		// Global reset handler - works from any state
+		on: {
+			RESET: {
+				target: ".checking",
+				actions: assign({
+					activeDepositNumber: null,
+					depositMintTx: null,
+					computedEthProof: null,
+					processingStatus: null,
+					canComputeStatus: null,
+					canMintStatus: null,
+					mintWorker: null,
+					minaSenderAddress: null,
+					ethSenderAddress: null,
+					presentationJsonStr: null,
+					isWorkerReady: false,
+					isStorageSetup: false,
+					needsToFundAccount: false,
+					errorMessage: null,
+				}),
+				entry: () => {
+					// Clear localStorage on reset
+					safeLS.del(LS_KEYS.activeDepositNumber);
+					safeLS.del(LS_KEYS.computedEthProof);
+					safeLS.del(LS_KEYS.depositMintTx);
+				},
+			},
+		},
 	});

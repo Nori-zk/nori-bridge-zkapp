@@ -108,7 +108,7 @@ export default class MockMintWorkerClient {
 
 	async minaSetup(options: {
 		networkId?: NetworkId;
-		mina: string | string[];
+		mina?: string | string[];
 		archive?: string | string[];
 		lightnetAccountManager?: string;
 		bypassTransactionLimits?: boolean;

@@ -59,8 +59,8 @@ export default class ZkappWorkerClient {
   async initialiseCredential(): Promise<boolean> {
     if (this.#terminated) throw new Error("Worker has been terminated.");
     if (this.#compiled) return true;
-    const result = await this.#credentialAttestationWorker.compile();
-    console.log("Worker client initCred value:", result);
+    // const result = await this.#credentialAttestationWorker.compile();
+    // console.log("Worker client initCred value:", result);
     this.#compiled = true;
     return true;
   }
