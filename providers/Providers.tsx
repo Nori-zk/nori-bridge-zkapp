@@ -5,7 +5,7 @@ import { WagminaProvider } from "wagmina";
 import { config } from "@/config/index.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ZkappWorkerProvider } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
-import { BridgingProvider } from "@/providers/BridgingProvider/BridgingProvider.tsx";
+// import { BridgingProvider } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import { NoriBridgeProvider } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 
 interface AppProvidersProps {

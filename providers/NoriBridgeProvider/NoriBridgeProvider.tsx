@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import { shareReplay } from 'rxjs'
 import { useMachine } from "@xstate/react";
 
@@ -11,6 +11,7 @@ import {
 } from '@nori-zk/mina-token-bridge/rx/topics';
 
 import { getDepositMachine, type DepositMintContext, type DepositMintEvents } from '@/machines/DepositMintMachine.ts';
+import MockMintWorkerClient from "@/workers/mockMintWorkerClient.ts";
 
 // Note the gotchas in the tests in the link above:
 
@@ -31,7 +32,8 @@ const bridgeTimingsTopic$ = getBridgeTimingsTopic$(bridgeSocket$).pipe(
 ethStateTopic$.subscribe();
 bridgeStateTopic$.subscribe();
 bridgeTimingsTopic$.subscribe();
-
+// Create single instance of worker 
+const mintWorker = new MockMintWorkerClient();
 // You must ensure we only have one global reference to bridgeSocket$, ethStateTopic$, bridgeTimingsTopic$ and bridgeStateTopic$
 // They must have:
 // .pipe(
@@ -59,10 +61,7 @@ type NoriBridgeContextType = {
 
   // Helper methods
   setDepositNumber: (depositNumber: number) => void;
-  setUserAddresses: (minaAddress: string, ethAddress: string) => void;
   setPresentation: (presentationJsonStr: string) => void;
-  initWorker: () => void;
-  setupStorage: () => void;
   submitMintTx: () => void;
   retry: () => void;
   reset: () => void;
@@ -73,13 +72,14 @@ const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
 export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  // Create machine instance
+
+  // Create machine instance 
   const depositMintMachine = useMemo(() =>
     getDepositMachine({
       ethStateTopic$,
       bridgeStateTopic$,
       bridgeTimingsTopic$,
-    }), []);
+    }, mintWorker), []);
 
 
 
@@ -91,25 +91,10 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     send({ type: "SET_DEPOSIT_NUMBER", value: depositNumber });
   };
 
-  const setUserAddresses = (minaAddress: string, ethAddress: string) => {
-    // Update context directly since these aren't in the machine events yet
-    // You may need to add these events to your machine
-    console.log("Setting user addresses:", { minaAddress, ethAddress });
-  };
 
   const setPresentation = (presentationJsonStr: string) => {
-    // Update context directly since this isn't in the machine events yet
     console.log("Setting presentation:", presentationJsonStr);
-  };
-
-  const initWorker = () => {
-    // This should trigger worker initialization in your machine
-    console.log("Init worker called");
-  };
-
-  const setupStorage = () => {
-    // This should trigger storage setup in your machine
-    console.log("Setup storage called");
+    // This will be read from localStorage by the machine
   };
 
   const submitMintTx = () => {
@@ -125,20 +110,23 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Derived state flags
-  const isLoading = state.matches("computingEthProof") || 
-                   state.matches("buildingMintTx") || 
-                   state.matches("submittingMintTx");
-  
-  const isReady = state.matches("hasActiveDepositNumber") || 
-                 state.matches("hasComputedEthProof") || 
-                 state.matches("hasDepositMintTx");
-  
-  const isError = state.context.errorMessage !== null;
-  
-  const canSetupStorage = state.context.isWorkerReady && 
-                         !state.context.isStorageSetup && 
-                         state.context.minaSenderAddress !== null;
-  
+  const isLoading = state.matches("initializingMina") ||
+    // state.matches("compilingWorker") ||
+    state.matches("checkingStorageSetup") ||
+    state.matches("settingUpStorage") ||
+    state.matches("computingEthProof") ||
+    state.matches("buildingMintTx") ||
+    state.matches("submittingMintTx");
+
+  const isReady = state.matches("monitoringDepositStatus") ||
+    state.matches("hasComputedEthProof") ||
+    state.matches("hasDepositMintTx");
+
+  const isError = state.matches("error") || state.context.errorMessage !== null;
+
+  const canSetupStorage = state.matches("storageSetupDecision") &&
+    !state.context.isStorageSetup;
+
   const canSubmitMintTx = state.matches("hasDepositMintTx");
 
   // Derived state
@@ -159,10 +147,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Helper methods
     setDepositNumber,
-    setUserAddresses,
     setPresentation,
-    initWorker,
-    setupStorage,
     submitMintTx,
     retry,
     reset,
@@ -174,6 +159,11 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     isError,
     canSetupStorage,
     canSubmitMintTx,
+    setDepositNumber,
+    setPresentation,
+    submitMintTx,
+    retry,
+    reset,
   ]);
 
   return (

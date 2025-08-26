@@ -30,28 +30,28 @@ interface BridgingContextValue {
   send: (
     event:
       | {
-          type: "CREATE_CREDENTIAL";
-          message: string;
-          address: string;
-          signature: string;
-          walletAddress: string;
-          provider: any;
-        }
+        type: "CREATE_CREDENTIAL";
+        message: string;
+        address: string;
+        signature: string;
+        walletAddress: string;
+        provider: any;
+      }
       | {
-          type: "OBTAIN_CREDENTIAL";
-          provider: any;
-        }
+        type: "OBTAIN_CREDENTIAL";
+        provider: any;
+      }
       | { type: "START_LOCK"; amount: number; attestationHash: string }
       | { type: "GET_LOCKED_TOKENS" }
       | { type: "RETRY" }
       | { type: "RESET" }
       | {
-          type: "UPDATE_MACHINE";
-          zkappWorkerClient: ZkappWorkerClient | null;
-          contract: Contract | null;
-          credential?: string | null;
-          step?: "create" | "obtain" | "lock" | "getLockedTokens";
-        }
+        type: "UPDATE_MACHINE";
+        zkappWorkerClient: ZkappWorkerClient | null;
+        contract: Contract | null;
+        credential?: string | null;
+        step?: "create" | "obtain" | "lock" | "getLockedTokens";
+      }
   ) => void;
   isLoading: boolean;
   isSuccess: boolean;
@@ -87,37 +87,39 @@ export const BridgingProvider = ({
         `credential:${ethAddress}:${minaAddress}`
       );
       if (storedData) {
+        console.log("Found existing credential in localStorage");
         const {
           credential,
           minaAddress: storedMina,
           ethAddress: storedEth,
         } = JSON.parse(storedData);
 
-        if (storedMina === minaAddress && storedEth === ethAddress) {
-          send({
-            type: "UPDATE_MACHINE",
-            zkappWorkerClient,
-            contract,
-            credential,
-            step: "lock",
-          });
-        } else {
-          send({
-            type: "UPDATE_MACHINE",
-            zkappWorkerClient,
-            contract,
-            credential: null,
-            step: "create",
-          });
-        }
-      } else {
+        // if (storedMina === minaAddress && storedEth === ethAddress) {
         send({
           type: "UPDATE_MACHINE",
           zkappWorkerClient,
           contract,
-          credential: null,
-          step: "create",
+          credential,
+          step: "lock",
         });
+        //   } else {
+        //     send({
+        //       type: "UPDATE_MACHINE",
+        //       zkappWorkerClient,
+        //       contract,
+        //       credential: null,
+        //       step: "create",
+        //     });
+        //   }
+        // } else {
+        //   send({
+        //     type: "UPDATE_MACHINE",
+        //     zkappWorkerClient,
+        //     contract,
+        //     credential: null,
+        //     step: "create",
+        //   });
+        // }
       }
     } catch (error) {
       console.error("Error reading from localStorage:", error);

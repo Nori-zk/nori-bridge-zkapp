@@ -7,8 +7,8 @@ export const DepositMintTestUI: React.FC = () => {
     setDepositNumber,
     setUserAddresses,
     setPresentation,
-    initWorker,
-    setupStorage,
+    // initWorker,
+    // setupStorage,
     submitMintTx,
     retry,
     reset,
@@ -168,21 +168,15 @@ export const DepositMintTestUI: React.FC = () => {
         <h2 className="text-lg font-semibold mb-4">2. Actions</h2>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <button
-            onClick={initWorker}
-            disabled={isLoading}
-            className="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            🔧 Init Worker
-          </button>
 
-          <button
+
+          {/* <button
             onClick={setupStorage}
             disabled={!canSetupStorage || isLoading}
             className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             💾 Setup Storage
-          </button>
+          </button> */}
 
           <button
             onClick={submitMintTx}
