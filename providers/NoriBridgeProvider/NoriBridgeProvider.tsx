@@ -1,48 +1,48 @@
-import React, { createContext, useContext, useMemo } from "react";
-import { shareReplay } from 'rxjs'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useMachine } from "@xstate/react";
-
-import { getReconnectingBridgeSocket$ } from '@nori-zk/mina-token-bridge/rx/socket';
-
 import {
-  getBridgeStateTopic$,
-  getBridgeTimingsTopic$,
-  getEthStateTopic$,
-} from '@nori-zk/mina-token-bridge/rx/topics';
-
-import { getDepositMachine, type DepositMintContext, type DepositMintEvents } from '@/machines/DepositMintMachine.ts';
+  getDepositMachine,
+  type DepositMintContext,
+  type DepositMintEvents,
+} from "@/machines/DepositMintMachine.ts";
 import MockMintWorkerClient from "@/workers/mockMintWorkerClient.ts";
+import { useSetup } from "../SetupProvider/SetupProvider.tsx";
+import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
+import { useAccount } from "wagmina";
 
-// Note the gotchas in the tests in the link above:
+// // Note the gotchas in the tests in the link above:
 
-// let depositMachine: ReturnType<typeof getDepositMachine>;
-const { bridgeSocket$ } = getReconnectingBridgeSocket$();
+// // let depositMachine: ReturnType<typeof getDepositMachine>;
+// const { bridgeSocket$ } = getReconnectingBridgeSocket$();
 
-// Seem to need to add share replay to avoid contention.
-const ethStateTopic$ = getEthStateTopic$(bridgeSocket$).pipe(
-  shareReplay(1)
-);
-const bridgeStateTopic$ = getBridgeStateTopic$(bridgeSocket$).pipe(
-  shareReplay(1)
-);
-const bridgeTimingsTopic$ = getBridgeTimingsTopic$(bridgeSocket$).pipe(
-  shareReplay(1)
-);
-// Turn the topics into hot observables... (this is slightly annoying to have to do)
-ethStateTopic$.subscribe();
-bridgeStateTopic$.subscribe();
-bridgeTimingsTopic$.subscribe();
-// Create single instance of worker 
-const mintWorker = new MockMintWorkerClient();
-// You must ensure we only have one global reference to bridgeSocket$, ethStateTopic$, bridgeTimingsTopic$ and bridgeStateTopic$
-// They must have:
-// .pipe(
-//     shareReplay(1)
-// )
-// Applied to them.
+// // Seem to need to add share replay to avoid contention.
+// const ethStateTopic$ = getEthStateTopic$(bridgeSocket$).pipe(shareReplay(1));
+// const bridgeStateTopic$ = getBridgeStateTopic$(bridgeSocket$).pipe(
+//   shareReplay(1)
+// );
+// const bridgeTimingsTopic$ = getBridgeTimingsTopic$(bridgeSocket$).pipe(
+//   shareReplay(1)
+// );
+// // Turn the topics into hot observables... (this is slightly annoying to have to do)
+// ethStateTopic$.subscribe();
+// bridgeStateTopic$.subscribe();
+// bridgeTimingsTopic$.subscribe();
+// // Create single instance of worker
+// // You must ensure we only have one global reference to bridgeSocket$, ethStateTopic$, bridgeTimingsTopic$ and bridgeStateTopic$
+// // They must have:
+// // .pipe(
+// //     shareReplay(1)
+// // )
+// // Applied to them.
 
-// And you must turn them into hot observables aka the subscribe to them immediately within your global service. Otherwise they react very slowly 
-// to bridge state changes.
+// // And you must turn them into hot observables aka the subscribe to them immediately within your global service. Otherwise they react very slowly
+// // to bridge state changes.
 
 type NoriBridgeContextType = {
   // Machine state and actions
@@ -72,25 +72,44 @@ const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
 export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const [mintWorker, setMintWorker] = useState<MockMintWorkerClient | null>(
+    null
+  );
 
-  // Create machine instance 
-  const depositMintMachine = useMemo(() =>
-    getDepositMachine({
-      ethStateTopic$,
-      bridgeStateTopic$,
-      bridgeTimingsTopic$,
-    }, mintWorker), []);
+  const { ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$ } = useSetup();
+  const { walletAddress: ethAddress } = useMetaMaskWallet();
+  const { address: minaAddress } = useAccount();
 
-
+  const depositMintMachine = useMemo(
+    () =>
+      getDepositMachine(
+        {
+          ethStateTopic$,
+          bridgeStateTopic$,
+          bridgeTimingsTopic$,
+        },
+        null
+      ),
+    [ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$]
+  );
 
   // Use the machine
   const [state, send] = useMachine(depositMintMachine);
+
+  useEffect(() => {
+    // TODO what if a user switches wallet, will need to generate new MockMintWorkerClient
+    if (minaAddress && ethAddress && !mintWorker) {
+      const worker = new MockMintWorkerClient(minaAddress, ethAddress);
+      console.log("creating worker: ", worker);
+      setMintWorker(worker);
+      send({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
+    }
+  }, [minaAddress, ethAddress, mintWorker, send]);
 
   // Helper functions
   const setDepositNumber = (depositNumber: number) => {
     send({ type: "SET_DEPOSIT_NUMBER", value: depositNumber });
   };
-
 
   const setPresentation = (presentationJsonStr: string) => {
     console.log("Setting presentation:", presentationJsonStr);
@@ -110,7 +129,8 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Derived state flags
-  const isLoading = state.matches("initializingMina") ||
+  const isLoading =
+    state.matches("initializingMina") ||
     // state.matches("compilingWorker") ||
     state.matches("checkingStorageSetup") ||
     state.matches("settingUpStorage") ||
@@ -118,53 +138,57 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     state.matches("buildingMintTx") ||
     state.matches("submittingMintTx");
 
-  const isReady = state.matches("monitoringDepositStatus") ||
+  const isReady =
+    state.matches("monitoringDepositStatus") ||
     state.matches("hasComputedEthProof") ||
     state.matches("hasDepositMintTx");
 
   const isError = state.matches("error") || state.context.errorMessage !== null;
 
-  const canSetupStorage = state.matches("storageSetupDecision") &&
-    !state.context.isStorageSetup;
+  const canSetupStorage =
+    state.matches("storageSetupDecision") && !state.context.isStorageSetup;
 
   const canSubmitMintTx = state.matches("hasDepositMintTx");
 
   // Derived state
-  const contextValue = useMemo(() => ({
-    // Machine state and actions
-    state: {
-      value: state.value as string,
-      context: state.context,
-    },
-    send,
+  const contextValue = useMemo(
+    () => ({
+      // Machine state and actions
+      state: {
+        value: state.value as string,
+        context: state.context,
+      },
+      send,
 
-    // Convenience flags
-    isLoading,
-    isReady,
-    isError,
-    canSetupStorage,
-    canSubmitMintTx,
+      // Convenience flags
+      isLoading,
+      isReady,
+      isError,
+      canSetupStorage,
+      canSubmitMintTx,
 
-    // Helper methods
-    setDepositNumber,
-    setPresentation,
-    submitMintTx,
-    retry,
-    reset,
-  }), [
-    state,
-    send,
-    isLoading,
-    isReady,
-    isError,
-    canSetupStorage,
-    canSubmitMintTx,
-    setDepositNumber,
-    setPresentation,
-    submitMintTx,
-    retry,
-    reset,
-  ]);
+      // Helper methods
+      setDepositNumber,
+      setPresentation,
+      submitMintTx,
+      retry,
+      reset,
+    }),
+    [
+      state,
+      send,
+      isLoading,
+      isReady,
+      isError,
+      canSetupStorage,
+      canSubmitMintTx,
+      setDepositNumber,
+      setPresentation,
+      submitMintTx,
+      retry,
+      reset,
+    ]
+  );
 
   return (
     <NoriBridgeContext.Provider value={contextValue}>
