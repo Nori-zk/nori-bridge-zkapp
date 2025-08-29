@@ -209,18 +209,21 @@ const checkStorageSetup = fromPromise(
       worker: MockMintWorkerClient;
     };
   }) => {
-    console.log("Checking if storage setup is needed...");
-    await input.worker.needsToSetupStorage();
-    // const [needsSetup, needsFunding] = await Promise.all([
-    // 	input.worker.needsToSetupStorage(input.minaSenderAddress),
-    // 	input.worker.needsToFundAccount(input.minaSenderAddress),
-    // ]);
+    try {
+      await input.worker.needsToSetupStorage();
+      // const [needsSetup, needsFunding] = await Promise.all([
+      // 	input.worker.needsToSetupStorage(input.minaSenderAddress),
+      // 	input.worker.needsToFundAccount(input.minaSenderAddress),
+      // ]);
 
-    return {
-      needsSetup: await input.worker.needsToSetupStorage(),
-      // needsFunding: true,
-      // isStorageSetup: false, // that cannot always return false
-    };
+      return {
+        needsSetup: await input.worker.needsToSetupStorage(),
+        // needsFunding: true,
+        // isStorageSetup: false, // that cannot always return false
+      };
+    } catch (err) {
+      console.log("Error in checkStorageSetup: ", err);
+    }
   }
 );
 
@@ -307,10 +310,11 @@ export const getDepositMachine = (
       events: {} as DepositMintEvents,
     },
     guards: {
-      hasComputedEthProof: ({ context }) => context.computedEthProof !== null,
-      hasDepositMintTx: ({ context }) => context.depositMintTx !== null,
-      hasActiveDepositNumber: ({ context }) =>
-        context.activeDepositNumber !== null,
+      hasComputedEthProofGuard: ({ context }) =>
+        context.computedEthProof !== null,
+      hasDepositMintTxGuard: ({ context }) => context.depositMintTx !== null,
+      hasActiveDepositNumberGuard: ({ context }) =>
+        context.activeDepositNumber !== null || context.mintWorker !== null,
       hasWorker: ({ context }) => context.isWorkerReady === true,
       canComputeEthProof: ({ context }) =>
         context.canComputeStatus === "CanCompute",
@@ -319,6 +323,7 @@ export const getDepositMachine = (
         context.canComputeStatus === "MissedMintingOpportunity" ||
         context.canMintStatus === "MissedMintingOpportunity",
       needsStorageSetup: ({ context }) => !context.isStorageSetup,
+      checkingStorageSetupGuard: ({ context }) => context.mintWorker !== null,
       // isMinaSetupComplete: ({ context }) => context.isMinaSetupComplete,
       // isWorkerCompiled: ({ context }) => context.isWorkerCompiled,
     },
@@ -364,8 +369,17 @@ export const getDepositMachine = (
     states: {
       // Initial hydration state - same on server and client
       hydrating: {
-        after: {
-          0: "checking", // Immediately transition to checking after mount
+        always: {
+          target: "checkingStorageSetup",
+          guard: ({ context }) => context.mintWorker !== null,
+        },
+        on: {
+          ASSIGN_WORKER: {
+            actions: assign({
+              mintWorker: (_) => _.event.mintWorkerClient,
+            }),
+            target: "checking",
+          },
         },
       },
       assignWorker: {
@@ -413,12 +427,12 @@ export const getDepositMachine = (
         always: [
           {
             target: "hasComputedEthProof",
-            guard: "hasComputedEthProof",
+            guard: "hasComputedEthProofGuard",
           },
-          { target: "hasDepositMintTx", guard: "hasDepositMintTx" },
+          { target: "hasDepositMintTx", guard: "hasDepositMintTxGuard" },
           {
             target: "hasActiveDepositNumber",
-            guard: "hasActiveDepositNumber",
+            guard: "hasActiveDepositNumberGuard",
           },
           { target: "noActiveDepositNumber" },
         ],
@@ -457,7 +471,7 @@ export const getDepositMachine = (
           },
           {
             target: "checkingStorageSetup",
-            // guard: ({ context }) =>
+            guard: "checkingStorageSetupGuard",
             // 	context.isWorkerReady &&
             // 	// context.isMinaSetupComplete &&
             // 	// context.isWorkerCompiled &&
