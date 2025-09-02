@@ -98,8 +98,7 @@ export default class MockMintWorkerClient {
     needsToFundAccount: boolean
   ) {
     if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (!this.#compiled)
-      throw new Error("Need to call compile before using this function.");
+    if (!this.#compiled) await this.compile();
 
     // Simulate mint tx computation delay
     await new Promise((resolve) => setTimeout(resolve, 1500));

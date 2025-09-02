@@ -376,7 +376,8 @@ export const getDepositMachine = (
         on: {
           ASSIGN_WORKER: {
             actions: assign({
-              mintWorker: (_) => _.event.mintWorkerClient,
+              mintWorker: ({ event }) => event.mintWorkerClient,
+              isWorkerReady: ({ event }) => event.mintWorkerClient !== null,
             }),
             target: "checking",
           },
@@ -386,6 +387,8 @@ export const getDepositMachine = (
         entry: assign({
           mintWorker: ({ event }) =>
             event.type === "ASSIGN_WORKER" ? event.mintWorkerClient : null,
+          isWorkerReady: ({ event }) =>
+            event.type === "ASSIGN_WORKER" && event.mintWorkerClient !== null,
         }),
         always: "initializingWorker",
       },
@@ -505,7 +508,7 @@ export const getDepositMachine = (
           }),
           onDone: {
             actions: assign({
-              isStorageSetup: ({ event }) => event.output.needsSetup,
+              isStorageSetup: ({ event }) => event.output?.needsSetup,
               // needsToFundAccount: ({ event }) => event.output.needsFunding,
 
               needsToFundAccount: ({}) => true,
@@ -642,7 +645,7 @@ export const getDepositMachine = (
             worker: context.mintWorker!,
             depositBlockNumber: context.activeDepositNumber!,
             // ethSenderAddress: context.ethSenderAddress!,
-            presentationJsonStr: context.presentationJsonStr!,
+            presentationJsonStr: "test",
           }),
           onDone: {
             actions: assign({
@@ -700,7 +703,7 @@ export const getDepositMachine = (
             worker: context.mintWorker!,
             // minaSenderAddress: context.minaSenderAddress!,
             ethProof: context.computedEthProof!,
-            presentationJsonStr: context.presentationJsonStr!,
+            presentationJsonStr: "test",
             needsToFundAccount: context.needsToFundAccount,
           }),
           onDone: {
@@ -711,7 +714,7 @@ export const getDepositMachine = (
                 return tx;
               },
             }),
-            target: "checking",
+            target: "submittingMintTx",
           },
           onError: {
             target: "error",
@@ -738,9 +741,9 @@ export const getDepositMachine = (
           onDone: {
             target: "completed",
             actions: () => {
-              window.localStorage.removeItem("activeDepositNumber");
-              window.localStorage.removeItem("depositMintTx");
-              window.localStorage.removeItem("computedEthProof");
+              // window.localStorage.removeItem("activeDepositNumber");
+              // window.localStorage.removeItem("depositMintTx");
+              // window.localStorage.removeItem("computedEthProof");
             },
           },
           onError: {
@@ -783,11 +786,11 @@ export const getDepositMachine = (
           processingStatus: null,
           canComputeStatus: null,
           canMintStatus: null,
-          mintWorker: null,
+          mintWorker: mintWorker || null,
+          isWorkerReady: mintWorker !== null,
           // minaSenderAddress: null,
           // ethSenderAddress: null,
           presentationJsonStr: null,
-          isWorkerReady: false,
           isStorageSetup: false,
           needsToFundAccount: false,
           errorMessage: null,
