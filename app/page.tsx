@@ -9,14 +9,14 @@ import { useAccount } from "wagmina";
 // import Notification from "@/components/ui/Notification/Notification.tsx";
 // import Flip from "@/public/assets/Flip.svg";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
-import { DepositMintTestUI } from "@/components/DepositMintTestUI.tsx";
 import Notification from "@/components/ui/Notification/Notification.tsx";
 import Flip from "@/public/assets/Flip.svg";
+import { DepositMintTestUI } from "@/components/DepositMintTestUI.tsx";
 
 export default function Home() {
   const { isConnected: ethConnected } = useMetaMaskWallet();
   const { isConnected: minaConnected } = useAccount();
-  const { isLoading: noriLoading } = useNoriBridge();
+
   return (
     <div className="h-full w-full bg-[radial-gradient(50%_100%_at_50%_0%,theme('colors.darkGreen')_1.31%,theme('colors.veryDarkGreen')_100%)]">
       <div className="flex  h-full w-full flex-col relative bg-custom-svg bg-no-repeat bg-cover bg-center">
@@ -27,59 +27,36 @@ export default function Home() {
           <div className="w-1/4 h-[450px]">
             {ethConnected && minaConnected && <ScrollingWSS />}
           </div>
-          <DepositMintTestUI />
-          {/* <div className="1/2">
+          {/* <DepositMintTestUI /> */}
+
           <div className="relative inline-block">
             <BridgeControlCard
               title={"First connect wallets"}
               width={"780"}
               height={"450"}
             />
-          </div> */}
-          <button
-            onClick={() => console.log("Flip pressed")}
-            className="absolute -top-1 -right-11 z-20 transition-all duration-300 ease-in-out hover:scale-110 hover:rotate-6"
-          >
-            <Flip
-              width={65}
-              height={65}
-              className="scale-[0.82] fill-red-100 transition-colors duration-300 ease-in-out group-hover:fill-red-300"
-            />
-          </button>
+            <button
+              onClick={() => console.log("Flip pressed")}
+              className="absolute -top-1 -right-11 z-20 transition-all duration-300 ease-in-out hover:scale-110 hover:rotate-6"
+            >
+              <Flip
+                width={65}
+                height={65}
+                className="scale-[0.82] fill-red-100 transition-colors duration-300 ease-in-out group-hover:fill-red-300"
+              />
+            </button>
+          </div>
+          <div className="w-1/4 h-[450px]">
+            {ethConnected && minaConnected && <ScrollingBridge />}
+          </div>
         </div>
-        <div className="w-1/4 h-[450px]">
-          {ethConnected && minaConnected && <ScrollingBridge />}
-        </div>
-      </div>
-      <div>
-        {/* <Notification
+        <div>
+          <Notification
             content={"Wallet Linking Is Required For The First Time"}
             show={!ethConnected || !minaConnected}
-          /> */}
-
-        <Notification
-          content={"Wallet Linking Is Required For The First Time"}
-          show={!ethConnected || !minaConnected}
-        />
-      </div>
-      <div className="mb-2 text-white/30 text-xs flex justify-end z-10 mx-2">
-        Powered by{" "}
-        <a
-          href="https://www.coingecko.com/en/api"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="z-10 mx-1 hover:underline"
-        >
-          CoinGecko API
-        </a>
-      </div>
-      <div className="mb-2 text-white/30 text-xs flex justify-end z-10 mx-2">
-        {noriLoading && (
-          <div className="text-white">Loading Nori Bridge...</div>
-        )}
-
-        <div className="text-white/30 text-xs m-2 flex justify-end z-10">
+          />
+        </div>
+        <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
           Powered by{" "}
           <a
             href="https://www.coingecko.com/en/api"
