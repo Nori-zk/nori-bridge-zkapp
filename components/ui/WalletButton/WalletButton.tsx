@@ -10,13 +10,15 @@ export type WalletButtonProps = {
   onClick?: () => void;
   content?: string;
   width?: number;
+  height?: number;
 };
 
 const WalletButton = ({
   id,
   types,
   content = "Connect Wallet",
-  width = 200,
+  width = 250,
+  height = 55,
   onClick,
 }: WalletButtonProps) => {
   const [isMounted, setIsMounted] = useState(false);
@@ -40,7 +42,7 @@ const WalletButton = ({
       <button
         data-testid={id}
         id={id}
-        style={{ width }}
+        style={{ width, height }}
         onClick={handleClick}
         className={clsx(
           "px-4 py-2 rounded-lg flex items-center justify-evenly",
@@ -58,7 +60,13 @@ const WalletButton = ({
     <button
       data-testid={id}
       id={id}
-      style={{ width }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        width,
+        height,
+      }}
       onClick={handleClick}
       disabled={isConnecting}
       className={clsx(
@@ -68,8 +76,8 @@ const WalletButton = ({
         isConnecting && "opacity-50 cursor-not-allowed"
       )}
     >
-      {logo}
-      {displayAddress}
+      <div className="m-1">{logo}</div>
+      <div className="m-3 text-lg">{displayAddress}</div>
     </button>
   );
 };

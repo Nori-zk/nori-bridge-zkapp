@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useEffect } from "react";
+import { createContext, useContext, useMemo, useEffect, useState } from "react";
 import { useMachine } from "@xstate/react";
 import { BridgingMachine } from "@/machines/BridgingMachine.ts";
 import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
@@ -56,6 +56,8 @@ interface BridgingContextValue {
   isLoading: boolean;
   isSuccess: boolean;
   isError: boolean;
+  credential: string | null;
+  compiledEcdsaCredential: boolean;
 }
 
 const BridgingContext = createContext<BridgingContextValue | null>(null);
@@ -65,12 +67,44 @@ export const BridgingProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const [credential, setCredential] = useState<string | null>(null);
+  const [compiledEcdsaCredential, setCompiledEcdsaCredential] =
+    useState<boolean>(false);
+
   const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
-  const { contract, walletAddress: ethAddress } = useMetaMaskWallet();
-  const { address: minaAddress } = useAccount();
+  const {
+    contract,
+    walletAddress: ethAddress,
+    isConnected: ethConected,
+  } = useMetaMaskWallet();
+  const { address: minaAddress, isConnected: minaConnected } = useAccount();
+
   const [state, send] = useMachine(BridgingMachine, {
     input: { zkappWorkerClient },
   });
+
+  //due to requirement needing credential to check for credential in localStorage, moved initialisation Credential
+  //to BridgingProvider, so we can check if credential is set in localStorage. Removes potential circular dependency
+  useEffect(() => {
+    //only continue to initialise if we have a zkappWorkerClient, credential is not set,
+    // and both wallets are connected
+    const initialiseCredential = async () => {
+      try {
+        // Perform your follow-up initialisation here
+
+        if (zkappWorkerClient && !credential && ethConected && minaConnected) {
+          console.log("initialising credential, nothing in localStorage");
+          const result = await zkappWorkerClient.initialiseCredential();
+          console.log("Credential initialised, useEffect:", result);
+          setCompiledEcdsaCredential(result);
+        }
+      } catch (err) {
+        console.error("Credential initialisation failed:", err);
+      }
+    };
+
+    initialiseCredential();
+  }, [zkappWorkerClient, credential, ethConected, minaConnected]);
 
   useEffect(() => {
     console.log(
@@ -86,6 +120,7 @@ export const BridgingProvider = ({
       const storedData = localStorage.getItem(
         `credential:${ethAddress}:${minaAddress}`
       );
+      setCredential(storedData);
       if (storedData) {
         console.log("Found existing credential in localStorage");
         const {
@@ -172,6 +207,8 @@ export const BridgingProvider = ({
         state.matches("locked") ||
         state.matches("gotLockedTokens"),
       isError: state.matches("error"),
+      credential,
+      compiledEcdsaCredential,
     }),
     [state, send, isWorkerLoading]
   );
