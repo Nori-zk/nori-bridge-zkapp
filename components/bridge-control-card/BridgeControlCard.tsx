@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import { useBridging } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import CreateCredentials from "./ProgressSteps/CreateCredentials.tsx";
 import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
 import { FaArrowRight } from "react-icons/fa";
@@ -29,7 +28,6 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
-  const { state, credential, compiledEcdsaCredential } = useBridging();
   const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
 
   useEffect(() => {
@@ -83,7 +81,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               />
             </div>
             <div className="flex justify-center mt-1 text-white">
-              {isWorkerLoading || !state.context.zkappWorkerClient ? (
+              {/* {isWorkerLoading || !state.context.zkappWorkerClient ? (
                 <p>Spinning up zkappWorker...</p>
               ) : !zkappWorkerClient ? (
                 <p>zkappWorker is not ready.</p>
@@ -93,15 +91,16 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 !ethConnected ||
                 !minaConnected ? (
                 <ConnectWallets />
-              ) : state.context.step === "create" ? (
-                <CreateCredentials />
-              ) : state.context.step === "obtain" ? (
-                <ObtainCredentials />
-              ) : state.context.step === "lock" ? (
-                <LockTokens />
-              ) : (
-                <GetLockedTokens />
-              )}
+              // ) : state.context.step === "create" ? (
+              //   <CreateCredentials />
+              // ) : state.context.step === "obtain" ? (
+              //   <ObtainCredentials />
+              // ) : state.context.step === "lock" ? (
+              //   <LockTokens />
+              // ) : (
+              //   <GetLockedTokens />
+              )} */}
+              NEED TO READD
             </div>
           </div>
           {displayProgressSteps && <ProgressTracker steps={progressSteps} />}
