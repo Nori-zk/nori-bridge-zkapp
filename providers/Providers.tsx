@@ -5,7 +5,6 @@ import { WagminaProvider } from "wagmina";
 import { config } from "@/config/index.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ZkappWorkerProvider } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
-// import { BridgingProvider } from "@/providers/BridgingProvider/BridgingProvider.tsx";
 import { NoriBridgeProvider } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { SetupProvider } from "./SetupProvider/SetupProvider.tsx";
 
@@ -22,11 +21,9 @@ const Providers = ({ children }: AppProvidersProps) => {
         <WagminaProvider config={config}>
           <NoriBridgeProvider>
             <ZkappWorkerProvider>
-              {/* <BridgingProvider> */}
               <QueryClientProvider client={queryClient}>
                 {children}
               </QueryClientProvider>
-              {/* </BridgingProvider> */}
             </ZkappWorkerProvider>
           </NoriBridgeProvider>
         </WagminaProvider>

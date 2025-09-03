@@ -1,8 +1,9 @@
 "use client";
 
-import ProgressTrackerStep from "./ProgressTrackerStep.tsx";
-import ProgressTrackerConnector from "./ProgressTrackerConnector.tsx";
-import { ProgressTrackerStepProps } from "./ProgressTrackerStep.tsx";
+import { motion } from "framer-motion";
+import ProgressTrackerStep from "@/components/ui/ProgressTracker/ProgressTrackerStep/ProgressTrackerStep.tsx";
+import ProgressTrackerConnector from "@/components/ui/ProgressTracker/ProgressTrackerConnector/ProgressTrackerConnector.tsx";
+import { ProgressTrackerStepProps } from "@/components/ui/ProgressTracker/ProgressTrackerStep/ProgressTrackerStep.tsx";
 
 interface ProgressTrackerProps {
   steps: ProgressTrackerStepProps[];
@@ -10,7 +11,7 @@ interface ProgressTrackerProps {
 
 const ProgressTracker = ({ steps }: ProgressTrackerProps) => {
   return (
-    <div className="flex w-full items-center justify-between">
+    <div className="flex w-full items-center justify-center m-3">
       {steps.map((step, index) => (
         <div key={index} className="flex items-center">
           <ProgressTrackerStep {...step} />
