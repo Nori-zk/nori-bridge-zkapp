@@ -2,18 +2,17 @@ import { useEffect, useState } from "react";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import CreateCredentials from "./ProgressSteps/CreateCredentials.tsx";
 import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
 import { FaArrowRight } from "react-icons/fa";
-import ObtainCredentials from "@/components/bridge-control-card/ProgressSteps/ObtainCredentials.tsx";
 import LockTokens from "./ProgressSteps/LockTokens.tsx";
-import GetLockedTokens from "./ProgressSteps/GetLockedTokens.tsx";
+import GetLockedTokens from "@/components/bridge-control-card/ProgressSteps/GetLockedTokens.tsx";
 import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 import BridgeControlCardSVG from "./BridgeControlCardSVG.tsx";
-import ConnectWallets from "./ProgressSteps/ConnectWallets.tsx";
 import { progressSteps } from "@/static_data.ts";
 import ProgressTracker from "../ui/ProgressTracker/ProgressTracker.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
+import { ProgressStep } from "@/types/types.ts";
+import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -21,11 +20,17 @@ type BridgeControlCardProps = {
   height?: string;
 };
 
+const stepComponents: Record<ProgressStep, React.ComponentType> = {
+  lock_tokens: LockTokens,
+  get_locked_tokens: GetLockedTokens,
+};
+
 const BridgeControlCard = (props: BridgeControlCardProps) => {
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [displayProgressSteps, setDisplayProgressSteps] = useState(false);
   const [depositNumber, setDepositNumberInput] = useState<string>("12345");
 
+  const { state: progressState } = useProgress();
   const { title } = props;
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
@@ -40,6 +45,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     isReady,
     isError,
   } = useNoriBridge();
+
+  const CurrentStepComponent = stepComponents[progressState.currentStep];
 
   const getStatusColor = () => {
     if (isError) return "text-red-600";
@@ -132,6 +139,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               // ) : (
               //   <GetLockedTokens />
               )} */}
+              <CurrentStepComponent />
             </div>
           </div>
           {displayProgressSteps && <ProgressTracker steps={progressSteps} />}
