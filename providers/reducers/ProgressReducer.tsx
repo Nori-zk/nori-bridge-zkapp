@@ -1,7 +1,7 @@
 import { ProgressState, ProgressAction } from "@/types/types.ts";
 
 export const initialState: ProgressState = {
-  currentStep: "create_credential",
+  currentStep: "lock_tokens",
   completedSteps: [],
 };
 
