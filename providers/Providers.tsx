@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ZkappWorkerProvider } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 import { NoriBridgeProvider } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { SetupProvider } from "./SetupProvider/SetupProvider.tsx";
+import { ProgressProvider } from "./ProgressProvider/ProgressProvider.tsx";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -21,9 +22,11 @@ const Providers = ({ children }: AppProvidersProps) => {
         <WagminaProvider config={config}>
           <NoriBridgeProvider>
             <ZkappWorkerProvider>
-              <QueryClientProvider client={queryClient}>
-                {children}
-              </QueryClientProvider>
+              <ProgressProvider>
+                <QueryClientProvider client={queryClient}>
+                  {children}
+                </QueryClientProvider>
+              </ProgressProvider>
             </ZkappWorkerProvider>
           </NoriBridgeProvider>
         </WagminaProvider>
