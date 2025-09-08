@@ -32,6 +32,8 @@ interface MetaMaskWalletContextType {
   signMessage: () => Promise<void>;
   signMessageForEcdsa: (message: string) => Promise<SignMessageResult>;
   bridgeOperator: () => Promise<void>;
+  lockTokens: (amount: number) => Promise<void>;
+  getLockedTokens: () => Promise<void>;
 }
 
 declare global {
@@ -215,6 +217,63 @@ export const MetaMaskWalletProvider = ({
     }
   }, [contract, toast]);
 
+  const lockTokens = useCallback(
+    async (amount: number) => {
+      if (!contract) {
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: "Please connect wallet first.",
+        });
+        return;
+      }
+      try {
+        const tx = await contract.lockTokens({
+          value: ethers.parseEther(amount.toString()),
+        });
+        await tx.wait();
+        toast.current({
+          type: "notification",
+          title: "Success",
+          description: "Tokens locked successfully!",
+        });
+      } catch (error) {
+        console.error("Error calling lockTokens:", error);
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: "Error locking tokens.",
+        });
+      }
+    },
+    [contract, toast]
+  );
+
+  const getLockedTokens = useCallback(async () => {
+    if (!contract) {
+      toast.current({
+        type: "error",
+        title: "Error",
+        description: "Please connect wallet first.",
+      });
+      return;
+    }
+    try {
+      const fakeAttestationHash = "12345";
+      const parsedAmount = parseFloat(fakeAttestationHash);
+      const amount = await contract?.lockedTokens(walletAddress, parsedAmount);
+      const formattedAmount = ethers.formatEther(amount);
+      console.log(`Locked tokens for ${walletAddress}: ${formattedAmount}`);
+    } catch (error) {
+      console.error("Error calling lockTokens:", error);
+      toast.current({
+        type: "error",
+        title: "Error",
+        description: "Error locking tokens.",
+      });
+    }
+  }, [contract, toast]);
+
   useEffect(() => {
     const checkConnection = async () => {
       if (!window.ethereum) {
@@ -276,6 +335,8 @@ export const MetaMaskWalletProvider = ({
       signMessage,
       signMessageForEcdsa,
       bridgeOperator,
+      lockTokens,
+      getLockedTokens,
     }),
     [
       walletAddress,
@@ -287,6 +348,8 @@ export const MetaMaskWalletProvider = ({
       signMessage,
       signMessageForEcdsa,
       bridgeOperator,
+      lockTokens,
+      getLockedTokens,
     ]
   );
 
