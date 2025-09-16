@@ -20,7 +20,8 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
   // Note the gotchas in the tests in the link above:
 
   // let depositMachine: ReturnType<typeof getDepositMachine>;
-  const { bridgeSocket$ } = getReconnectingBridgeSocket$();
+  //TODO export the bridgeSocketConnectionState to be useable outside, possible in context
+  const { bridgeSocket$, bridgeSocketConnectionState$ } = getReconnectingBridgeSocket$();
 
   // Seem to need to add share replay to avoid contention.
   const ethStateTopic$ = getEthStateTopic$(bridgeSocket$).pipe(shareReplay(1));
