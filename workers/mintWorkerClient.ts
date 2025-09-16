@@ -1,23 +1,35 @@
 import { createProxy } from "@nori-zk/workers";
 import { WorkerParent } from "@nori-zk/workers/browser/parent";
-import { type TokenMintWorker as TokenMintWorkerType } from "@nori-zk/mina-token-bridge/workers/defs";
+import { type ZkAppWorker as ZkAppWorkerType } from "@nori-zk/mina-token-bridge/workers/defs";
 import { JsonProof, NetworkId } from "o1js";
 
 type TokenMintWorkerInst = InstanceType<
-  ReturnType<typeof createProxy<typeof TokenMintWorkerType>>
+  ReturnType<typeof createProxy<typeof ZkAppWorkerType>>
 >;
 
+type DepositAttestationInput = {
+  path: string[];
+  depositIndex: number;
+  rootHash: string;
+  despositSlotRaw: {
+    slot_key_address: string;
+    slot_nested_key_attestation_hash: string;
+    value: string;
+  };
+};
+
 // Both of these need to be configurable env vars, will be different for testnet / production
+const ethTokenBridgeAddress = "0x3EEACD9caa1aDdBA939FF041C43020b516A51dcF";
 const noriTokenControllerAddressBase58 =
-  "B62qjjbAsmyjEYkUQQbwzVLBxUc66cLp48vxgT582UxK15t1E3LPUNs";
+  "B62qrMnJiMerBXb1469Q3qr1jkhFk92MMgk8orNNfXP3fFFWvjKsEja";
 const noriTokenBaseBase58 =
-  "B62qjRLSRy5M1eEndnDyvT9ND8wdiNE3UpnH1KSoTgQyEtwNgDfebxx";
+  "B62qrqiUcXEAqTaQPW8tqwaBx3trx36yAeFzsiPigHXvou86APsY6gV";
 
 export default class ZkappMintWorkerClient {
   #mintWorker: TokenMintWorkerInst;
   #ready: Promise<void> | undefined;
   #terminated = false;
-  #noriTokenControllerVerificationKeySafe:
+  #noriStorageInterfaceVerificationKeySafe:
     | {
         data: string;
         hashStr: string;
@@ -29,8 +41,7 @@ export default class ZkappMintWorkerClient {
       type: "module",
     });
     const workerParent = new WorkerParent(worker);
-    const TokenMintWorker =
-      createProxy<typeof TokenMintWorkerType>(workerParent);
+    const TokenMintWorker = createProxy<typeof ZkAppWorkerType>(workerParent);
     this.#mintWorker = new TokenMintWorker();
     this.#ready = this.#mintWorker.ready;
     console.log("Worker proxy created in constructor");
@@ -48,64 +59,92 @@ export default class ZkappMintWorkerClient {
     return this.#ready;
   }
 
-  async compile() {
+  // Compile if needed
+  private async compileIfNeeded() {
+    await this.ensureWorkerHealth();
+    if (this.#noriStorageInterfaceVerificationKeySafe) return;
+    await this.compile();
+  }
+
+  // Ensure worker health
+  private async ensureWorkerHealth() {
     if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (this.#noriTokenControllerVerificationKeySafe) return;
-    this.#noriTokenControllerVerificationKeySafe =
-      await this.#mintWorker.compileAll();
+  }
+
+  async compile() {
+    await this.ensureWorkerHealth();
+    if (this.#noriStorageInterfaceVerificationKeySafe) return;
+
+    const {
+      noriStorageInterfaceVerificationKeySafe,
+      ethVerifierVerificationKeySafe,
+      noriTokenControllerVerificationKeySafe,
+      fungibleTokenVerificationKeySafe,
+    } = await this.#mintWorker.compileAll();
+
+    console.log(
+      "ethVerifierVerificationKeySafe",
+      ethVerifierVerificationKeySafe
+    );
+    console.log(
+      "noriTokenControllerVerificationKeySafe",
+      noriTokenControllerVerificationKeySafe
+    );
+    console.log(
+      "noriStorageInterfaceVerificationKeySafe",
+      noriStorageInterfaceVerificationKeySafe
+    );
+    console.log(
+      "fungibleTokenVerificationKeySafe",
+      fungibleTokenVerificationKeySafe
+    );
+
+    this.#noriStorageInterfaceVerificationKeySafe =
+      noriStorageInterfaceVerificationKeySafe;
   }
 
   async setupStorage(minaSenderPublicKeyBase58: string) {
-    if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (!this.#noriTokenControllerVerificationKeySafe)
-      throw new Error("Need to call compile before using this function.");
+    await this.compileIfNeeded();
     // Get a json string of the proved setup storage transaction.
     const provedSetupTxStr = await this.#mintWorker.setupStorage(
       minaSenderPublicKeyBase58,
       noriTokenControllerAddressBase58,
       0.1 * 1e9,
-      this.#noriTokenControllerVerificationKeySafe
+      this.#noriStorageInterfaceVerificationKeySafe!
     );
     return provedSetupTxStr;
   }
 
-  async computeEthDeposit(
-    presentationJsonStr: string,
+  async computeDepositAttestationWitnessAndEthVerifier(
+    codeChallengePKARMStr: string,
     depositBlockNumber: number,
     ethAddressLowerHex: string
   ) {
-    if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (!this.#noriTokenControllerVerificationKeySafe)
-      throw new Error("Need to call compile before using this function.");
-    const ethDepositProofJson = await this.#mintWorker.computeEthDeposit(
-      presentationJsonStr,
+    await this.compileIfNeeded();
+    return this.#mintWorker.computeDepositAttestationWitnessAndEthVerifier(
+      codeChallengePKARMStr,
       depositBlockNumber,
       ethAddressLowerHex.toLowerCase() // Make sure its lower!
     );
-    return ethDepositProofJson;
   }
 
   async computeMintTx(
     minaSenderPublicKeyBase58: string,
-    ethDepositProofJson: JsonProof,
-    presentationJsonStr: string,
+    ethVerifierProofJson: JsonProof,
+    depositAttestationInput: DepositAttestationInput,
+    codeVerifierPKARMStr: string,
     needsToFundAccount: boolean // Use the needsToFundAccount function to determine this value.
   ) {
-    if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (!this.#noriTokenControllerVerificationKeySafe)
-      throw new Error("Need to call compile before using this function.");
-    // Get a json string of a proven mint tx
-    const provedMintTxStr = await this.#mintWorker.mint(
+    await this.compileIfNeeded();
+    return this.#mintWorker.mint(
       minaSenderPublicKeyBase58,
       noriTokenControllerAddressBase58,
-      {
-        ethDepositProofJson: ethDepositProofJson,
-        presentationProofStr: presentationJsonStr,
-      },
+      ethVerifierProofJson,
+      depositAttestationInput,
+      codeVerifierPKARMStr,
       1e9 * 0.1,
       needsToFundAccount
     );
-    return provedMintTxStr;
   }
 
   async minaSetup(options: {
@@ -117,26 +156,42 @@ export default class ZkappMintWorkerClient {
     minaDefaultHeaders?: HeadersInit;
     archiveDefaultHeaders?: HeadersInit;
   }) {
-    if (this.#terminated) throw new Error("Worker has been terminated.");
+    await this.ensureWorkerHealth();
     return this.#mintWorker.minaSetup(options);
+  }
+
+  // PKARM
+
+  async PKARM_obtainCodeVerifierFromEthSignature(ethSignatureSecret: string) {
+    await this.ensureWorkerHealth();
+    return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
+      ethSignatureSecret
+    );
+  }
+
+  async PKARM_createCodeChallenge(
+    codeVerifierPKARMStr: string,
+    minaSenderPublicKeyBase58: string
+  ) {
+    await this.ensureWorkerHealth();
+    return this.#mintWorker.PKARM_createCodeChallenge(
+      codeVerifierPKARMStr,
+      minaSenderPublicKeyBase58
+    );
   }
 
   // Note we should really have graphql versions of the below functions to avoid having to compile the worker to use them @Karol
 
   async needsToFundAccount(minaSenderPublicKeyBase58: string) {
-    if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (!this.#noriTokenControllerVerificationKeySafe)
-      throw new Error("Need to call compile before using this function.");
+    await this.compileIfNeeded();
     return this.#mintWorker.needsToFundAccount(
       noriTokenBaseBase58,
       minaSenderPublicKeyBase58
     );
   }
-  
+
   async needsToSetupStorage(minaSenderPublicKeyBase58: string) {
-    if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (!this.#noriTokenControllerVerificationKeySafe)
-      throw new Error("Need to call compile before using this function.");
+    await this.compileIfNeeded();
     return this.#mintWorker.needsToSetupStorage(
       noriTokenControllerAddressBase58,
       minaSenderPublicKeyBase58
@@ -144,9 +199,7 @@ export default class ZkappMintWorkerClient {
   }
 
   async getBalanceOf(minaSenderPublicKeyBase58: string) {
-    if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (!this.#noriTokenControllerVerificationKeySafe)
-      throw new Error("Need to call compile before using this function.");
+    await this.compileIfNeeded();
     return this.#mintWorker.getBalanceOf(
       noriTokenBaseBase58,
       minaSenderPublicKeyBase58
@@ -154,9 +207,7 @@ export default class ZkappMintWorkerClient {
   }
 
   async mintedSoFar(minaSenderPublicKeyBase58: string) {
-    if (this.#terminated) throw new Error("Worker has been terminated.");
-    if (!this.#noriTokenControllerVerificationKeySafe)
-      throw new Error("Need to call compile before using this function.");
+    await this.compileIfNeeded();
     return this.#mintWorker.mintedSoFar(
       noriTokenControllerAddressBase58,
       minaSenderPublicKeyBase58
