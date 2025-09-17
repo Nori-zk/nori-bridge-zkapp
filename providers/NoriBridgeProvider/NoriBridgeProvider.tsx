@@ -11,7 +11,6 @@ import {
   type DepositMintContext,
   type DepositMintEvents,
 } from "@/machines/DepositMintMachine.ts";
-import MockMintWorkerClient from "@/workers/mockMintWorkerClient.ts";
 import { useSetup } from "../SetupProvider/SetupProvider.tsx";
 import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
@@ -73,7 +72,7 @@ const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
 export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [mintWorker, setMintWorker] = useState<MockMintWorkerClient | null>(
+  const [mintWorker, setMintWorker] = useState<ZkappMintWorkerClient | null>(
     null
   );
 
@@ -98,7 +97,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const [state, send] = useMachine(depositMintMachine);
 
   useEffect(() => {
-    // TODO what if a user switches wallet, will need to generate new MockMintWorkerClient
+    // TODO what if a user switches wallet, will need to generate new MintWorkerClient
     if (minaAddress && ethAddress && !mintWorker) {
       const worker = new ZkappMintWorkerClient(minaAddress, ethAddress);
       console.log("creating worker: ", worker);

@@ -49,6 +49,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     isLoading,
     isReady,
     isError,
+    reset
   } = useNoriBridge();
 
   const CurrentStepComponent = stepComponents[progressState.currentStep];
@@ -72,6 +73,15 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
 
     console.log("Setting deposit number to:", num);
     setDepositNumber(num);
+  };
+
+  const handleResetBridge = () => {
+    // const num = parseInt(depositNumber);
+
+    // console.log("Setting deposit number to:", num);
+    // setDepositNumber(num);
+    reset();
+    window.location.reload();
   };
 
   useEffect(() => {
@@ -172,31 +182,32 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               {isReady && <div className="text-green-600 mt-1">✅ Ready</div>}
             </div>
             <div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
+              <div className="flex flex-row items-center space-x-2">
+                {/* <label className="block text-sm font-medium mb-1">
                   Deposit Block Number
-                </label>
-                <div className="flex gap-2">
-                  <input
+                </label> */}
+                {/* <div className="flex flex-row gap-2">
+                  {/* <input
                     type="text"
                     value={depositNumber}
                     onChange={(e) => setDepositNumberInput(e.target.value)}
                     className="flex-1 px-3 py-2 border rounded-md"
                     placeholder="e.g., 12345"
-                  />
-                  <button
+                  /> */}
+                {/* <button
                     onClick={handleSetDepositNumber}
                     className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                   >
                     Set
-                  </button>
-                </div>
+                  </button> 
+                </div> */}
                 <div className="text-xs text-gray-500 mt-1">
                   Current: {state.context.activeDepositNumber || "Not set"}
                 </div>
                 <div className="text-white">
                   {status}
                 </div>
+                <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600" onClick={handleResetBridge}>Reset</button>
               </div>
             </div>
           </div>

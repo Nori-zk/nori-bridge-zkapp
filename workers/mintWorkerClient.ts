@@ -37,8 +37,9 @@ export default class ZkappMintWorkerClient {
     | undefined;
   minaWalletPubKeyBase58: string;
   ethWalletPubKeyBase58: string;
+  fixedValueOrSecret: string;
 
-  constructor(minaWalletPubKeyBase58: string, ethWalletPubKeyBase58: string) {
+  constructor(minaWalletPubKeyBase58: string, ethWalletPubKeyBase58: string, optionalSecret = 'NoriZK') {
     const worker = new Worker(new URL("./mintWorker.ts", import.meta.url), {
       type: "module",
     });
@@ -48,6 +49,7 @@ export default class ZkappMintWorkerClient {
     this.#ready = this.#mintWorker.ready;
     this.minaWalletPubKeyBase58 = minaWalletPubKeyBase58;
     this.ethWalletPubKeyBase58 = ethWalletPubKeyBase58;
+    this.fixedValueOrSecret = optionalSecret
     console.log("Worker proxy created in constructor");
   }
 
@@ -75,7 +77,6 @@ export default class ZkappMintWorkerClient {
     return this.#mintWorker.minaSetup(options);
   }
   // PKARM
-  //  fixedValueOrSecret = 'NoriZK'
   async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
     await this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
@@ -83,7 +84,7 @@ export default class ZkappMintWorkerClient {
     );
   }
 
-  async PKARM_createCodeChallenge(
+  async createCodeChallengeForLocking(
     codeVerifierPKARMStr: string,
     minaSenderPublicKeyBase58: string
   ) {

@@ -4,6 +4,8 @@ import {
   fromObservable,
   fromPromise,
   setup,
+  log,
+  raise,
   // type StateMachine,
   // type AnyStateMachine,
 } from "xstate";
@@ -166,19 +168,23 @@ const canMintActor = fromObservable(
 );
 
 // Promise actors for worker operations
-const initWorker = fromPromise(
-  async ({
-    input,
-  }: {
-    input: {
-      worker: ZkappMintWorkerClient;
-    };
-  }) => {
-    const readyWorker = await input.worker.ready();
-    console.log("Zkapp worker initialized");
-    return readyWorker;
-  }
-);
+// const initWorker = fromPromise(
+//   async ({
+//     input,
+//   }: {
+//     input: {
+//       worker: ZkappMintWorkerClient;
+//     };
+//   }) => {
+
+//     console.log('tiddies')
+
+
+//     const readyWorker = await input.worker.ready();
+//     console.log("Zkapp worker initialized");
+//     return readyWorker;
+//   }
+// );
 
 // const minaSetup = fromPromise(
 // 	async ({
@@ -211,9 +217,14 @@ const checkStorageSetup = fromPromise(
     };
   }) => {
     try {
+
+
+      console.log("Checking storage setup for address eth:", input.worker.ethWalletPubKeyBase58);
+      console.log("Checking storage setup for address mina:", input.worker.ethWalletPubKeyBase58);
+
       //TODO store and then fetch if needSetup from localStorage
       return {
-        needsSetup: await input.worker.needsToSetupStorage(input.minaSenderAddress)
+        needsSetup: await input.worker.needsToSetupStorage()
         // needsFunding: true,
         // isStorageSetup: false, // that cannot always return false
       };
@@ -310,7 +321,7 @@ export const getDepositMachine = (
         context.computedEthProof !== null,
       hasDepositMintTxGuard: ({ context }) => context.depositMintTx !== null,
       hasActiveDepositNumberGuard: ({ context }) =>
-        context.activeDepositNumber !== null || context.mintWorker !== null,
+        context.activeDepositNumber !== null,
       hasWorker: ({ context }) => context.isWorkerReady === true,
       canComputeEthProof: ({ context }) =>
         context.canComputeStatus === "CanCompute",
@@ -327,7 +338,7 @@ export const getDepositMachine = (
       depositProcessingStatusActor,
       canComputeEthProofActor,
       canMintActor,
-      initWorker,
+      // initWorker,
       // minaSetup,
       // compileWorker,
       checkStorageSetup,
@@ -365,64 +376,58 @@ export const getDepositMachine = (
     states: {
       // Initial hydration state - same on server and client
       hydrating: {
+        entry: log("Entering hydrating 💤"),
         always: {
-          target: "checkingStorageSetup",
+          target: "checking",
           guard: ({ context }) => context.mintWorker !== null,
         },
-        on: {
-          ASSIGN_WORKER: {
-            actions: assign({
-              mintWorker: ({ event }) => event.mintWorkerClient,
-              isWorkerReady: ({ event }) => event.mintWorkerClient !== null,
-            }),
-            target: "checking",
-          },
-        },
+        // on: {
+        //   ASSIGN_WORKER: {
+        //     actions: assign({
+        //       mintWorker: ({ event }) => event.mintWorkerClient,
+        //       isWorkerReady: ({ event }) => event.mintWorkerClient !== null,
+        //     }),
+        //     target: "checking",
+        //   },
+        // },
       },
-      assignWorker: {
-        entry: assign({
-          mintWorker: ({ event }) =>
-            event.type === "ASSIGN_WORKER" ? event.mintWorkerClient : null,
-          isWorkerReady: ({ event }) =>
-            event.type === "ASSIGN_WORKER" && event.mintWorkerClient !== null,
-        }),
-        always: "initializingWorker",
-      },
-      initializingWorker: {
-        invoke: {
-          src: "initWorker",
-          input: ({ context }) => ({ worker: context.mintWorker! }),
-          onDone: {
-            target: "checking", // go back into hydration/checking flow
-            actions: assign({
-              isWorkerReady: (_) => true,
-            }),
-          },
-          onError: {
-            target: "error",
-            actions: assign({
-              errorMessage: "Failed to initialize worker",
-            }),
-          },
-        },
-      },
+      // assignWorker: {
+      //   entry: [
+      //     log("Entering assignWorker 🚀"),
+      //   assign({
+      //     mintWorker: ({ event }) =>
+      //       event.type == "ASSIGN_WORKER"  ? event.mintWorkerClient : null
+      //     ,
+      //     isWorkerReady: ({ context, event }) => {
+      //       console.log("context value of worksr", context.mintWorker)
+      //       // context.mintWorker = event.mintWorkerClient
+      //       return event.type == "ASSIGN_WORKER" && event.mintWorkerClient !== null
+      //     },
+      //   }),
+      //   ],
+
+      //   always: "hydrating",
+      // },
 
       // Boot: hydrate state and determine next steps
       checking: {
-        entry: assign({
-          activeDepositNumber: (() => {
-            const v = safeLS.get(LS_KEYS.activeDepositNumber);
-            if (v) return parseInt(v);
-            return null;
-          })(),
-          computedEthProof: (() => {
-            const v = safeLS.get(LS_KEYS.computedEthProof);
-            if (v) return JSON.parse(v); // would that parse correctly?
-            return null;
-          })() as JsonProof | null,
-          depositMintTx: safeLS.get(LS_KEYS.depositMintTx),
-          errorMessage: null,
-        }),
+        entry: [
+          log("Entering checking 🚀"),
+          // log('context:', mintWorker),
+          assign({
+            activeDepositNumber: (() => {
+              const v = safeLS.get(LS_KEYS.activeDepositNumber);
+              if (v) return parseInt(v);
+              return null;
+            })(),
+            computedEthProof: (() => {
+              const v = safeLS.get(LS_KEYS.computedEthProof);
+              if (v) return JSON.parse(v); // would that parse correctly?
+              return null;
+            })() as JsonProof | null,
+            depositMintTx: safeLS.get(LS_KEYS.depositMintTx),
+            errorMessage: null,
+          })],
         always: [
           {
             target: "hasComputedEthProof",
@@ -438,6 +443,11 @@ export const getDepositMachine = (
       },
       // User needs to configure deposit number
       noActiveDepositNumber: {
+        // invoke:{
+        //   src:()=>{}
+        // }
+        entry: [
+          log("Entering noActiveDepositNumber 🚀")],
         on: {
           SET_DEPOSIT_NUMBER: {
             target: "hasActiveDepositNumber",
@@ -497,6 +507,7 @@ export const getDepositMachine = (
 
       // Step 1: Check if storage setup is needed
       checkingStorageSetup: {
+        entry: log("Entering checkingStorageSetup 🚀"),
         invoke: {
           src: "checkStorageSetup",
           input: ({ context }) => ({
@@ -762,21 +773,38 @@ export const getDepositMachine = (
       },
 
       missedOpportunity: {
-        type: "final",
+        // type: "final",
         entry: () => console.log("Missed minting opportunity"), // here we should most likley clear localStorage and context
       },
 
       completed: {
-        type: "final",
-        entry: () => console.log("Deposit completed successfully"),
+        entry: [
+          log("Deposit completed successfully"),
+          () => {
+            // Clear localStorage on reset
+            console.log("Resetting machine and clearing localStorage on complete");
+            safeLS.del(LS_KEYS.activeDepositNumber);
+            safeLS.del(LS_KEYS.computedEthProof);
+            safeLS.del(LS_KEYS.depositMintTx);
+          },
+          raise({ type: "RESET" }),          // <- sends RESET to this machine
+        ],
       },
     },
     // Global reset handler - works from any state
     on: {
-      ASSIGN_WORKER: { target: ".assignWorker" },
+      ASSIGN_WORKER: {
+        target: ".checking", // or ".checking" if you want to skip hydrating
+        actions: assign(({ event }) => ({
+          // event is guaranteed to be ASSIGN_WORKER here
+          mintWorker: event.mintWorkerClient,
+          isWorkerReady: true,
+        })),
+      },
       RESET: {
-        target: ".checking",
-        actions: assign({
+        target: ".checking", // or ".hydrating"
+        reenter: true,       // v5 only; re-run entry even if already there
+        actions: [assign({
           activeDepositNumber: null,
           depositMintTx: null,
           computedEthProof: null,
@@ -792,12 +820,13 @@ export const getDepositMachine = (
           needsToFundAccount: false,
           errorMessage: null,
         }),
-        entry: () => {
+        () => {
           // Clear localStorage on reset
+          console.log("Resetting machine and clearing localStorage");
           safeLS.del(LS_KEYS.activeDepositNumber);
           safeLS.del(LS_KEYS.computedEthProof);
           safeLS.del(LS_KEYS.depositMintTx);
-        },
+        },]
       },
     },
   });
