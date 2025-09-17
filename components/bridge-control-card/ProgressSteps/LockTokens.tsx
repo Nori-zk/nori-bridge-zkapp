@@ -1,8 +1,8 @@
 
 "use client";
-
 import TextInput from "@/components/ui/TextInput.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
+import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useForm } from "react-hook-form";
 
@@ -11,9 +11,9 @@ type FormValues = {
 };
 
 const LockTokens = () => {
-  const { lockTokens } = useMetaMaskWallet();
+  const { lockTokens, signMessage } = useMetaMaskWallet();
   const { dispatch } = useProgress();
-
+  const { state } = useNoriBridge();
   const {
     register,
     handleSubmit,
@@ -24,11 +24,15 @@ const LockTokens = () => {
     try {
       const amount = parseFloat(data.amount);
       if (!isNaN(amount) && amount >= 0.00000001) {
-        await lockTokens(amount);
-        dispatch({
-          type: "NEXT_STEP",
-          payload: { nextStep: "get_locked_tokens" },
-        });
+        const worker = state.context.mintWorker
+        const signatureFromUser = await signMessage(worker!.fixedValueOrSecret!);
+        const codeVerify = await worker?.getCodeVerifyFromEthSignature(signatureFromUser.signature)
+        const codeChallange = await worker?.createCodeChallengeForLocking(codeVerify!);
+        await lockTokens(codeChallange!, amount);
+        // dispatch({
+        //   type: "NEXT_STEP",
+        //   payload: { nextStep: "get_locked_tokens" },
+        // });
       } else {
         console.error("Invalid amount");
       }
