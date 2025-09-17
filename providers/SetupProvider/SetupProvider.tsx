@@ -11,6 +11,9 @@ type SetupContextType = {
   ethStateTopic$: any;
   bridgeStateTopic$: any;
   bridgeTimingsTopic$: any;
+  bridgeSocketConnectionState$: ReturnType<
+    typeof getReconnectingBridgeSocket$
+  >["bridgeSocketConnectionState$"];
 };
 const SetupContext = createContext<SetupContextType | null>(null);
 
@@ -22,7 +25,11 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
   // let depositMachine: ReturnType<typeof getDepositMachine>;
   //TODO export the bridgeSocketConnectionState to be useable outside, possible in context
   const { bridgeSocket$, bridgeSocketConnectionState$ } = getReconnectingBridgeSocket$();
-
+  bridgeSocketConnectionState$.subscribe({
+    next: (state) => console.log(`[WS] ${state}`),
+    error: (state) => console.error(`[WS] ${state}`),
+    complete: () => console.log('[WS] Bridge socket connection completed.'),
+  });
   // Seem to need to add share replay to avoid contention.
   const ethStateTopic$ = getEthStateTopic$(bridgeSocket$).pipe(shareReplay(1));
   const bridgeStateTopic$ = getBridgeStateTopic$(bridgeSocket$).pipe(
@@ -51,6 +58,7 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
       ethStateTopic$,
       bridgeStateTopic$,
       bridgeTimingsTopic$,
+      bridgeSocketConnectionState$,
     }),
     []
   );

@@ -13,6 +13,8 @@ import ProgressTracker from "../ui/ProgressTracker/ProgressTracker.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { ProgressStep } from "@/types/types.ts";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+import { getReconnectingBridgeSocket$ } from "@nori-zk/mina-token-bridge/rx/socket";
+import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -36,6 +38,12 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
   const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
+
+  const { bridgeSocketConnectionState$ } = useSetup();
+
+  const [status, setStatus] = useState<
+    "connecting" | "open" | "closed" | "reconnecting" | "permanently-closed"
+  >("connecting");
 
   const {
     state,
@@ -76,11 +84,17 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     }
   }, []);
 
+  useEffect(() => {
+    const sub = bridgeSocketConnectionState$.subscribe(setStatus);
+    return () => sub.unsubscribe();
+  }, [bridgeSocketConnectionState$]);
+
   const minaButtonContent = isMounted
     ? minaConnected
       ? formatDisplayAddress(minaAddress ?? "") || "Connect Wallet"
       : "Connect Wallet"
     : "Connect Wallet";
+
 
   return (
     <div
@@ -182,6 +196,9 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
                   Current: {state.context.activeDepositNumber || "Not set"}
+                </div>
+                <div className="text-white">
+                  {status}
                 </div>
               </div>
             </div>
