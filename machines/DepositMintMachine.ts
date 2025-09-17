@@ -9,7 +9,7 @@ import {
   // type StateMachine,
   // type AnyStateMachine,
 } from "xstate";
-import { Observable } from "rxjs";
+import { catchError, filter, first, from, interval, Observable, of, startWith, switchMap } from "rxjs";
 import { JsonProof, NetworkId } from "o1js";
 // Import actual bridge deposit observables
 import {
@@ -90,6 +90,7 @@ export interface DepositMintContext {
   isMinaSetupComplete: boolean;
   // isWorkerCompiled: boolean;
   needsToFundAccount: boolean;
+  waitingForStorageSetupTx: boolean;
 
   // Error handling
   errorMessage: string | null;
@@ -177,7 +178,24 @@ const canMintActor = fromObservable(
     );
   }
 );
-
+const storageIsSetupWithDelayActor = fromObservable(
+  ({
+    input,
+  }: {
+    input: {
+      worker: ZkappMintWorkerClient;
+    };
+  }) => {
+    const period = 1000;
+    return interval(period).pipe(
+      startWith(0), // check immediately
+      switchMap(() => from(input.worker.needsToSetupStorage())),
+      catchError(() => of(true)), // on error treat as "still needs setup" and keep polling
+      filter((needsSetup) => !needsSetup),
+      first() // emits `false` then completes
+    );
+  }
+);
 // Promise actors for worker operations
 
 
@@ -240,13 +258,12 @@ const computeEthProof = fromPromise(
     input: {
       worker: ZkappMintWorkerClient;
       depositBlockNumber: number;
-      presentationJsonStr: string;
     };
   }) => {
     const codeVerify = safeLS.get(`codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`);
     const codeChallange = await input.worker?.createCodeChallenge(codeVerify!);
+    console.log('about to computeEthProof with codeChallange')
     const ethProof = await input.worker.computeDepositAttestationWitnessAndEthVerifier(
-      // input.presentationJsonStr,
       codeChallange!,
       input.depositBlockNumber
     );
@@ -326,12 +343,14 @@ export const getDepositMachine = (
       needsStorageSetup: ({ context }) => !context.isStorageSetup,
       checkingStorageSetupGuard: ({ context }) => context.mintWorker !== null,
       isMinaSetupComplete: ({ context }) => context.isMinaSetupComplete === true ? false : true,
+      storageIsPending: ({ context }) => !context.waitingForStorageSetupTx,
       // isWorkerCompiled: ({ context }) => context.isWorkerCompiled,
     },
     actors: {
       depositProcessingStatusActor,
       canComputeEthProofActor,
       canMintActor,
+      storageIsSetupWithDelayActor,
       // initWorker,
       minaSetup,
       // compileWorker,
@@ -340,6 +359,7 @@ export const getDepositMachine = (
       computeEthProof,
       computeMintTx,
       submitMintTx,
+
     },
   }).createMachine({
     id: "depositMint",
@@ -364,7 +384,8 @@ export const getDepositMachine = (
       // isWorkerCompiled: false,
       needsToFundAccount: false,
       errorMessage: null,
-      setupStorageTransaction: null
+      setupStorageTransaction: null,
+      waitingForStorageSetupTx: true
     },
     states: {
       // Initial hydration state - same on server and client
@@ -545,6 +566,10 @@ export const getDepositMachine = (
             guard: "needsStorageSetup",
           },
           {
+            target: 'waitingForStorageSetupTx',
+            guard: 'storageIsPending',
+          },
+          {
             target: "monitoringDepositStatus",
           },
         ],
@@ -557,7 +582,7 @@ export const getDepositMachine = (
             worker: context.mintWorker!,
           }),
           onDone: {
-            target: "storageSetupDecision",
+            target: "checkingStorageSetup",
             actions: assign({
               isMinaSetupComplete: true,
             }),
@@ -588,9 +613,50 @@ export const getDepositMachine = (
               log("onDone storage setup"),
               assign({
                 // isStorageSetup: true,
+                waitingForStorageSetupTx: true,
                 setupStorageTransaction: ({ event }) => event.output, // event.data is txStr
               })],
           },
+          onError: {
+            target: "error",
+            actions: assign({
+              errorMessage: "Failed to setup storage",
+            }),
+          },
+        },
+      },
+      waitingForStorageSetupTx: {
+        entry: log("Entering waitingForStorageSetupTx 🚀"),
+        invoke: {
+          id: "storageIsSetupWithDelay",
+          src: "storageIsSetupWithDelayActor",
+          input: ({ context }) => ({
+            worker: context.mintWorker!,
+          }),
+          onSnapshot: {
+            actions: assign({
+              waitingForStorageSetupTx: ({ event }) => {
+                console.log(
+                  "onSnapshotstrorageIsSetupWithDelay",
+                  // event.snapshot.
+                  // context.
+                  event.snapshot.context
+                );
+                return event.snapshot.context!;
+                // return event.snapshot.context ?? null;
+              },
+            }),
+          },
+          // onDone: {
+          //   target: "checkingStorageSetup",
+          //   actions: [
+          //     log("onDone storage setup"),
+          //     assign({
+          //       // isStorageSetup: true,
+          //       waitingForStorageSetupTx: true,
+          //       setupStorageTransaction: ({ event }) => event.output, // event.data is txStr
+          //     })],
+          // },
           onError: {
             target: "error",
             actions: assign({
@@ -674,18 +740,19 @@ export const getDepositMachine = (
       },
 
       computingEthProof: {
+        entry: log("Entering computingEthProof 🚀"),
         invoke: {
           src: "computeEthProof",
           input: ({ context }) => ({
             worker: context.mintWorker!,
             depositBlockNumber: context.activeDepositNumber!,
             // ethSenderAddress: context.ethSenderAddress!,
-            presentationJsonStr: "test",
+            // presentationJsonStr: "test",
           }),
           onDone: {
             actions: assign({
               computedEthProof: ({ event }) => {
-                const proof = event.output;
+                const proof = event.output.ethVerifierProofJson;
                 window.localStorage.setItem(
                   "computedEthProof",
                   JSON.stringify(proof)

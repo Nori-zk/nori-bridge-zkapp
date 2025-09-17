@@ -165,7 +165,7 @@ export default class ZkappMintWorkerClient {
         0.1 * 1e9,
         this.#noriStorageInterfaceVerificationKeySafe!
       );
-      console.log("provedSetupTxStr in mintWorkerClient", provedSetupTxStr);
+      console.log("provedSetupTxStr in mintWorkerClient", provedSetupTxStr.length);
       return provedSetupTxStr;
     } catch (error) {
       console.error("Error in setupStorage:", error);
@@ -182,8 +182,10 @@ export default class ZkappMintWorkerClient {
     return this.#mintWorker.computeDepositAttestationWitnessAndEthVerifier(
       codeChallengePKARMStr,
       depositBlockNumber,
-      this.ethWalletPubKeyBase58.toLowerCase() // Make sure its lower!
+      this.ethWalletPubKeyBase58.toLowerCase(), // Make sure its lower!
+      window.location.origin
     );
+
   }
 
   async computeMintTx(
@@ -241,7 +243,7 @@ export default class ZkappMintWorkerClient {
       this.minaWalletPubKeyBase58
     );
   }
-  async isCompilingContracts() {
+  isCompilingContracts() {
     return this.#compiling
   }
 
