@@ -78,6 +78,7 @@ export default class ZkappMintWorkerClient {
   }
   // PKARM
   async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
+    console.log("getCodeVerifyFromEthSignature called with:", ethSignatureSecret);
     await this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
       ethSignatureSecret
@@ -86,12 +87,11 @@ export default class ZkappMintWorkerClient {
 
   async createCodeChallengeForLocking(
     codeVerifierPKARMStr: string,
-    minaSenderPublicKeyBase58: string
   ) {
     await this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_createCodeChallenge(
       codeVerifierPKARMStr,
-      minaSenderPublicKeyBase58
+      this.minaWalletPubKeyBase58
     );
   }
 
