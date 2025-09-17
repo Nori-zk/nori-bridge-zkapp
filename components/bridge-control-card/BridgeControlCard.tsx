@@ -13,6 +13,7 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { ProgressStep } from "@/types/types.ts";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
+import SetupStorage from "./ProgressSteps/SetupStorage.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -22,6 +23,7 @@ type BridgeControlCardProps = {
 
 const stepComponents: Record<ProgressStep, React.ComponentType> = {
   lock_tokens: LockTokens,
+  setup_storage: SetupStorage,
   get_locked_tokens: GetLockedTokens,
 };
 

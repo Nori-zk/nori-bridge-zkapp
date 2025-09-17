@@ -9,7 +9,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { BrowserProvider, Contract, ethers, Signer, BigNumberish } from "ethers";
+import { BrowserProvider, Contract, ethers, Signer, BigNumberish, TransactionResponse } from "ethers";
 import { useToast } from "@/helpers/useToast.tsx";
 import { openExternalLink } from "@/helpers/navigation.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
@@ -31,7 +31,7 @@ interface MetaMaskWalletContextType {
   disconnect: () => void;
   signMessage: (message: string) => Promise<SignMessageResult>;
   bridgeOperator: () => Promise<void>;
-  lockTokens: (codeChallange: string, amount: number) => Promise<void>;
+  lockTokens: (codeChallange: string, amount: number) => Promise<number>;
   getLockedTokens: () => Promise<void>;
 }
 
@@ -195,14 +195,14 @@ export const MetaMaskWalletProvider = ({
   }, [contract, toast]);
 
   const lockTokens = useCallback(
-    async (codeChallange: string, amount: number) => {
+    async (codeChallange: string, amount: number): Promise<number> => {
       if (!contract) {
         toast.current({
           type: "error",
           title: "Error",
           description: "Please connect wallet first.",
         });
-        return;
+        throw Error("contract not connected");
       }
       try {
         const codeChallengePKARMBigInt = BigInt(codeChallange);
@@ -212,12 +212,18 @@ export const MetaMaskWalletProvider = ({
           value: ethers.parseEther(amount.toString()),
 
         });
-        await tx.wait();
+
+        //show toast for transaction pending
+        const receipt = await tx.wait();
+        console.log("Transaction Receipt:", receipt);
+        console.log("Block Number:", receipt.blockNumber);
+        // toast to have link to etherscan
         toast.current({
           type: "notification",
           title: "Success",
           description: "Tokens locked successfully!",
         });
+        return receipt.blockNumber
       } catch (error) {
         console.error("Error calling lockTokens:", error);
         toast.current({
@@ -225,6 +231,7 @@ export const MetaMaskWalletProvider = ({
           title: "Error",
           description: "Error locking tokens.",
         });
+        throw error;
       }
     },
     [contract, toast]

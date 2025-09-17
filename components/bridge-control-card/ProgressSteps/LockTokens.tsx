@@ -4,6 +4,7 @@ import TextInput from "@/components/ui/TextInput.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 type FormValues = {
@@ -13,7 +14,7 @@ type FormValues = {
 const LockTokens = () => {
   const { lockTokens, signMessage } = useMetaMaskWallet();
   const { dispatch } = useProgress();
-  const { state } = useNoriBridge();
+  const { state, setDepositNumber } = useNoriBridge();
   const {
     register,
     handleSubmit,
@@ -27,12 +28,10 @@ const LockTokens = () => {
         const worker = state.context.mintWorker
         const signatureFromUser = await signMessage(worker!.fixedValueOrSecret!);
         const codeVerify = await worker?.getCodeVerifyFromEthSignature(signatureFromUser.signature)
-        const codeChallange = await worker?.createCodeChallengeForLocking(codeVerify!);
-        await lockTokens(codeChallange!, amount);
-        // dispatch({
-        //   type: "NEXT_STEP",
-        //   payload: { nextStep: "get_locked_tokens" },
-        // });
+        window.localStorage.setItem(`codeVerify${worker?.ethWalletPubKeyBase58}-${worker?.minaWalletPubKeyBase58}`, codeVerify!)
+        const codeChallange = await worker?.createCodeChallenge(codeVerify!);
+        const blockNubmer = await lockTokens(codeChallange!, amount);
+        setDepositNumber(blockNubmer);
       } else {
         console.error("Invalid amount");
       }
@@ -40,6 +39,15 @@ const LockTokens = () => {
       console.error("Error locking tokens:", error);
     }
   };
+
+  useEffect(() => {
+    if (state.context.setupStorageTransaction) {
+      dispatch({
+        type: "NEXT_STEP",
+        payload: { nextStep: "setup_storage" },
+      });
+    }
+  }, [state.context.setupStorageTransaction]);
 
   return (
     <>
@@ -68,10 +76,11 @@ const LockTokens = () => {
           <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
         )}
         <button
+          disabled={!!state.context.mintWorker?.isCompilingContracts()}
           type="submit"
           className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
         >
-          Lock Tokens
+          {state.context.mintWorker?.isCompilingContracts() ? 'Compiling Contracts...' : 'Lock Tokens'}
         </button>
       </form>
     </>

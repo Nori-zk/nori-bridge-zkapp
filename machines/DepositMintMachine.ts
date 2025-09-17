@@ -10,7 +10,7 @@ import {
   // type AnyStateMachine,
 } from "xstate";
 import { Observable } from "rxjs";
-import { JsonProof } from "o1js";
+import { JsonProof, NetworkId } from "o1js";
 // Import actual bridge deposit observables
 import {
   getBridgeStateTopic$,
@@ -37,6 +37,20 @@ const safeLS = {
     if (typeof window !== "undefined") window.localStorage.removeItem(k);
   },
 };
+
+type EthProofResult = {
+  ethVerifierProofJson: JsonProof;
+  depositAttestationInput: {
+    path: string[];
+    depositIndex: number;
+    rootHash: string;
+    despositSlotRaw: {
+      slot_key_address: string;
+      slot_nested_key_attestation_hash: string;
+      value: string;
+    };
+  };
+}
 
 export const LS_KEYS = {
   activeDepositNumber: "activeDepositNumber",
@@ -69,14 +83,11 @@ export interface DepositMintContext {
 
   // Worker and user data
   mintWorker: ZkappMintWorkerClient | null;
-  minaSenderAddress: string | null;
-  // ethSenderAddress: string | null;
-  presentationJsonStr: string | null;
-
+  setupStorageTransaction: string | null;
   // Status flags
   isWorkerReady: boolean;
   isStorageSetup: boolean;
-  // isMinaSetupComplete: boolean;
+  isMinaSetupComplete: boolean;
   // isWorkerCompiled: boolean;
   needsToFundAccount: boolean;
 
@@ -168,44 +179,26 @@ const canMintActor = fromObservable(
 );
 
 // Promise actors for worker operations
-// const initWorker = fromPromise(
-//   async ({
-//     input,
-//   }: {
-//     input: {
-//       worker: ZkappMintWorkerClient;
-//     };
-//   }) => {
-
-//     console.log('tiddies')
 
 
-//     const readyWorker = await input.worker.ready();
-//     console.log("Zkapp worker initialized");
-//     return readyWorker;
-//   }
-// );
-
-// const minaSetup = fromPromise(
-// 	async ({
-// 		input,
-// 	}: {
-// 		input: {
-// 			worker: MockMintWorkerClient;
-// 		};
-// 	}) => {
-// 		await input.worker.minaSetup({});
-// 		console.log("Actor Mina setup completed");
-// 		return true;
-// 	}
-// );
-// const compileWorker = fromPromise(
-// 	async ({ input }: { input: { worker: MockMintWorkerClient } }) => {
-// 		await input.worker.compile();
-// 		console.log("Actor worker compilation completed");
-// 		return true;
-// 	}
-// );
+const minaSetup = fromPromise(
+  async ({
+    input,
+  }: {
+    input: {
+      worker: ZkappMintWorkerClient;
+    };
+  }) => {
+    const minaConfig = {
+      networkId: 'devnet' as NetworkId,
+      // mina: 'https://devnet.minaprotocol.network/graphql',
+      mina: 'https://api.minascan.io/node/devnet/v1/graphql'
+    };
+    await input.worker.minaSetup(minaConfig);
+    console.log("Actor Mina setup completed");
+    return true;
+  }
+);
 
 const checkStorageSetup = fromPromise(
   async ({
@@ -213,21 +206,13 @@ const checkStorageSetup = fromPromise(
   }: {
     input: {
       worker: ZkappMintWorkerClient;
-      minaSenderAddress: string;
     };
   }) => {
     try {
-
-
       console.log("Checking storage setup for address eth:", input.worker.ethWalletPubKeyBase58);
-      console.log("Checking storage setup for address mina:", input.worker.ethWalletPubKeyBase58);
-
+      console.log("Checking storage setup for address mina:", input.worker.minaWalletPubKeyBase58);
       //TODO store and then fetch if needSetup from localStorage
-      return {
-        needsSetup: await input.worker.needsToSetupStorage()
-        // needsFunding: true,
-        // isStorageSetup: false, // that cannot always return false
-      };
+      return await input.worker.needsToSetupStorage();
     } catch (err) {
       console.log("Error in checkStorageSetup: ", err);
     }
@@ -243,6 +228,7 @@ const setupStorage = fromPromise(
     };
   }) => {
     const txStr = await input.worker.setupStorage();
+    console.log("Storage setup transactionready",);
     return txStr;
   }
 );
@@ -257,15 +243,18 @@ const computeEthProof = fromPromise(
       presentationJsonStr: string;
     };
   }) => {
-    const ethProof = await input.worker.computeEthDeposit(
-      input.presentationJsonStr,
+    const codeVerify = safeLS.get(`codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`);
+    const codeChallange = await input.worker?.createCodeChallenge(codeVerify!);
+    const ethProof = await input.worker.computeDepositAttestationWitnessAndEthVerifier(
+      // input.presentationJsonStr,
+      codeChallange!,
       input.depositBlockNumber
     );
 
     // Store in localStorage
     safeLS.set(LS_KEYS.computedEthProof, JSON.stringify(ethProof));
     // safeLS.set(LS_KEYS.lastEthProofCompute, Date.now().toString());
-
+    console.log("Computed ethProof value :", ethProof.depositAttestationInput.despositSlotRaw.value);
     return ethProof;
   }
 );
@@ -277,13 +266,18 @@ const computeMintTx = fromPromise(
     input: {
       worker: ZkappMintWorkerClient;
       ethProof: JsonProof; // from localStorage
-      presentationJsonStr: string; //from localStorage
       needsToFundAccount: boolean;
     };
   }) => {
+    const state = safeLS.get(LS_KEYS.computedEthProof)
+    const codeVerify = safeLS.get(`codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`);
+
+    if (!state || !codeVerify) throw new Error("No stored eth proof or codeVerify found");
+    const storedProof = JSON.parse(state) as EthProofResult;
     const mintTxStr = await input.worker.computeMintTx(
-      input.ethProof,
-      input.presentationJsonStr,
+      storedProof.ethVerifierProofJson,
+      storedProof.depositAttestationInput,
+      codeVerify,
       input.needsToFundAccount
     );
 
@@ -331,7 +325,7 @@ export const getDepositMachine = (
         context.canMintStatus === "MissedMintingOpportunity",
       needsStorageSetup: ({ context }) => !context.isStorageSetup,
       checkingStorageSetupGuard: ({ context }) => context.mintWorker !== null,
-      // isMinaSetupComplete: ({ context }) => context.isMinaSetupComplete,
+      isMinaSetupComplete: ({ context }) => context.isMinaSetupComplete === true ? false : true,
       // isWorkerCompiled: ({ context }) => context.isWorkerCompiled,
     },
     actors: {
@@ -339,7 +333,7 @@ export const getDepositMachine = (
       canComputeEthProofActor,
       canMintActor,
       // initWorker,
-      // minaSetup,
+      minaSetup,
       // compileWorker,
       checkStorageSetup,
       setupStorage,
@@ -363,15 +357,14 @@ export const getDepositMachine = (
       bridgeStateTopic$: topics.bridgeStateTopic$,
       bridgeTimingsTopic$: topics.bridgeTimingsTopic$,
       mintWorker: mintWorker || null, // Use passed worker or null
-      minaSenderAddress: null,
       // ethSenderAddress: null,
-      presentationJsonStr: null,
       isWorkerReady: false,
       isStorageSetup: false,
-      // isMinaSetupComplete: false,
+      isMinaSetupComplete: false,
       // isWorkerCompiled: false,
       needsToFundAccount: false,
       errorMessage: null,
+      setupStorageTransaction: null
     },
     states: {
       // Initial hydration state - same on server and client
@@ -463,20 +456,28 @@ export const getDepositMachine = (
       },
 
       hasActiveDepositNumber: {
-        entry: assign({
-          processingStatus: () => null as null,
-          canComputeStatus: () => null as null,
-          canMintStatus: () => null as null,
-          errorMessage: null,
-        }),
+        entry: [
+
+          log("Entering hasActiveDepositNumber 🚀"),
+          assign({
+
+            processingStatus: () => null as null,
+            canComputeStatus: () => null as null,
+            canMintStatus: () => null as null,
+            errorMessage: null,
+          })],
         always: [
           {
             target: "monitoringDepositStatus",
             guard: ({ context }) =>
               context.isWorkerReady &&
-              // context.isMinaSetupComplete &&
+              context.isMinaSetupComplete &&
               // context.isWorkerCompiled &&
               context.isStorageSetup,
+          },
+          {
+            target: "settingUpMina",
+            guard: "isMinaSetupComplete"
           },
           {
             target: "checkingStorageSetup",
@@ -486,6 +487,7 @@ export const getDepositMachine = (
             // 	// context.isWorkerCompiled &&
             // 	!context.isStorageSetup,
           },
+
           // {
           // 	target: "compilingWorker",
           // 	guard: ({ context }) =>
@@ -512,14 +514,12 @@ export const getDepositMachine = (
           src: "checkStorageSetup",
           input: ({ context }) => ({
             worker: context.mintWorker!,
-            minaSenderAddress: context.minaSenderAddress!,
           }),
           onDone: {
             actions: assign({
-              isStorageSetup: ({ event }) => event.output?.needsSetup,
+              isStorageSetup: ({ event }) => event.output === true ? false : true,
               // needsToFundAccount: ({ event }) => event.output.needsFunding,
-
-              needsToFundAccount: ({ }) => true,
+              // needsToFundAccount: ({ }) => true,
             }),
             target: "storageSetupDecision",
           },
@@ -537,6 +537,10 @@ export const getDepositMachine = (
       storageSetupDecision: {
         always: [
           {
+            target: "settingUpMina",
+            guard: "isMinaSetupComplete"
+          },
+          {
             target: "settingUpStorage",
             guard: "needsStorageSetup",
           },
@@ -545,24 +549,47 @@ export const getDepositMachine = (
           },
         ],
       },
-
+      settingUpMina: {
+        entry: log("Entering settingUpMina 🚀"),
+        invoke: {
+          src: "minaSetup",
+          input: ({ context }) => ({
+            worker: context.mintWorker!,
+          }),
+          onDone: {
+            target: "storageSetupDecision",
+            actions: assign({
+              isMinaSetupComplete: true,
+            }),
+          },
+          onError: {
+            target: "error",
+            actions: assign({
+              errorMessage: "Failed to setup Mina",
+            }),
+          },
+        },
+      },
       //this has to return a transactionJSON so you send it to wallet
       // maybe set it in context and read it in provider/component
       //submit the storage setup tx from there
       // TODO and loop on 'needsStorageSetup' until false
       // Setup storage if needed
       settingUpStorage: {
+        entry: log("Entering settingUpStorage 🚀"),
         invoke: {
           src: "setupStorage",
           input: ({ context }) => ({
             worker: context.mintWorker!,
-            // minaSenderAddress: context.minaSenderAddress!,
           }),
           onDone: {
-            target: "monitoringDepositStatus",
-            actions: assign({
-              isStorageSetup: true,
-            }),
+            target: "checkingStorageSetup",
+            actions: [
+              log("onDone storage setup"),
+              assign({
+                // isStorageSetup: true,
+                setupStorageTransaction: ({ event }) => event.output, // event.data is txStr
+              })],
           },
           onError: {
             target: "error",
@@ -711,7 +738,6 @@ export const getDepositMachine = (
             worker: context.mintWorker!,
             // minaSenderAddress: context.minaSenderAddress!,
             ethProof: context.computedEthProof!,
-            presentationJsonStr: "test",
             needsToFundAccount: context.needsToFundAccount,
           }),
           onDone: {
@@ -815,7 +841,6 @@ export const getDepositMachine = (
           isWorkerReady: mintWorker !== null,
           // minaSenderAddress: null,
           // ethSenderAddress: null,
-          presentationJsonStr: null,
           isStorageSetup: false,
           needsToFundAccount: false,
           errorMessage: null,
@@ -826,6 +851,7 @@ export const getDepositMachine = (
           safeLS.del(LS_KEYS.activeDepositNumber);
           safeLS.del(LS_KEYS.computedEthProof);
           safeLS.del(LS_KEYS.depositMintTx);
+          safeLS.del('codeVerify' + (mintWorker?.ethWalletPubKeyBase58 ?? '') + '-' + (mintWorker?.minaWalletPubKeyBase58 ?? ''));
         },]
       },
     },

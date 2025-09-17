@@ -19,6 +19,7 @@ type DepositAttestationInput = {
 };
 
 // Both of these need to be configurable env vars, will be different for testnet / production
+const MINA_RPC = "https://devnet.minaprotocol.network/graphql"
 const ethTokenBridgeAddress = "0x3EEACD9caa1aDdBA939FF041C43020b516A51dcF";
 const noriTokenControllerAddressBase58 =
   "B62qrMnJiMerBXb1469Q3qr1jkhFk92MMgk8orNNfXP3fFFWvjKsEja";
@@ -35,6 +36,7 @@ export default class ZkappMintWorkerClient {
       hashStr: string;
     }
     | undefined;
+  #compiling = false;
   minaWalletPubKeyBase58: string;
   ethWalletPubKeyBase58: string;
   fixedValueOrSecret: string;
@@ -64,6 +66,11 @@ export default class ZkappMintWorkerClient {
   ready() {
     return this.#ready;
   }
+  // async setWallets(minaWalletPubKeyBase58: string, ethWalletPubKeyBase58: string,optionalSecret = 'NoriZK') {
+  //   this.minaWalletPubKeyBase58 = minaWalletPubKeyBase58;
+  //   this.ethWalletPubKeyBase58 = ethWalletPubKeyBase58;
+  // }
+
   async minaSetup(options: {
     networkId?: NetworkId;
     mina: string | string[];
@@ -73,8 +80,14 @@ export default class ZkappMintWorkerClient {
     minaDefaultHeaders?: HeadersInit;
     archiveDefaultHeaders?: HeadersInit;
   }) {
-    await this.ensureWorkerHealth();
-    return this.#mintWorker.minaSetup(options);
+    try {
+      await this.ensureWorkerHealth();
+
+      return this.#mintWorker.minaSetup(options);
+
+    } catch (error) {
+      console.error("Error in minaSetup:", error);
+    }
   }
   // PKARM
   async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
@@ -85,7 +98,7 @@ export default class ZkappMintWorkerClient {
     );
   }
 
-  async createCodeChallengeForLocking(
+  async createCodeChallenge(
     codeVerifierPKARMStr: string,
   ) {
     await this.ensureWorkerHealth();
@@ -110,6 +123,7 @@ export default class ZkappMintWorkerClient {
 
   async compile() {
     await this.ensureWorkerHealth();
+    this.#compiling = true;
     if (this.#noriStorageInterfaceVerificationKeySafe) return;
 
     const {
@@ -135,21 +149,28 @@ export default class ZkappMintWorkerClient {
       "fungibleTokenVerificationKeySafe",
       fungibleTokenVerificationKeySafe
     );
-
+    this.#compiling = false;
     this.#noriStorageInterfaceVerificationKeySafe =
       noriStorageInterfaceVerificationKeySafe;
+
   }
 
   async setupStorage() {
-    await this.compileIfNeeded();
-    // Get a json string of the proved setup storage transaction.
-    const provedSetupTxStr = await this.#mintWorker.setupStorage(
-      this.minaWalletPubKeyBase58,
-      noriTokenControllerAddressBase58,
-      0.1 * 1e9,
-      this.#noriStorageInterfaceVerificationKeySafe!
-    );
-    return provedSetupTxStr;
+    try {
+      await this.compileIfNeeded();
+      // Get a json string of the proved setup storage transaction.
+      const provedSetupTxStr = await this.#mintWorker.setupStorage(
+        this.minaWalletPubKeyBase58,
+        noriTokenControllerAddressBase58,
+        0.1 * 1e9,
+        this.#noriStorageInterfaceVerificationKeySafe!
+      );
+      console.log("provedSetupTxStr in mintWorkerClient", provedSetupTxStr);
+      return provedSetupTxStr;
+    } catch (error) {
+      console.error("Error in setupStorage:", error);
+    }
+    // return 'a'
   }
 
   async computeDepositAttestationWitnessAndEthVerifier(
@@ -219,5 +240,16 @@ export default class ZkappMintWorkerClient {
       noriTokenControllerAddressBase58,
       this.minaWalletPubKeyBase58
     );
+  }
+  async isCompilingContracts() {
+    return this.#compiling
+  }
+
+  async areContractCompiled() {
+    if (this.#noriStorageInterfaceVerificationKeySafe) {
+      return true
+    } else {
+      return false
+    }
   }
 }
