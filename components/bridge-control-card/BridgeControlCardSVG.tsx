@@ -91,7 +91,9 @@ const BridgeControlCardSVG = ({
             in="SourceAlpha"
             result="effect1_dropShadow_273_5871"
           />
-          <feOffset dx="-20" dy="70" dx="20" />
+          <feOffset dx="-20" dy="70"
+          //  dx="20"
+          />
           <feGaussianBlur stdDeviation="60" />
           <feComposite in2="hardAlpha" operator="out" />
           <feColorMatrix

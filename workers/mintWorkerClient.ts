@@ -161,8 +161,8 @@ export default class ZkappMintWorkerClient {
   }
 
   // PKARM
-
-  async PKARM_obtainCodeVerifierFromEthSignature(ethSignatureSecret: string) {
+//  fixedValueOrSecret = 'NoriZK'
+  async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
     await this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
       ethSignatureSecret

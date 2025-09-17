@@ -218,7 +218,7 @@ export const MetaMaskWalletProvider = ({
   }, [contract, toast]);
 
   const lockTokens = useCallback(
-    async (amount: number) => {
+    async (codeChallange: number, amount: number) => {
       if (!contract) {
         toast.current({
           type: "error",
@@ -228,8 +228,9 @@ export const MetaMaskWalletProvider = ({
         return;
       }
       try {
-        const tx = await contract.lockTokens({
+        const tx = await contract.lockTokens(codeChallange, {
           value: ethers.parseEther(amount.toString()),
+
         });
         await tx.wait();
         toast.current({

@@ -15,7 +15,7 @@ export const DepositMintTestUI: React.FC = () => {
   const {
     state,
     setDepositNumber,
-    setUserAddresses,
+    // setUserAddresses,
     setPresentation,
     // initWorker,
     // setupStorage,
@@ -51,7 +51,7 @@ export const DepositMintTestUI: React.FC = () => {
 
   const handleSetAddresses = () => {
     if (minaAddress && ethDisplayAddress) {
-      setUserAddresses(minaAddress, ethDisplayAddress);
+      // setUserAddresses(minaAddress, ethDisplayAddress);
     }
   };
 
@@ -162,11 +162,11 @@ export const DepositMintTestUI: React.FC = () => {
             >
               Set Addresses
             </button>
-            <div className="text-xs text-gray-500 mt-1">
+            {/* <div className="text-xs text-gray-500 mt-1">
               Mina: {state.context.minaSenderAddress ? "✅ Set" : "❌ Not set"}
               <br />
               ETH: {state.context.ethSenderAddress ? "✅ Set" : "❌ Not set"}
-            </div>
+            </div> */}
           </div>
         </div>
 

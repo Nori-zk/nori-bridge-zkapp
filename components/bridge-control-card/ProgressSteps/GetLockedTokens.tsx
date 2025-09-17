@@ -1,7 +1,7 @@
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 
 const GetLockTokens = () => {
-  const {} = useMetaMaskWallet();
+  const { getLockedTokens } = useMetaMaskWallet();
 
   return (
     <button

@@ -6,14 +6,12 @@ import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
 import { FaArrowRight } from "react-icons/fa";
 import LockTokens from "./ProgressSteps/LockTokens.tsx";
 import GetLockedTokens from "@/components/bridge-control-card/ProgressSteps/GetLockedTokens.tsx";
-import { useZkappWorker } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
 import BridgeControlCardSVG from "./BridgeControlCardSVG.tsx";
 import { progressSteps } from "@/static_data.ts";
 import ProgressTracker from "../ui/ProgressTracker/ProgressTracker.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { ProgressStep } from "@/types/types.ts";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
-import { getReconnectingBridgeSocket$ } from "@nori-zk/mina-token-bridge/rx/socket";
 import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
 
 type BridgeControlCardProps = {
@@ -37,7 +35,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
-  const { zkappWorkerClient, isLoading: isWorkerLoading } = useZkappWorker();
+
 
   const { bridgeSocketConnectionState$ } = useSetup();
 
@@ -48,7 +46,6 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const {
     state,
     setDepositNumber,
-    isLoading: noriLoading,
     isLoading,
     isReady,
     isError,
