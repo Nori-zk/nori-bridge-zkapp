@@ -23,7 +23,7 @@ import {
   getCanComputeEthProof$,
   // canComputeEthProof,
 } from "@nori-zk/mina-token-bridge/rx/deposit";
-import MockMintWorkerClient from "@/workers/mockMintWorkerClient.ts";
+import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 // Storage helpers (safe SSR)
 const safeLS = {
   get: (k: string): string | null =>
@@ -66,8 +66,8 @@ export interface DepositMintContext {
   bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
 
   // Worker and user data
-  mintWorker: MockMintWorkerClient | null;
-  // minaSenderAddress: string | null;
+  mintWorker: ZkappMintWorkerClient | null;
+  minaSenderAddress: string | null;
   // ethSenderAddress: string | null;
   presentationJsonStr: string | null;
 
@@ -98,7 +98,7 @@ export type DepositMintEvents =
   | { type: "BUILD_MINT_TX" }
   | { type: "SUBMIT_MINT_TX" }
   | { type: "RESET" }
-  | { type: "ASSIGN_WORKER"; mintWorkerClient: MockMintWorkerClient };
+  | { type: "ASSIGN_WORKER"; mintWorkerClient: ZkappMintWorkerClient };
 
 //Actors from observables
 const depositProcessingStatusActor = fromObservable(
@@ -171,11 +171,11 @@ const initWorker = fromPromise(
     input,
   }: {
     input: {
-      worker: MockMintWorkerClient;
+      worker: ZkappMintWorkerClient;
     };
   }) => {
     const readyWorker = await input.worker.ready();
-    console.log("Mock worker initialized");
+    console.log("Zkapp worker initialized");
     return readyWorker;
   }
 );
@@ -203,21 +203,17 @@ const initWorker = fromPromise(
 
 const checkStorageSetup = fromPromise(
   async ({
-    input,
+    input
   }: {
     input: {
-      worker: MockMintWorkerClient;
+      worker: ZkappMintWorkerClient;
+      minaSenderAddress: string;
     };
   }) => {
     try {
-      await input.worker.needsToSetupStorage();
-      // const [needsSetup, needsFunding] = await Promise.all([
-      // 	input.worker.needsToSetupStorage(input.minaSenderAddress),
-      // 	input.worker.needsToFundAccount(input.minaSenderAddress),
-      // ]);
-
+      //TODO store and then fetch if needSetup from localStorage
       return {
-        needsSetup: await input.worker.needsToSetupStorage(),
+        needsSetup: await input.worker.needsToSetupStorage(input.minaSenderAddress)
         // needsFunding: true,
         // isStorageSetup: false, // that cannot always return false
       };
@@ -232,7 +228,7 @@ const setupStorage = fromPromise(
     input,
   }: {
     input: {
-      worker: MockMintWorkerClient;
+      worker: ZkappMintWorkerClient;
     };
   }) => {
     const txStr = await input.worker.setupStorage();
@@ -245,7 +241,7 @@ const computeEthProof = fromPromise(
     input,
   }: {
     input: {
-      worker: MockMintWorkerClient;
+      worker: ZkappMintWorkerClient;
       depositBlockNumber: number;
       presentationJsonStr: string;
     };
@@ -268,7 +264,7 @@ const computeMintTx = fromPromise(
     input,
   }: {
     input: {
-      worker: MockMintWorkerClient;
+      worker: ZkappMintWorkerClient;
       ethProof: JsonProof; // from localStorage
       presentationJsonStr: string; //from localStorage
       needsToFundAccount: boolean;
@@ -302,7 +298,7 @@ export const getDepositMachine = (
     bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
     bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
   },
-  mintWorker: MockMintWorkerClient | null
+  mintWorker: ZkappMintWorkerClient | null
 ) =>
   setup({
     types: {
@@ -356,7 +352,7 @@ export const getDepositMachine = (
       bridgeStateTopic$: topics.bridgeStateTopic$,
       bridgeTimingsTopic$: topics.bridgeTimingsTopic$,
       mintWorker: mintWorker || null, // Use passed worker or null
-      // minaSenderAddress: null,
+      minaSenderAddress: null,
       // ethSenderAddress: null,
       presentationJsonStr: null,
       isWorkerReady: false,
@@ -505,13 +501,14 @@ export const getDepositMachine = (
           src: "checkStorageSetup",
           input: ({ context }) => ({
             worker: context.mintWorker!,
+            minaSenderAddress: context.minaSenderAddress!,
           }),
           onDone: {
             actions: assign({
               isStorageSetup: ({ event }) => event.output?.needsSetup,
               // needsToFundAccount: ({ event }) => event.output.needsFunding,
 
-              needsToFundAccount: ({}) => true,
+              needsToFundAccount: ({ }) => true,
             }),
             target: "storageSetupDecision",
           },

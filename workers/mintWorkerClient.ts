@@ -31,12 +31,14 @@ export default class ZkappMintWorkerClient {
   #terminated = false;
   #noriStorageInterfaceVerificationKeySafe:
     | {
-        data: string;
-        hashStr: string;
-      }
+      data: string;
+      hashStr: string;
+    }
     | undefined;
+  minaWalletPubKeyBase58: string;
+  ethWalletPubKeyBase58: string;
 
-  constructor() {
+  constructor(minaWalletPubKeyBase58: string, ethWalletPubKeyBase58: string) {
     const worker = new Worker(new URL("./mintWorker.ts", import.meta.url), {
       type: "module",
     });
@@ -44,6 +46,8 @@ export default class ZkappMintWorkerClient {
     const TokenMintWorker = createProxy<typeof ZkAppWorkerType>(workerParent);
     this.#mintWorker = new TokenMintWorker();
     this.#ready = this.#mintWorker.ready;
+    this.minaWalletPubKeyBase58 = minaWalletPubKeyBase58;
+    this.ethWalletPubKeyBase58 = ethWalletPubKeyBase58;
     console.log("Worker proxy created in constructor");
   }
 
@@ -58,6 +62,38 @@ export default class ZkappMintWorkerClient {
   ready() {
     return this.#ready;
   }
+  async minaSetup(options: {
+    networkId?: NetworkId;
+    mina: string | string[];
+    archive?: string | string[];
+    lightnetAccountManager?: string;
+    bypassTransactionLimits?: boolean;
+    minaDefaultHeaders?: HeadersInit;
+    archiveDefaultHeaders?: HeadersInit;
+  }) {
+    await this.ensureWorkerHealth();
+    return this.#mintWorker.minaSetup(options);
+  }
+  // PKARM
+  //  fixedValueOrSecret = 'NoriZK'
+  async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
+    await this.ensureWorkerHealth();
+    return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
+      ethSignatureSecret
+    );
+  }
+
+  async PKARM_createCodeChallenge(
+    codeVerifierPKARMStr: string,
+    minaSenderPublicKeyBase58: string
+  ) {
+    await this.ensureWorkerHealth();
+    return this.#mintWorker.PKARM_createCodeChallenge(
+      codeVerifierPKARMStr,
+      minaSenderPublicKeyBase58
+    );
+  }
+
 
   // Compile if needed
   private async compileIfNeeded() {
@@ -103,11 +139,11 @@ export default class ZkappMintWorkerClient {
       noriStorageInterfaceVerificationKeySafe;
   }
 
-  async setupStorage(minaSenderPublicKeyBase58: string) {
+  async setupStorage() {
     await this.compileIfNeeded();
     // Get a json string of the proved setup storage transaction.
     const provedSetupTxStr = await this.#mintWorker.setupStorage(
-      minaSenderPublicKeyBase58,
+      this.minaWalletPubKeyBase58,
       noriTokenControllerAddressBase58,
       0.1 * 1e9,
       this.#noriStorageInterfaceVerificationKeySafe!
@@ -118,18 +154,18 @@ export default class ZkappMintWorkerClient {
   async computeDepositAttestationWitnessAndEthVerifier(
     codeChallengePKARMStr: string,
     depositBlockNumber: number,
-    ethAddressLowerHex: string
+    // ethAddressLowerHex: string
   ) {
     await this.compileIfNeeded();
     return this.#mintWorker.computeDepositAttestationWitnessAndEthVerifier(
       codeChallengePKARMStr,
       depositBlockNumber,
-      ethAddressLowerHex.toLowerCase() // Make sure its lower!
+      this.ethWalletPubKeyBase58.toLowerCase() // Make sure its lower!
     );
   }
 
   async computeMintTx(
-    minaSenderPublicKeyBase58: string,
+    // minaSenderPublicKeyBase58: string,
     ethVerifierProofJson: JsonProof,
     depositAttestationInput: DepositAttestationInput,
     codeVerifierPKARMStr: string,
@@ -137,7 +173,7 @@ export default class ZkappMintWorkerClient {
   ) {
     await this.compileIfNeeded();
     return this.#mintWorker.mint(
-      minaSenderPublicKeyBase58,
+      this.minaWalletPubKeyBase58,
       noriTokenControllerAddressBase58,
       ethVerifierProofJson,
       depositAttestationInput,
@@ -147,70 +183,40 @@ export default class ZkappMintWorkerClient {
     );
   }
 
-  async minaSetup(options: {
-    networkId?: NetworkId;
-    mina: string | string[];
-    archive?: string | string[];
-    lightnetAccountManager?: string;
-    bypassTransactionLimits?: boolean;
-    minaDefaultHeaders?: HeadersInit;
-    archiveDefaultHeaders?: HeadersInit;
-  }) {
-    await this.ensureWorkerHealth();
-    return this.#mintWorker.minaSetup(options);
-  }
 
-  // PKARM
-//  fixedValueOrSecret = 'NoriZK'
-  async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
-    await this.ensureWorkerHealth();
-    return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
-      ethSignatureSecret
-    );
-  }
 
-  async PKARM_createCodeChallenge(
-    codeVerifierPKARMStr: string,
-    minaSenderPublicKeyBase58: string
-  ) {
-    await this.ensureWorkerHealth();
-    return this.#mintWorker.PKARM_createCodeChallenge(
-      codeVerifierPKARMStr,
-      minaSenderPublicKeyBase58
-    );
-  }
 
   // Note we should really have graphql versions of the below functions to avoid having to compile the worker to use them @Karol
 
-  async needsToFundAccount(minaSenderPublicKeyBase58: string) {
+  async needsToFundAccount() {
     await this.compileIfNeeded();
     return this.#mintWorker.needsToFundAccount(
       noriTokenBaseBase58,
-      minaSenderPublicKeyBase58
+      this.minaWalletPubKeyBase58
     );
   }
 
-  async needsToSetupStorage(minaSenderPublicKeyBase58: string) {
+  async needsToSetupStorage() {
     await this.compileIfNeeded();
     return this.#mintWorker.needsToSetupStorage(
       noriTokenControllerAddressBase58,
-      minaSenderPublicKeyBase58
+      this.minaWalletPubKeyBase58
     );
   }
 
-  async getBalanceOf(minaSenderPublicKeyBase58: string) {
+  async getBalanceOf() {
     await this.compileIfNeeded();
     return this.#mintWorker.getBalanceOf(
       noriTokenBaseBase58,
-      minaSenderPublicKeyBase58
+      this.minaWalletPubKeyBase58
     );
   }
 
-  async mintedSoFar(minaSenderPublicKeyBase58: string) {
+  async mintedSoFar() {
     await this.compileIfNeeded();
     return this.#mintWorker.mintedSoFar(
       noriTokenControllerAddressBase58,
-      minaSenderPublicKeyBase58
+      this.minaWalletPubKeyBase58
     );
   }
 }

@@ -15,6 +15,7 @@ import MockMintWorkerClient from "@/workers/mockMintWorkerClient.ts";
 import { useSetup } from "../SetupProvider/SetupProvider.tsx";
 import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
+import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 
 // // Note the gotchas in the tests in the link above:
 
@@ -99,7 +100,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     // TODO what if a user switches wallet, will need to generate new MockMintWorkerClient
     if (minaAddress && ethAddress && !mintWorker) {
-      const worker = new MockMintWorkerClient(minaAddress, ethAddress);
+      const worker = new ZkappMintWorkerClient(minaAddress, ethAddress);
       console.log("creating worker: ", worker);
       setMintWorker(worker);
       send({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
