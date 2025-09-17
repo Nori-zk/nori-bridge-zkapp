@@ -29,3 +29,6 @@ export async function GET(
     });
   }
 }
+
+
+//   domain = 'https://pcs.nori.it.com'
