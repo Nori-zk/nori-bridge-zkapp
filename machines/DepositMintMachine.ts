@@ -282,20 +282,20 @@ const computeMintTx = fromPromise(
   }: {
     input: {
       worker: ZkappMintWorkerClient;
-      ethProof: JsonProof; // from localStorage
-      needsToFundAccount: boolean;
+      // ethProof: JsonProof; // from localStorage
+      // needsToFundAccount: boolean;
     };
   }) => {
     const state = safeLS.get(LS_KEYS.computedEthProof)
     const codeVerify = safeLS.get(`codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`);
-
+    const needsToFundAccount = await input.worker.needsToFundAccount();
     if (!state || !codeVerify) throw new Error("No stored eth proof or codeVerify found");
     const storedProof = JSON.parse(state) as EthProofResult;
     const mintTxStr = await input.worker.computeMintTx(
       storedProof.ethVerifierProofJson,
       storedProof.depositAttestationInput,
       codeVerify,
-      input.needsToFundAccount
+      needsToFundAccount
     );
 
     // Store in localStorage
@@ -753,14 +753,15 @@ export const getDepositMachine = (
             actions: assign({
               computedEthProof: ({ event }) => {
                 const proof = event.output.ethVerifierProofJson;
-                window.localStorage.setItem(
+                safeLS.set(
                   "computedEthProof",
                   JSON.stringify(proof)
                 );
+                console.log('done comupting and saved to LS')
                 return proof;
               },
             }),
-            target: "hasActiveDepositNumber", //TODO go to monitoringDepositStatus
+            target: "hasComputedEthProof", //TODO go to monitoringDepositStatus
           },
           onError: {
             target: "error",
