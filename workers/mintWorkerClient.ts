@@ -110,7 +110,7 @@ export default class ZkappMintWorkerClient {
 
 
   // Compile if needed
-  private async compileIfNeeded() {
+  async compileIfNeeded() {
     await this.ensureWorkerHealth();
     if (this.#noriStorageInterfaceVerificationKeySafe) return;
     await this.compile();
@@ -183,7 +183,6 @@ export default class ZkappMintWorkerClient {
       codeChallengePKARMStr,
       depositBlockNumber,
       this.ethWalletPubKeyBase58.toLowerCase(), // Make sure its lower!
-      window.location.origin
     );
 
   }

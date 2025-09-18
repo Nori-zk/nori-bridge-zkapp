@@ -311,9 +311,9 @@ const computeMintTx = fromPromise(
     const codeVerify = safeLS.get(
       `codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`
     );
-    console.log('codeVerify', codeVerify);
+    console.log("codeVerify", codeVerify);
     const needsToFundAccount = await input.worker.needsToFundAccount();
-    console.log('needsToFundAccount', needsToFundAccount);
+    console.log("needsToFundAccount", needsToFundAccount);
     if (!state || !codeVerify)
       throw new Error("No stored eth proof or codeVerify found");
     const storedProof = JSON.parse(state) as EthProofResult;
@@ -329,13 +329,25 @@ const computeMintTx = fromPromise(
     return mintTxStr; //JSON of tx that we need to send to wallet - to componet/provider
   }
 );
+
 const submitMintTx = fromPromise(
   async ({ input }: { input: { mintTx: string } }) => {
     // In a real implementation, this would submit the transaction to the Mina network
     console.log("Submitting mint transaction:", input.mintTx);
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log("Mint transaction submitted successfully");
+
+    const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
+    const memo = "Submit mint tx";
+    const onlySign = false;
+    const result = await window.mina?.sendTransaction({
+      onlySign: onlySign,
+      transaction: input.mintTx,
+      feePayer: {
+        fee: fee,
+        memo: memo,
+      },
+    });
+
+    console.log("submit mint tx result", result);
     return true;
   }
 );
@@ -455,17 +467,17 @@ export const getDepositMachine = (
           log("Entering checking 🚀"),
           // log('context:', mintWorker),
           assign({
-            activeDepositNumber: (() => {
+            activeDepositNumber: () => {
               const v = safeLS.get(LS_KEYS.activeDepositNumber);
-              if (v) return parseInt(v);
-              return null;
-            })(),
-            computedEthProof: (() => {
+              if (!v) return null;
+              return parseInt(v); // should check for NaN
+            },
+            computedEthProof: () => {
               const v = safeLS.get(LS_KEYS.computedEthProof);
-              if (v) return JSON.parse(v); // would that parse correctly?
-              return null;
-            })() as JsonProof | null,
-            depositMintTx: safeLS.get(LS_KEYS.depositMintTx),
+              if (!v) return null;
+              return JSON.parse(v) as EthProofResult; // should try catch and do something with this.
+            },
+            depositMintTx: () => safeLS.get(LS_KEYS.depositMintTx),
             errorMessage: null,
           }),
         ],
@@ -797,10 +809,12 @@ export const getDepositMachine = (
       },
 
       hasComputedEthProof: {
-        entry: assign({
-          canMintStatus: () => null as null,
-        }),
+        entry: ({context}) => {
+          context.mintWorker?.compileIfNeeded();
+        },
         invoke: {
+          // This is fine but we are not monitoring the deposit status anymore, need to add that actor back in to make
+          // sure we update the machine context during this stage.... consider adding depositProcessingStatusActor back here
           src: "canMintActor",
           input: ({ context }) => ({
             depositBlockNumber: context.activeDepositNumber!,
@@ -810,7 +824,10 @@ export const getDepositMachine = (
           }),
           onSnapshot: {
             actions: assign({
-              canMintStatus: ({ event }) => event.snapshot.context ?? null,
+              canMintStatus: ({ event }) => {
+                console.log("Has computed eth proof event", event);
+                return event.snapshot.context ?? null;
+              },
             }),
           },
         },
@@ -824,6 +841,8 @@ export const getDepositMachine = (
       },
       buildingMintTx: {
         invoke: {
+          // Again here consider having the depositProcessingStatusActor here so we can still update the relevant
+          // bridge context when in this node...
           src: "computeMintTx",
           input: ({ context }) => ({
             worker: context.mintWorker!,
@@ -848,7 +867,6 @@ export const getDepositMachine = (
                 console.error("Mint transaction error:", event.error);
                 if (event.error instanceof Error) {
                   console.error("Stack trace:", event.error.stack);
-                  return event.error.message;
                 }
                 return "Failed to build mint transaction";
               },

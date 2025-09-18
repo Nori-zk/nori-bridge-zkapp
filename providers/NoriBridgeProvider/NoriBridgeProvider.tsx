@@ -15,6 +15,7 @@ import { useSetup } from "../SetupProvider/SetupProvider.tsx";
 import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
+import { NetworkId } from "o1js";
 
 // // Note the gotchas in the tests in the link above:
 
@@ -67,6 +68,11 @@ type NoriBridgeContextType = {
   reset: () => void;
 };
 
+const minaConfig = {
+  networkId: "devnet" as NetworkId,
+  mina: "https://api.minascan.io/node/devnet/v1/graphql",
+};
+
 const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
 
 export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -97,9 +103,11 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const [state, send] = useMachine(depositMintMachine);
 
   useEffect(() => {
+    console.log("Effect ran:", { minaAddress, ethAddress, mintWorker });
     // TODO what if a user switches wallet, will need to generate new MintWorkerClient
     if (minaAddress && ethAddress && !mintWorker) {
       const worker = new ZkappMintWorkerClient(minaAddress, ethAddress);
+      worker.minaSetup(minaConfig); // CHECK FOR RACE
       console.log("creating worker: ", worker);
       setMintWorker(worker);
       send({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
