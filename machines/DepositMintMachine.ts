@@ -97,7 +97,6 @@ export interface DepositMintContext {
   // Status flags
   isWorkerReady: boolean;
   isStorageSetup: boolean;
-  isMinaSetupComplete: boolean;
   // isWorkerCompiled: boolean;
   needsToFundAccount: boolean;
   waitingForStorageSetupTx: boolean;
@@ -208,25 +207,6 @@ const storageIsSetupWithDelayActor = fromObservable(
 );
 // Promise actors for worker operations
 
-const minaSetup = fromPromise(
-  async ({
-    input,
-  }: {
-    input: {
-      worker: ZkappMintWorkerClient;
-    };
-  }) => {
-    const minaConfig = {
-      networkId: "devnet" as NetworkId,
-      // mina: 'https://devnet.minaprotocol.network/graphql',
-      mina: "https://api.minascan.io/node/devnet/v1/graphql",
-    };
-    await input.worker.minaSetup(minaConfig);
-    console.log("Actor Mina setup completed");
-    return true;
-  }
-);
-
 const checkStorageSetup = fromPromise(
   async ({
     input,
@@ -245,7 +225,7 @@ const checkStorageSetup = fromPromise(
         input.worker.minaWalletPubKeyBase58
       );
       //TODO store and then fetch if needSetup from localStorage
-      return await input.worker.needsToSetupStorage();
+      return input.worker.needsToSetupStorage();
     } catch (err) {
       console.log("Error in checkStorageSetup: ", err);
     }
@@ -378,11 +358,13 @@ export const getDepositMachine = (
       isMissedOpportunity: ({ context }) =>
         context.canComputeStatus === "MissedMintingOpportunity" ||
         context.canMintStatus === "MissedMintingOpportunity",
+
+
       needsStorageSetup: ({ context }) => !context.isStorageSetup,
-      checkingStorageSetupGuard: ({ context }) => context.mintWorker !== null,
-      isMinaSetupComplete: ({ context }) =>
-        context.isMinaSetupComplete === true ? false : true,
+      storageIsSetupGuard: ({ context }) => context.isStorageSetup,
       storageIsPending: ({ context }) => !context.waitingForStorageSetupTx,
+      //checkingStorageSetupGuard: ({ context }) => context.mintWorker !== null,
+      
       // isWorkerCompiled: ({ context }) => context.isWorkerCompiled,
     },
     actors: {
@@ -390,9 +372,6 @@ export const getDepositMachine = (
       canComputeEthProofActor,
       canMintActor,
       storageIsSetupWithDelayActor,
-      // initWorker,
-      minaSetup,
-      // compileWorker,
       checkStorageSetup,
       setupStorage,
       computeEthProof,
@@ -418,7 +397,6 @@ export const getDepositMachine = (
       // ethSenderAddress: null,
       isWorkerReady: false,
       isStorageSetup: false,
-      isMinaSetupComplete: false,
       // isWorkerCompiled: false,
       needsToFundAccount: false,
       errorMessage: null,
@@ -433,39 +411,12 @@ export const getDepositMachine = (
           target: "checking",
           guard: ({ context }) => context.mintWorker !== null,
         },
-        // on: {
-        //   ASSIGN_WORKER: {
-        //     actions: assign({
-        //       mintWorker: ({ event }) => event.mintWorkerClient,
-        //       isWorkerReady: ({ event }) => event.mintWorkerClient !== null,
-        //     }),
-        //     target: "checking",
-        //   },
-        // },
       },
-      // assignWorker: {
-      //   entry: [
-      //     log("Entering assignWorker 🚀"),
-      //   assign({
-      //     mintWorker: ({ event }) =>
-      //       event.type == "ASSIGN_WORKER"  ? event.mintWorkerClient : null
-      //     ,
-      //     isWorkerReady: ({ context, event }) => {
-      //       console.log("context value of worksr", context.mintWorker)
-      //       // context.mintWorker = event.mintWorkerClient
-      //       return event.type == "ASSIGN_WORKER" && event.mintWorkerClient !== null
-      //     },
-      //   }),
-      //   ],
-
-      //   always: "hydrating",
-      // },
 
       // Boot: hydrate state and determine next steps
       checking: {
         entry: [
           log("Entering checking 🚀"),
-          // log('context:', mintWorker),
           assign({
             activeDepositNumber: () => {
               const v = safeLS.get(LS_KEYS.activeDepositNumber);
@@ -494,11 +445,9 @@ export const getDepositMachine = (
           { target: "noActiveDepositNumber" },
         ],
       },
+
       // User needs to configure deposit number
       noActiveDepositNumber: {
-        // invoke:{
-        //   src:()=>{}
-        // }
         entry: [log("Entering noActiveDepositNumber 🚀")],
         on: {
           SET_DEPOSIT_NUMBER: {
@@ -517,7 +466,7 @@ export const getDepositMachine = (
       hasActiveDepositNumber: {
         entry: [
           log("Entering hasActiveDepositNumber 🚀"),
-          assign({
+          assign({ // is this redundant?
             processingStatus: () => null as null,
             canComputeStatus: () => null as null,
             canMintStatus: () => null as null,
@@ -527,43 +476,27 @@ export const getDepositMachine = (
         always: [
           {
             target: "monitoringDepositStatus",
-            guard: ({ context }) =>
-              context.isWorkerReady &&
-              context.isMinaSetupComplete &&
-              // context.isWorkerCompiled &&
-              context.isStorageSetup,
-          },
-          {
-            target: "settingUpMina",
-            guard: "isMinaSetupComplete",
+            guard: "storageIsSetupGuard",
           },
           {
             target: "checkingStorageSetup",
-            guard: "checkingStorageSetupGuard",
-            // 	context.isWorkerReady &&
-            // 	// context.isMinaSetupComplete &&
-            // 	// context.isWorkerCompiled &&
-            // 	!context.isStorageSetup,
           },
-
-          // {
-          // 	target: "compilingWorker",
-          // 	guard: ({ context }) =>
-          // 		context.isWorkerReady &&
-          // 		// context.isMinaSetupComplete &&
-          // 		// !context.isWorkerCompiled,
-          // },
-          // {
-          // 	target: "initializingMina",
-          // 	guard: ({ context }) =>
-          // 		context.isWorkerReady
-          // 	//  && !context.isMinaSetupComplete,
-          // },
-          // {
-          // 	target: "needsWorkerInit",
-          // },
         ],
       },
+
+      /*
+
+      check local storage for state
+
+      WE_SHOULD_SETUP_BUT_WEVE_NOT_EVEN_TRIED, WE_ARE_TRYING, STORAGE_IS_SETUP
+      
+      LS state:
+      STORAGE_IS_SETUP // STORAGE_IS_NOT_SETUP
+
+      in the case that STORAGE_IS_NOT_SETUP
+      WEVE_NOT_EVEN_TRIED // WEVE_ITS_IN_PROCESS (storage tx in progress)
+
+      */
 
       // Step 1: Check if storage setup is needed
       checkingStorageSetup: {
@@ -575,10 +508,10 @@ export const getDepositMachine = (
           }),
           onDone: {
             actions: assign({
-              isStorageSetup: ({ event }) =>
-                event.output === true ? false : true,
-              // needsToFundAccount: ({ event }) => event.output.needsFunding,
-              // needsToFundAccount: ({ }) => true,
+              isStorageSetup: ({ event }) => {
+                const needsToSetupStore = event.output;
+                return !needsToSetupStore; // we have a setup storage
+              }
             }),
             target: "storageSetupDecision",
           },
@@ -596,10 +529,6 @@ export const getDepositMachine = (
       storageSetupDecision: {
         always: [
           {
-            target: "settingUpMina",
-            guard: "isMinaSetupComplete",
-          },
-          {
             target: "settingUpStorage",
             guard: "needsStorageSetup",
           },
@@ -612,27 +541,7 @@ export const getDepositMachine = (
           },
         ],
       },
-      settingUpMina: {
-        entry: log("Entering settingUpMina 🚀"),
-        invoke: {
-          src: "minaSetup",
-          input: ({ context }) => ({
-            worker: context.mintWorker!,
-          }),
-          onDone: {
-            target: "checkingStorageSetup",
-            actions: assign({
-              isMinaSetupComplete: true,
-            }),
-          },
-          onError: {
-            target: "error",
-            actions: assign({
-              errorMessage: "Failed to setup Mina",
-            }),
-          },
-        },
-      },
+
       //this has to return a transactionJSON so you send it to wallet
       // maybe set it in context and read it in provider/component
       //submit the storage setup tx from there
@@ -810,6 +719,7 @@ export const getDepositMachine = (
 
       hasComputedEthProof: {
         entry: ({context}) => {
+          console.log('Entered hasComputedEthProof');
           context.mintWorker?.compileIfNeeded();
         },
         invoke: {
