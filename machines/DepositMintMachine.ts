@@ -9,7 +9,17 @@ import {
   // type StateMachine,
   // type AnyStateMachine,
 } from "xstate";
-import { catchError, filter, first, from, interval, Observable, of, startWith, switchMap } from "rxjs";
+import {
+  catchError,
+  filter,
+  first,
+  from,
+  interval,
+  Observable,
+  of,
+  startWith,
+  switchMap,
+} from "rxjs";
 import { JsonProof, NetworkId } from "o1js";
 // Import actual bridge deposit observables
 import {
@@ -50,7 +60,7 @@ type EthProofResult = {
       value: string;
     };
   };
-}
+};
 
 export const LS_KEYS = {
   activeDepositNumber: "activeDepositNumber",
@@ -64,7 +74,7 @@ type ObservableValue<T> = T extends Observable<infer U> ? U : never;
 export interface DepositMintContext {
   // Core deposit data
   activeDepositNumber: number | null;
-  computedEthProof: JsonProof | null;
+  computedEthProof: EthProofResult | null;
   depositMintTx: string | null;
 
   // Observable states
@@ -198,7 +208,6 @@ const storageIsSetupWithDelayActor = fromObservable(
 );
 // Promise actors for worker operations
 
-
 const minaSetup = fromPromise(
   async ({
     input,
@@ -208,9 +217,9 @@ const minaSetup = fromPromise(
     };
   }) => {
     const minaConfig = {
-      networkId: 'devnet' as NetworkId,
+      networkId: "devnet" as NetworkId,
       // mina: 'https://devnet.minaprotocol.network/graphql',
-      mina: 'https://api.minascan.io/node/devnet/v1/graphql'
+      mina: "https://api.minascan.io/node/devnet/v1/graphql",
     };
     await input.worker.minaSetup(minaConfig);
     console.log("Actor Mina setup completed");
@@ -220,15 +229,21 @@ const minaSetup = fromPromise(
 
 const checkStorageSetup = fromPromise(
   async ({
-    input
+    input,
   }: {
     input: {
       worker: ZkappMintWorkerClient;
     };
   }) => {
     try {
-      console.log("Checking storage setup for address eth:", input.worker.ethWalletPubKeyBase58);
-      console.log("Checking storage setup for address mina:", input.worker.minaWalletPubKeyBase58);
+      console.log(
+        "Checking storage setup for address eth:",
+        input.worker.ethWalletPubKeyBase58
+      );
+      console.log(
+        "Checking storage setup for address mina:",
+        input.worker.minaWalletPubKeyBase58
+      );
       //TODO store and then fetch if needSetup from localStorage
       return await input.worker.needsToSetupStorage();
     } catch (err) {
@@ -246,7 +261,7 @@ const setupStorage = fromPromise(
     };
   }) => {
     const txStr = await input.worker.setupStorage();
-    console.log("Storage setup transactionready",);
+    console.log("Storage setup transactionready");
     return txStr;
   }
 );
@@ -260,18 +275,24 @@ const computeEthProof = fromPromise(
       depositBlockNumber: number;
     };
   }) => {
-    const codeVerify = safeLS.get(`codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`);
-    const codeChallange = await input.worker?.createCodeChallenge(codeVerify!);
-    console.log('about to computeEthProof with codeChallange')
-    const ethProof = await input.worker.computeDepositAttestationWitnessAndEthVerifier(
-      codeChallange!,
-      input.depositBlockNumber
+    const codeVerify = safeLS.get(
+      `codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`
     );
+    const codeChallange = await input.worker?.createCodeChallenge(codeVerify!);
+    console.log("about to computeEthProof with codeChallange");
+    const ethProof =
+      await input.worker.computeDepositAttestationWitnessAndEthVerifier(
+        codeChallange!,
+        input.depositBlockNumber
+      );
 
     // Store in localStorage
     safeLS.set(LS_KEYS.computedEthProof, JSON.stringify(ethProof));
     // safeLS.set(LS_KEYS.lastEthProofCompute, Date.now().toString());
-    console.log("Computed ethProof value :", ethProof.depositAttestationInput.despositSlotRaw.value);
+    console.log(
+      "Computed ethProof value :",
+      ethProof.depositAttestationInput.despositSlotRaw.value
+    );
     return ethProof;
   }
 );
@@ -286,10 +307,15 @@ const computeMintTx = fromPromise(
       // needsToFundAccount: boolean;
     };
   }) => {
-    const state = safeLS.get(LS_KEYS.computedEthProof)
-    const codeVerify = safeLS.get(`codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`);
+    const state = safeLS.get(LS_KEYS.computedEthProof);
+    const codeVerify = safeLS.get(
+      `codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`
+    );
+    console.log('codeVerify', codeVerify);
     const needsToFundAccount = await input.worker.needsToFundAccount();
-    if (!state || !codeVerify) throw new Error("No stored eth proof or codeVerify found");
+    console.log('needsToFundAccount', needsToFundAccount);
+    if (!state || !codeVerify)
+      throw new Error("No stored eth proof or codeVerify found");
     const storedProof = JSON.parse(state) as EthProofResult;
     const mintTxStr = await input.worker.computeMintTx(
       storedProof.ethVerifierProofJson,
@@ -342,7 +368,8 @@ export const getDepositMachine = (
         context.canMintStatus === "MissedMintingOpportunity",
       needsStorageSetup: ({ context }) => !context.isStorageSetup,
       checkingStorageSetupGuard: ({ context }) => context.mintWorker !== null,
-      isMinaSetupComplete: ({ context }) => context.isMinaSetupComplete === true ? false : true,
+      isMinaSetupComplete: ({ context }) =>
+        context.isMinaSetupComplete === true ? false : true,
       storageIsPending: ({ context }) => !context.waitingForStorageSetupTx,
       // isWorkerCompiled: ({ context }) => context.isWorkerCompiled,
     },
@@ -359,7 +386,6 @@ export const getDepositMachine = (
       computeEthProof,
       computeMintTx,
       submitMintTx,
-
     },
   }).createMachine({
     id: "depositMint",
@@ -385,7 +411,7 @@ export const getDepositMachine = (
       needsToFundAccount: false,
       errorMessage: null,
       setupStorageTransaction: null,
-      waitingForStorageSetupTx: true
+      waitingForStorageSetupTx: true,
     },
     states: {
       // Initial hydration state - same on server and client
@@ -441,7 +467,8 @@ export const getDepositMachine = (
             })() as JsonProof | null,
             depositMintTx: safeLS.get(LS_KEYS.depositMintTx),
             errorMessage: null,
-          })],
+          }),
+        ],
         always: [
           {
             target: "hasComputedEthProof",
@@ -460,8 +487,7 @@ export const getDepositMachine = (
         // invoke:{
         //   src:()=>{}
         // }
-        entry: [
-          log("Entering noActiveDepositNumber 🚀")],
+        entry: [log("Entering noActiveDepositNumber 🚀")],
         on: {
           SET_DEPOSIT_NUMBER: {
             target: "hasActiveDepositNumber",
@@ -478,15 +504,14 @@ export const getDepositMachine = (
 
       hasActiveDepositNumber: {
         entry: [
-
           log("Entering hasActiveDepositNumber 🚀"),
           assign({
-
             processingStatus: () => null as null,
             canComputeStatus: () => null as null,
             canMintStatus: () => null as null,
             errorMessage: null,
-          })],
+          }),
+        ],
         always: [
           {
             target: "monitoringDepositStatus",
@@ -498,7 +523,7 @@ export const getDepositMachine = (
           },
           {
             target: "settingUpMina",
-            guard: "isMinaSetupComplete"
+            guard: "isMinaSetupComplete",
           },
           {
             target: "checkingStorageSetup",
@@ -538,7 +563,8 @@ export const getDepositMachine = (
           }),
           onDone: {
             actions: assign({
-              isStorageSetup: ({ event }) => event.output === true ? false : true,
+              isStorageSetup: ({ event }) =>
+                event.output === true ? false : true,
               // needsToFundAccount: ({ event }) => event.output.needsFunding,
               // needsToFundAccount: ({ }) => true,
             }),
@@ -559,15 +585,15 @@ export const getDepositMachine = (
         always: [
           {
             target: "settingUpMina",
-            guard: "isMinaSetupComplete"
+            guard: "isMinaSetupComplete",
           },
           {
             target: "settingUpStorage",
             guard: "needsStorageSetup",
           },
           {
-            target: 'waitingForStorageSetupTx',
-            guard: 'storageIsPending',
+            target: "waitingForStorageSetupTx",
+            guard: "storageIsPending",
           },
           {
             target: "monitoringDepositStatus",
@@ -615,7 +641,8 @@ export const getDepositMachine = (
                 // isStorageSetup: true,
                 waitingForStorageSetupTx: true,
                 setupStorageTransaction: ({ event }) => event.output, // event.data is txStr
-              })],
+              }),
+            ],
           },
           onError: {
             target: "error",
@@ -752,12 +779,9 @@ export const getDepositMachine = (
           onDone: {
             actions: assign({
               computedEthProof: ({ event }) => {
-                const proof = event.output.ethVerifierProofJson;
-                safeLS.set(
-                  "computedEthProof",
-                  JSON.stringify(proof)
-                );
-                console.log('done comupting and saved to LS')
+                const proof = event.output;
+                safeLS.set("computedEthProof", JSON.stringify(proof));
+                console.log("done comupting and saved to LS");
                 return proof;
               },
             }),
@@ -796,7 +820,6 @@ export const getDepositMachine = (
             target: "missedOpportunity",
             guard: "isMissedOpportunity",
           },
-          { target: "hasComputedEthProof" },
         ],
       },
       buildingMintTx: {
@@ -805,8 +828,8 @@ export const getDepositMachine = (
           input: ({ context }) => ({
             worker: context.mintWorker!,
             // minaSenderAddress: context.minaSenderAddress!,
-            ethProof: context.computedEthProof!,
-            needsToFundAccount: context.needsToFundAccount,
+            //ethProof: context.computedEthProof!,
+            //needsToFundAccount: context.needsToFundAccount,
           }),
           onDone: {
             actions: assign({
@@ -821,7 +844,14 @@ export const getDepositMachine = (
           onError: {
             target: "error",
             actions: assign({
-              errorMessage: "Failed to build mint transaction",
+              errorMessage: ({ event }) => {
+                console.error("Mint transaction error:", event.error);
+                if (event.error instanceof Error) {
+                  console.error("Stack trace:", event.error.stack);
+                  return event.error.message;
+                }
+                return "Failed to build mint transaction";
+              },
             }),
           },
         },
@@ -876,12 +906,14 @@ export const getDepositMachine = (
           log("Deposit completed successfully"),
           () => {
             // Clear localStorage on reset
-            console.log("Resetting machine and clearing localStorage on complete");
+            console.log(
+              "Resetting machine and clearing localStorage on complete"
+            );
             safeLS.del(LS_KEYS.activeDepositNumber);
             safeLS.del(LS_KEYS.computedEthProof);
             safeLS.del(LS_KEYS.depositMintTx);
           },
-          raise({ type: "RESET" }),          // <- sends RESET to this machine
+          raise({ type: "RESET" }), // <- sends RESET to this machine
         ],
       },
     },
@@ -897,30 +929,37 @@ export const getDepositMachine = (
       },
       RESET: {
         target: ".checking", // or ".hydrating"
-        reenter: true,       // v5 only; re-run entry even if already there
-        actions: [assign({
-          activeDepositNumber: null,
-          depositMintTx: null,
-          computedEthProof: null,
-          processingStatus: null,
-          canComputeStatus: null,
-          canMintStatus: null,
-          mintWorker: mintWorker || null,
-          isWorkerReady: mintWorker !== null,
-          // minaSenderAddress: null,
-          // ethSenderAddress: null,
-          isStorageSetup: false,
-          needsToFundAccount: false,
-          errorMessage: null,
-        }),
-        () => {
-          // Clear localStorage on reset
-          console.log("Resetting machine and clearing localStorage");
-          safeLS.del(LS_KEYS.activeDepositNumber);
-          safeLS.del(LS_KEYS.computedEthProof);
-          safeLS.del(LS_KEYS.depositMintTx);
-          safeLS.del('codeVerify' + (mintWorker?.ethWalletPubKeyBase58 ?? '') + '-' + (mintWorker?.minaWalletPubKeyBase58 ?? ''));
-        },]
+        reenter: true, // v5 only; re-run entry even if already there
+        actions: [
+          assign({
+            activeDepositNumber: null,
+            depositMintTx: null,
+            computedEthProof: null,
+            processingStatus: null,
+            canComputeStatus: null,
+            canMintStatus: null,
+            mintWorker: mintWorker || null,
+            isWorkerReady: mintWorker !== null,
+            // minaSenderAddress: null,
+            // ethSenderAddress: null,
+            isStorageSetup: false,
+            needsToFundAccount: false,
+            errorMessage: null,
+          }),
+          () => {
+            // Clear localStorage on reset
+            console.log("Resetting machine and clearing localStorage");
+            safeLS.del(LS_KEYS.activeDepositNumber);
+            safeLS.del(LS_KEYS.computedEthProof);
+            safeLS.del(LS_KEYS.depositMintTx);
+            safeLS.del(
+              "codeVerify" +
+                (mintWorker?.ethWalletPubKeyBase58 ?? "") +
+                "-" +
+                (mintWorker?.minaWalletPubKeyBase58 ?? "")
+            );
+          },
+        ],
       },
     },
   });
