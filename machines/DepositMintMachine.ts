@@ -494,7 +494,9 @@ export const getDepositMachine = (
       STORAGE_IS_SETUP // STORAGE_IS_NOT_SETUP
 
       in the case that STORAGE_IS_NOT_SETUP
-      WEVE_NOT_EVEN_TRIED // WEVE_ITS_IN_PROCESS (storage tx in progress)
+      WEVE_NOT_EVEN_TRIED (need to submit) // WE_HAVE_SUBMITTED (storage tx in progress)
+
+      pending tx -> poll
 
       */
 
