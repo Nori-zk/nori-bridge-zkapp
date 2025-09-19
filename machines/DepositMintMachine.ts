@@ -78,52 +78,6 @@ type DepositProcessingSnapshot = ObservableSnapshot<
 >;
 type DepositSnapshotEvent = SnapshotEvent<DepositProcessingSnapshot>;
 
-// Machine types -----------------------------------------------------------------------
-
-// Machine Context
-export interface DepositMintContext {
-  // Core deposit data
-  activeDepositNumber: number | null;
-  computedEthProof: EthProofResult | null;
-  depositMintTx: string | null;
-
-  // Observable states
-  processingStatus: ObservableValue<
-    ReturnType<typeof getDepositProcessingStatus$>
-  > | null;
-  canComputeStatus: ObservableValue<
-    ReturnType<typeof getCanComputeEthProof$>
-  > | null;
-  canMintStatus: ObservableValue<ReturnType<typeof getCanMint$>> | null;
-
-  // Bridge topics (observables)
-  ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-  bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
-
-  // Worker and user data
-  mintWorker: ZkappMintWorkerClient | null;
-  setupStorageTransaction: string | null;
-  // Status flags
-  isWorkerReady: boolean;
-  isStorageSetup: boolean;
-  // isWorkerCompiled: boolean;
-  needsToFundAccount: boolean;
-  waitingForStorageSetupTx: boolean;
-
-  // Error handling
-  errorMessage: string | null;
-}
-
-export type DepositMintEvents =
-  | { type: "SET_DEPOSIT_NUMBER"; value: number }
-  | { type: "CHECK_STATUS" }
-  | { type: "COMPUTE_ETH_PROOF" }
-  | { type: "BUILD_MINT_TX" }
-  | { type: "SUBMIT_MINT_TX" }
-  | { type: "RESET" }
-  | { type: "ASSIGN_WORKER"; mintWorkerClient: ZkappMintWorkerClient };
-
 // localStorage utils --------------------------------------------------------------------------------------
 
 // Storage helpers (safe SSR), this is silly, the server could never pre-render this in a meaningful way.
@@ -140,7 +94,7 @@ export type DepositMintEvents =
   },
 };*/
 
-// Local storage keys
+// Local storage fixed keys
 export const LS_KEYS = {
   activeDepositNumber: "activeDepositNumber",
   computedEthProof: "computedEthProof",
@@ -148,14 +102,44 @@ export const LS_KEYS = {
   // isStorageSetup: "isStorageSetup",
 } as const;
 
+// Lets define the dynamic keys more rigorously have it as '<concept>:' and then the key information
+
+const LSKeyPairConceptKeys = ["codeVerifier"] as const;
+type LSKeyPairConceptKeys = (typeof LSKeyPairConceptKeys)[number];
+
+function makeKeyPairLSKey(
+  concept: LSKeyPairConceptKeys,
+  ethWalletPubKeyBase58: string,
+  minaWalletPubKeyBase58: string
+) {
+  return `${concept}:${ethWalletPubKeyBase58}-${minaWalletPubKeyBase58}`;
+}
+
+const LSMinaConceptKeys = ["needsToSetupStorage"] as const;
+type LSMinaConceptKeys = (typeof LSMinaConceptKeys)[number];
+
+function makeMinaLSKey(
+  concept: LSMinaConceptKeys,
+  minaWalletPubKeyBase58: string
+) {
+  return `${concept}:${minaWalletPubKeyBase58}`;
+}
+
+// Util to reset the storage but keep the codeVerifier and needsToSetupStorage dynamic keys
 const resetLocalStorage = () => {
   console.log("Resetting machine and clearing localStorage on complete");
   // Exact keys we always want to keep
   const keepKeys: string[] = [];
 
   // Key-matching functions we always want to keep
-  const keepFilters: ((key: string) => boolean)[] = [
-    (key) => key.includes("codeVerify"), // Keep the code verifiers to avoid the user having to re-sign (think about the security implications of this)
+  const keepFilters = [
+    // Key-pair LS keys
+    (key: string) =>
+      LSKeyPairConceptKeys.some((concept) => key.startsWith(`${concept}:`)),
+
+    // Mina LS keys
+    (key: string) =>
+      LSMinaConceptKeys.some((concept) => key.startsWith(`${concept}:`)),
   ];
 
   Object.keys(localStorage).forEach((key) => {
@@ -306,7 +290,11 @@ const computeEthProof = fromPromise(
     };
   }) => {
     const codeVerify = localStorage.getItem(
-      `codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`
+      makeKeyPairLSKey(
+        "codeVerifier",
+        input.worker.ethWalletPubKeyBase58,
+        input.worker.minaWalletPubKeyBase58
+      )
     );
     const codeChallange = await input.worker?.createCodeChallenge(codeVerify!);
     console.log("about to computeEthProof with codeChallange");
@@ -341,7 +329,7 @@ const computeMintTx = fromPromise(
     const codeVerify = localStorage.getItem(
       `codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`
     );
-    console.log("codeVerify", codeVerify);
+    console.log("codeVerifier", codeVerify);
     const needsToFundAccount = await input.worker.needsToFundAccount();
     console.log("needsToFundAccount", needsToFundAccount);
     if (!state || !codeVerify)
@@ -415,6 +403,54 @@ const invokeMonitoringDepositStatus = {
   } as const,
 };
 
+// Machine types -----------------------------------------------------------------------
+
+// Machine Context
+export interface DepositMintContext {
+  // Core deposit data
+  activeDepositNumber: number | null;
+  computedEthProof: EthProofResult | null;
+  depositMintTx: string | null;
+
+  // Observable states
+  processingStatus: ObservableValue<
+    ReturnType<typeof getDepositProcessingStatus$>
+  > | null;
+  canComputeStatus: ObservableValue<
+    ReturnType<typeof getCanComputeEthProof$>
+  > | null;
+  canMintStatus: ObservableValue<ReturnType<typeof getCanMint$>> | null;
+
+  // Bridge topics (observables)
+  ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
+  bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
+  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
+
+  // Worker and user data
+  mintWorker: ZkappMintWorkerClient | null;
+  setupStorageTransaction: string | null;
+  // Status flags
+  needsToSetupStorage: false | null;
+
+  isWorkerReady: boolean;
+  isStorageSetup: boolean;
+  // isWorkerCompiled: boolean;
+  needsToFundAccount: boolean;
+  waitingForStorageSetupTx: boolean;
+
+  // Error handling
+  errorMessage: string | null;
+}
+
+export type DepositMintEvents =
+  | { type: "SET_DEPOSIT_NUMBER"; value: number }
+  | { type: "CHECK_STATUS" }
+  | { type: "COMPUTE_ETH_PROOF" }
+  | { type: "BUILD_MINT_TX" }
+  | { type: "SUBMIT_MINT_TX" }
+  | { type: "RESET" }
+  | { type: "ASSIGN_WORKER"; mintWorkerClient: ZkappMintWorkerClient };
+
 export const getDepositMachine = (
   topics: {
     ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
@@ -434,7 +470,7 @@ export const getDepositMachine = (
       hasDepositMintTxGuard: ({ context }) => context.depositMintTx !== null,
       hasActiveDepositNumberGuard: ({ context }) =>
         context.activeDepositNumber !== null,
-      hasWorker: ({ context }) => context.isWorkerReady === true,
+      //hasWorker: ({ context }) => context.isWorkerReady === true,
       canComputeEthProof: ({ context }) =>
         context.canComputeStatus === "CanCompute",
       canMint: ({ context }) => context.canMintStatus === "ReadyToMint",
@@ -476,9 +512,12 @@ export const getDepositMachine = (
       bridgeStateTopic$: topics.bridgeStateTopic$,
       bridgeTimingsTopic$: topics.bridgeTimingsTopic$,
       mintWorker: mintWorker || null, // Use passed worker or null
-      // ethSenderAddress: null,
+
       isWorkerReady: false,
       isStorageSetup: false,
+      needsToSetupStorage: null,
+
+
       // isWorkerCompiled: false,
       needsToFundAccount: false,
       errorMessage: null,
@@ -570,6 +609,9 @@ export const getDepositMachine = (
         ],
       },
 
+
+
+
       /*
 
       check local storage for state
@@ -585,6 +627,10 @@ export const getDepositMachine = (
       pending tx -> poll
 
       */
+
+      // what nodes do we really want
+
+      // check if needsToSetupStorage based on the mina key is false so we can skip it
 
       // Step 1: Check if storage setup is needed
       checkingStorageSetup: {
@@ -919,11 +965,13 @@ export const getDepositMachine = (
             // Clear localStorage on reset
             resetLocalStorage();
           },
-          raise({ type: "RESET" }), // <- sends RESET to this machine
+          raise({ type: "RESET" }), // <- sends RESET to this machine (NOTE: actually it send it to the top machine which if we have a parent might not be this machine)
+          // TODO: think we need to double check the relative node path stuff for the whole machine
         ],
       },
     },
     // Global reset handler - works from any state
+    // Dont see the point of these relative nodes... think they should actually be global so we can visit them from anywhere
     on: {
       ASSIGN_WORKER: {
         target: ".checking", // or ".checking" if you want to skip hydrating
