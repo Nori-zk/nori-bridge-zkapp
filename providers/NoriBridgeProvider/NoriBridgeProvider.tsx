@@ -33,6 +33,20 @@ type NoriBridgeContextType = {
   canSetupStorage: boolean;
   canSubmitMintTx: boolean;
 
+  // Current bridge stage data
+  bridgeStage: string;
+  bridgeStateElapsedSec: number;
+  bridgeStateTimeRemaining: number;
+
+  // Current deposit status
+  depositNumber: number;
+  hasActiveDeposit: boolean;
+  depositStatus: string;
+  depositBridgeStageName: string;
+  depositStepElapsedTime: number;
+  depositStepTimeRemaining: number;
+  
+
   // Helper methods
   setDepositNumber: (depositNumber: number) => void;
   setPresentation: (presentationJsonStr: string) => void;

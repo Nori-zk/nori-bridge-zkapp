@@ -33,6 +33,7 @@ import {
   computeEthProof,
   computeMintTx,
   submitMintTx,
+  submitSetupStorage,
 } from "@/machines/actors/actions.ts";
 
 // Commonly used invoke procedures
@@ -57,10 +58,10 @@ const invokeMonitoringDepositStatus = {
       never
     >({
       processingStatus: ({ event }) => {
-        console.log(
+        /*console.log(
           "onSnapshotdepositProcessingStatus",
           event.snapshot.context
-        );
+        );*/
         return event.snapshot.context ?? null;
       },
     }),
@@ -163,6 +164,7 @@ export const getDepositMachine = (
       storageIsSetupWithDelayActor,
       checkStorageSetupOnChain,
       setupStorage,
+      submitSetupStorage,
       computeEthProof,
       computeMintTx,
       submitMintTx,
@@ -265,6 +267,7 @@ export const getDepositMachine = (
       },
 
       hasActiveDepositNumber: {
+        // invoke invokeMonitoringDepositStatus
         entry: [
           log("Entering hasActiveDepositNumber 🚀"),
           assign({
@@ -318,9 +321,9 @@ export const getDepositMachine = (
               worker: context.mintWorker!,
             }),
             onDone: {
-              target: "waitForStorageSetupFinalization",
+              //target: "waitForStorageSetupFinalization",
               actions: ({ event, context }) => {
-                console.log("onDone waitForStorageSetupFinalization.");
+                console.log("onDone setupStorageOnChainCheck.");
                 const minaWalletPubKeyBase58 =
                   context.mintWorker?.minaWalletPubKeyBase58;
                 if (!minaWalletPubKeyBase58)
@@ -371,7 +374,7 @@ export const getDepositMachine = (
               worker: context.mintWorker!,
             }),
             onDone: {
-              target: "waitForStorageSetupFinalization", // When we are sending the setupStorage tx goto waitForStorageSetupFinalization
+              target: "submitSetupStorageTx", // Goto submitSetupStorageTx after we have built our setupStorageTx
               actions: ({ event, context }) => {
                 console.log(`onDone storage setup. Tx hash '${event.output}'`);
                 if (event.output)
@@ -402,9 +405,35 @@ export const getDepositMachine = (
         ],
       },
 
+      // submitSetupStorageTx requires user interaction
+      // FIXME note that this is not sufficient for the machine we should either on error go back to setupStorage or submitSetupStorageTx
+      // We need to actually inspect the error to know what to do and perhaps have a decision node for this.
+      submitSetupStorageTx : {
+        entry: log("Entering submitSetupStorageTx 🚀"),
+        invoke: [
+          invokeMonitoringDepositStatus,
+          {
+            src: "submitSetupStorage",
+            input: ({context}) => ({
+              setupStorageTx: context.setupStorageTransaction!
+            }),
+            onDone: {
+              target: "waitForStorageSetupFinalization"
+            },
+            onError: {
+              target: "setupStorage",
+               actions: assign({
+                errorMessage: "Failed to submit storage",
+              }),
+            }
+          }
+        ],
+      },
+
+
       // Keep polling needsToSetupStorage on chain in the worker until it return false indicating storage is setup
       waitForStorageSetupFinalization: {
-        entry: log("Entering waitForStorageSetupFinalization 🚀"),
+        entry: log("Entering waitForStorageSetupFinalization 🚀"), // submit
         invoke: [
           invokeMonitoringDepositStatus,
           {
@@ -537,7 +566,7 @@ export const getDepositMachine = (
                   return proof;
                 },
               }),
-              target: "hasComputedEthProof", //TODO go to monitoringDepositStatus
+              target: "hasComputedEthProof"
             },
             onError: {
               target: "error",
@@ -563,8 +592,6 @@ export const getDepositMachine = (
         invoke: [
           invokeMonitoringDepositStatus,
           {
-            // This is fine but we are not monitoring the deposit status anymore, need to add that actor back in to make
-            // sure we update the machine context during this stage.... consider adding depositProcessingStatusActor back here
             src: "canMintActor",
             input: ({ context }) => ({
               depositBlockNumber: context.activeDepositNumber!,

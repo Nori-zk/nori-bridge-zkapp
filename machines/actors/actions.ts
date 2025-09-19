@@ -2,6 +2,7 @@
 import { LS_KEYS, makeKeyPairLSKey } from "@/helpers/localStorage.ts";
 import type ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { fromPromise } from "xstate";
+import { EthProofResult } from "../types.ts";
 
 export const checkStorageSetupOnChain = fromPromise(
   async ({
@@ -39,6 +40,32 @@ export const setupStorage = fromPromise(
     const txStr = await input.worker.setupStorage();
     console.log("Storage setup transactionready");
     return txStr;
+  }
+);
+
+export const submitSetupStorage = fromPromise(
+  async ({
+    input,
+  }: {
+    input: {
+      setupStorageTx: string;
+    };
+  }) => {
+    const { setupStorageTx } = input;
+    const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
+    const memo = "Setting up storage";
+    const onlySign = false;
+    // Should we be using useSendSignedTransaction here?
+    const result = await window.mina?.sendTransaction({
+      onlySign: onlySign,
+      transaction: setupStorageTx,
+      feePayer: {
+        fee: fee,
+        memo: memo,
+      },
+    });
+    console.log("sendTransaction result: ", result);
+    return result;
   }
 );
 
