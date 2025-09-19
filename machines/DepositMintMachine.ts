@@ -140,7 +140,8 @@ export const getDepositMachine = (
       canMint: ({ context }) => context.canMintStatus === "ReadyToMint",
       isMissedOpportunity: ({ context }) =>
         context.canComputeStatus === "MissedMintingOpportunity" ||
-        context.canMintStatus === "MissedMintingOpportunity",
+        context.canMintStatus === "MissedMintingOpportunity" ||
+        context.processingStatus?.deposit_processing_status == "MissedMintingOpportunity",
 
       storageIsSetupAndFinalizedForCurrentMinaKeyGuard: ({ context }) =>
         storageIsSetupAndFinalizedForCurrentMinaKey(
@@ -290,7 +291,7 @@ export const getDepositMachine = (
               "needsToCheckSetupStorageOrWaitingForStorageSetupFinalization",
           },
         ],
-      },
+      }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
       // Check if we either need to do an on chain setupStorageOnChainCheck, or if we are waiting for setupStorage tx finalization because we have sent a setupStorage tx.
       needsToCheckSetupStorageOrWaitingForStorageSetupFinalization: {
@@ -308,7 +309,7 @@ export const getDepositMachine = (
             guard: "setupStorageInProgressGuard",
           }, // If we have sent a setupStorageTx poll until it is finalized.
         ],
-      },
+      }, // this still need missed mint oppertunity
 
       // Use the worker to see if we have actually setup storage based on the on chain state.
       setupStorageOnChainCheck: {
@@ -361,7 +362,7 @@ export const getDepositMachine = (
           // If we determined that we do need to setupStorage go to that node.
           { target: "setupStorage", guard: "shouldGotoSetupStorageGuard" },
         ],
-      },
+      }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
       // Use the worker to setup storage
       setupStorage: {
@@ -403,7 +404,7 @@ export const getDepositMachine = (
             },
           },
         ],
-      },
+      }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
       // submitSetupStorageTx requires user interaction
       // FIXME note that this is not sufficient for the machine we should either on error go back to setupStorage or submitSetupStorageTx
@@ -428,7 +429,7 @@ export const getDepositMachine = (
             }
           }
         ],
-      },
+      }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
 
       // Keep polling needsToSetupStorage on chain in the worker until it return false indicating storage is setup
@@ -485,7 +486,7 @@ export const getDepositMachine = (
             guard: "storageIsSetupAndFinalizedForCurrentMinaKeyGuard",
           },
         ],
-      },
+      }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
       // Now monitor deposit status and proceed to canComputeEthProof when ready or missedOpportunity is we have missed our window
       monitoringDepositStatus: {
@@ -582,7 +583,7 @@ export const getDepositMachine = (
             },
           },
         ],
-      },
+      }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
       hasComputedEthProof: {
         entry: ({ context }) => {
@@ -655,7 +656,7 @@ export const getDepositMachine = (
             },
           },
         ],
-      },
+      }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
       hasDepositMintTx: {
         on: {
@@ -684,7 +685,7 @@ export const getDepositMachine = (
             },
           },
         ],
-      },
+      }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
       // Error state for handling failures
       error: {

@@ -39,6 +39,7 @@ const LockTokens = () => {
         const worker = state.context.mintWorker;
         if (!worker) throw new Error("Worker not ready but called submit anyway");
         const signatureFromUser = await signMessage(worker!.fixedValueOrSecret!);
+        await worker.ready();
         const codeVerify = await worker.getCodeVerifyFromEthSignature(signatureFromUser.signature);
         window.localStorage.setItem(makeKeyPairLSKey("codeVerifier", worker.ethWalletPubKeyBase58, worker.minaWalletPubKeyBase58), codeVerify);
         const codeChallange = await worker.createCodeChallenge(codeVerify);
