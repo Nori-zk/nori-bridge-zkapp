@@ -1,3 +1,4 @@
+"client";
 import {
   assign,
   // assign,
@@ -6,6 +7,10 @@ import {
   setup,
   log,
   raise,
+  SnapshotEvent,
+  ObservableSnapshot,
+  ProvidedActor,
+  EventFrom,
   // type StateMachine,
   // type AnyStateMachine,
 } from "xstate";
@@ -36,18 +41,13 @@ import {
   // canComputeEthProof,
 } from "@nori-zk/mina-token-bridge/rx/deposit";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
-// Storage helpers (safe SSR)
-const safeLS = {
-  get: (k: string): string | null =>
-    typeof window === "undefined" ? null : window.localStorage.getItem(k),
-  set: (k: string, v: string) => {
-    if (typeof window !== "undefined") window.localStorage.setItem(k, v);
-  },
-  del: (k: string) => {
-    if (typeof window !== "undefined") window.localStorage.removeItem(k);
-  },
-};
 
+// Generic types
+type ObservableValue<T> = T extends Observable<infer U> ? U : never;
+
+// Mint types ------------------------------------------------------------------------
+
+// Eth proof type
 type EthProofResult = {
   ethVerifierProofJson: JsonProof;
   depositAttestationInput: {
@@ -62,14 +62,24 @@ type EthProofResult = {
   };
 };
 
-export const LS_KEYS = {
-  activeDepositNumber: "activeDepositNumber",
-  computedEthProof: "computedEthProof",
-  depositMintTx: "depositMintTx",
-  // isStorageSetup: "isStorageSetup",
-} as const;
+// Deposit processing actor types
+type DepositProcessingValue = ObservableValue<
+  ReturnType<typeof getDepositProcessingStatus$>
+>;
+type DepositProcessingInput = {
+  depositBlockNumber: number;
+  ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
+  bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
+  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
+};
+type DepositProcessingSnapshot = ObservableSnapshot<
+  DepositProcessingValue,
+  DepositProcessingInput
+>;
+type DepositSnapshotEvent = SnapshotEvent<DepositProcessingSnapshot>;
 
-type ObservableValue<T> = T extends Observable<infer U> ? U : never;
+// Machine types -----------------------------------------------------------------------
+
 // Machine Context
 export interface DepositMintContext {
   // Core deposit data
@@ -105,15 +115,6 @@ export interface DepositMintContext {
   errorMessage: string | null;
 }
 
-// export type DepositMintEvents =
-// 	| { type: "SET_DEPOSIT_NUMBER"; value: number }
-// 	| { type: "SET_USER_ADDRESSES"; minaAddress: string; ethAddress: string }
-// 	| { type: "SET_PRESENTATION"; presentationJsonStr: string }
-// 	| { type: "INIT_WORKER" }
-// 	| { type: "SETUP_STORAGE" }
-// 	| { type: "SUBMIT_MINT_TX" }
-// 	| { type: "RETRY" }
-// 	| { type: "RESET" };
 export type DepositMintEvents =
   | { type: "SET_DEPOSIT_NUMBER"; value: number }
   | { type: "CHECK_STATUS" }
@@ -123,7 +124,54 @@ export type DepositMintEvents =
   | { type: "RESET" }
   | { type: "ASSIGN_WORKER"; mintWorkerClient: ZkappMintWorkerClient };
 
-//Actors from observables
+// localStorage utils --------------------------------------------------------------------------------------
+
+// Storage helpers (safe SSR), this is silly, the server could never pre-render this in a meaningful way.
+// This file is now marked as client-only, so the `typeof window !== "undefined"`
+// checks are unnecessary. You can safely access localStorage directly.
+/*const localStorage = {
+  get: (k: string): string | null =>
+    typeof window === "undefined" ? null : window.localStorage.getItem(k),
+  set: (k: string, v: string) => {
+    if (typeof window !== "undefined") window.localStorage.setItem(k, v);
+  },
+  del: (k: string) => {
+    if (typeof window !== "undefined") window.localStorage.removeItem(k);
+  },
+};*/
+
+// Local storage keys
+export const LS_KEYS = {
+  activeDepositNumber: "activeDepositNumber",
+  computedEthProof: "computedEthProof",
+  depositMintTx: "depositMintTx",
+  // isStorageSetup: "isStorageSetup",
+} as const;
+
+const resetLocalStorage = () => {
+  console.log("Resetting machine and clearing localStorage on complete");
+  // Exact keys we always want to keep
+  const keepKeys: string[] = [];
+
+  // Key-matching functions we always want to keep
+  const keepFilters: ((key: string) => boolean)[] = [
+    (key) => key.includes("codeVerify"), // Keep the code verifiers to avoid the user having to re-sign (think about the security implications of this)
+  ];
+
+  Object.keys(localStorage).forEach((key) => {
+    const inKeepKeys = keepKeys.includes(key);
+    const matchesFilter = keepFilters.some((fn) => fn(key));
+
+    if (!inKeepKeys && !matchesFilter) {
+      localStorage.removeItem(key);
+    }
+  });
+};
+
+// Actors --------------------------------------------------------------------------------
+
+// Observable actors ---------------------
+
 const depositProcessingStatusActor = fromObservable(
   ({
     input,
@@ -187,6 +235,7 @@ const canMintActor = fromObservable(
     );
   }
 );
+
 const storageIsSetupWithDelayActor = fromObservable(
   ({
     input,
@@ -205,7 +254,8 @@ const storageIsSetupWithDelayActor = fromObservable(
     );
   }
 );
-// Promise actors for worker operations
+
+// Promise actors -----------------------------
 
 const checkStorageSetup = fromPromise(
   async ({
@@ -255,7 +305,7 @@ const computeEthProof = fromPromise(
       depositBlockNumber: number;
     };
   }) => {
-    const codeVerify = safeLS.get(
+    const codeVerify = localStorage.getItem(
       `codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`
     );
     const codeChallange = await input.worker?.createCodeChallenge(codeVerify!);
@@ -267,8 +317,8 @@ const computeEthProof = fromPromise(
       );
 
     // Store in localStorage
-    safeLS.set(LS_KEYS.computedEthProof, JSON.stringify(ethProof));
-    // safeLS.set(LS_KEYS.lastEthProofCompute, Date.now().toString());
+    localStorage.setItem(LS_KEYS.computedEthProof, JSON.stringify(ethProof));
+    // localStorage.setItem(LS_KEYS.lastEthProofCompute, Date.now().toString());
     console.log(
       "Computed ethProof value :",
       ethProof.depositAttestationInput.despositSlotRaw.value
@@ -287,8 +337,8 @@ const computeMintTx = fromPromise(
       // needsToFundAccount: boolean;
     };
   }) => {
-    const state = safeLS.get(LS_KEYS.computedEthProof);
-    const codeVerify = safeLS.get(
+    const state = localStorage.getItem(LS_KEYS.computedEthProof);
+    const codeVerify = localStorage.getItem(
       `codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`
     );
     console.log("codeVerify", codeVerify);
@@ -305,7 +355,7 @@ const computeMintTx = fromPromise(
     );
 
     // Store in localStorage
-    safeLS.set(LS_KEYS.depositMintTx, mintTxStr);
+    localStorage.setItem(LS_KEYS.depositMintTx, mintTxStr);
     return mintTxStr; //JSON of tx that we need to send to wallet - to componet/provider
   }
 );
@@ -319,6 +369,7 @@ const submitMintTx = fromPromise(
     const memo = "Submit mint tx";
     const onlySign = false;
     const result = await window.mina?.sendTransaction({
+      // FIXME this is not done in an idiomatic react way, and the type is incomplete.
       onlySign: onlySign,
       transaction: input.mintTx,
       feePayer: {
@@ -331,6 +382,38 @@ const submitMintTx = fromPromise(
     return true;
   }
 );
+
+// Commonly used invoke procedures
+
+// This invoke entry will update the machine context when the deposit status changes can be used in any node.
+const invokeMonitoringDepositStatus = {
+  id: "depositProcessingStatus",
+  src: "depositProcessingStatusActor" as const,
+  input: ({ context }: { context: DepositMintContext }) =>
+    ({
+      depositBlockNumber: context.activeDepositNumber!,
+      ethStateTopic$: context.ethStateTopic$!,
+      bridgeStateTopic$: context.bridgeStateTopic$!,
+      bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+    } as const),
+  onSnapshot: {
+    actions: assign<
+      DepositMintContext,
+      DepositSnapshotEvent,
+      undefined,
+      DepositMintEvents,
+      never
+    >({
+      processingStatus: ({ event }) => {
+        console.log(
+          "onSnapshotdepositProcessingStatus",
+          event.snapshot.context
+        );
+        return event.snapshot.context ?? null;
+      },
+    }),
+  } as const,
+};
 
 export const getDepositMachine = (
   topics: {
@@ -359,12 +442,11 @@ export const getDepositMachine = (
         context.canComputeStatus === "MissedMintingOpportunity" ||
         context.canMintStatus === "MissedMintingOpportunity",
 
-
       needsStorageSetup: ({ context }) => !context.isStorageSetup,
       storageIsSetupGuard: ({ context }) => context.isStorageSetup,
       storageIsPending: ({ context }) => !context.waitingForStorageSetupTx,
       //checkingStorageSetupGuard: ({ context }) => context.mintWorker !== null,
-      
+
       // isWorkerCompiled: ({ context }) => context.isWorkerCompiled,
     },
     actors: {
@@ -419,16 +501,16 @@ export const getDepositMachine = (
           log("Entering checking 🚀"),
           assign({
             activeDepositNumber: () => {
-              const v = safeLS.get(LS_KEYS.activeDepositNumber);
+              const v = localStorage.getItem(LS_KEYS.activeDepositNumber);
               if (!v) return null;
               return parseInt(v); // should check for NaN
             },
             computedEthProof: () => {
-              const v = safeLS.get(LS_KEYS.computedEthProof);
+              const v = localStorage.getItem(LS_KEYS.computedEthProof);
               if (!v) return null;
               return JSON.parse(v) as EthProofResult; // should try catch and do something with this.
             },
-            depositMintTx: () => safeLS.get(LS_KEYS.depositMintTx),
+            depositMintTx: () => localStorage.getItem(LS_KEYS.depositMintTx),
             errorMessage: null,
           }),
         ],
@@ -455,7 +537,10 @@ export const getDepositMachine = (
             actions: assign({
               activeDepositNumber: ({ event }) => {
                 console.log("Setting activeDepositNumber:", event.value);
-                safeLS.set(LS_KEYS.activeDepositNumber, event.value.toString());
+                localStorage.setItem(
+                  LS_KEYS.activeDepositNumber,
+                  event.value.toString()
+                );
                 return event.value;
               },
             }),
@@ -466,7 +551,8 @@ export const getDepositMachine = (
       hasActiveDepositNumber: {
         entry: [
           log("Entering hasActiveDepositNumber 🚀"),
-          assign({ // is this redundant?
+          assign({
+            // is this redundant?
             processingStatus: () => null as null,
             canComputeStatus: () => null as null,
             canMintStatus: () => null as null,
@@ -513,7 +599,7 @@ export const getDepositMachine = (
               isStorageSetup: ({ event }) => {
                 const needsToSetupStore = event.output;
                 return !needsToSetupStore; // we have a setup storage
-              }
+              },
             }),
             target: "storageSetupDecision",
           },
@@ -619,27 +705,7 @@ export const getDepositMachine = (
       // Now monitor deposit status and proceed accordingly
       monitoringDepositStatus: {
         invoke: [
-          {
-            id: "depositProcessingStatus",
-            src: "depositProcessingStatusActor",
-            input: ({ context }) => ({
-              depositBlockNumber: context.activeDepositNumber!,
-              ethStateTopic$: context.ethStateTopic$!,
-              bridgeStateTopic$: context.bridgeStateTopic$!,
-              bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
-            }),
-            onSnapshot: {
-              actions: assign({
-                processingStatus: ({ event }) => {
-                  console.log(
-                    "onSnapshotdepositProcessingStatus",
-                    event.snapshot.context
-                  );
-                  return event.snapshot.context ?? null;
-                },
-              }),
-            },
-          },
+          invokeMonitoringDepositStatus,
           {
             id: "canComputeEthProof",
             src: "canComputeEthProofActor",
@@ -691,58 +757,65 @@ export const getDepositMachine = (
 
       computingEthProof: {
         entry: log("Entering computingEthProof 🚀"),
-        invoke: {
-          src: "computeEthProof",
-          input: ({ context }) => ({
-            worker: context.mintWorker!,
-            depositBlockNumber: context.activeDepositNumber!,
-            // ethSenderAddress: context.ethSenderAddress!,
-            // presentationJsonStr: "test",
-          }),
-          onDone: {
-            actions: assign({
-              computedEthProof: ({ event }) => {
-                const proof = event.output;
-                safeLS.set("computedEthProof", JSON.stringify(proof));
-                console.log("done comupting and saved to LS");
-                return proof;
-              },
+        invoke: [
+          invokeMonitoringDepositStatus,
+          {
+            src: "computeEthProof",
+            input: ({ context }) => ({
+              worker: context.mintWorker!,
+              depositBlockNumber: context.activeDepositNumber!,
             }),
-            target: "hasComputedEthProof", //TODO go to monitoringDepositStatus
+            onDone: {
+              actions: assign({
+                computedEthProof: ({ event }) => {
+                  const proof = event.output;
+                  localStorage.setItem(
+                    "computedEthProof",
+                    JSON.stringify(proof)
+                  );
+                  console.log("done comupting and saved to LS");
+                  return proof;
+                },
+              }),
+              target: "hasComputedEthProof", //TODO go to monitoringDepositStatus
+            },
+            onError: {
+              target: "error",
+              actions: assign({
+                errorMessage: "Failed to compute ETH proof",
+              }),
+            },
           },
-          onError: {
-            target: "error",
-            actions: assign({
-              errorMessage: "Failed to compute ETH proof",
-            }),
-          },
-        },
+        ],
       },
 
       hasComputedEthProof: {
-        entry: ({context}) => {
-          console.log('Entered hasComputedEthProof');
+        entry: ({ context }) => {
+          console.log("Entered hasComputedEthProof");
           context.mintWorker?.compileIfNeeded();
         },
-        invoke: {
-          // This is fine but we are not monitoring the deposit status anymore, need to add that actor back in to make
-          // sure we update the machine context during this stage.... consider adding depositProcessingStatusActor back here
-          src: "canMintActor",
-          input: ({ context }) => ({
-            depositBlockNumber: context.activeDepositNumber!,
-            ethStateTopic$: context.ethStateTopic$!,
-            bridgeStateTopic$: context.bridgeStateTopic$!,
-            bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
-          }),
-          onSnapshot: {
-            actions: assign({
-              canMintStatus: ({ event }) => {
-                console.log("Has computed eth proof event", event);
-                return event.snapshot.context ?? null;
-              },
+        invoke: [
+          invokeMonitoringDepositStatus,
+          {
+            // This is fine but we are not monitoring the deposit status anymore, need to add that actor back in to make
+            // sure we update the machine context during this stage.... consider adding depositProcessingStatusActor back here
+            src: "canMintActor",
+            input: ({ context }) => ({
+              depositBlockNumber: context.activeDepositNumber!,
+              ethStateTopic$: context.ethStateTopic$!,
+              bridgeStateTopic$: context.bridgeStateTopic$!,
+              bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
             }),
+            onSnapshot: {
+              actions: assign({
+                canMintStatus: ({ event }) => {
+                  console.log("Has computed eth proof event", event);
+                  return event.snapshot.context ?? null;
+                },
+              }),
+            },
           },
-        },
+        ],
         always: [
           { target: "buildingMintTx", guard: "canMint" },
           {
@@ -751,40 +824,44 @@ export const getDepositMachine = (
           },
         ],
       },
+
       buildingMintTx: {
-        invoke: {
-          // Again here consider having the depositProcessingStatusActor here so we can still update the relevant
-          // bridge context when in this node...
-          src: "computeMintTx",
-          input: ({ context }) => ({
-            worker: context.mintWorker!,
-            // minaSenderAddress: context.minaSenderAddress!,
-            //ethProof: context.computedEthProof!,
-            //needsToFundAccount: context.needsToFundAccount,
-          }),
-          onDone: {
-            actions: assign({
-              depositMintTx: ({ event }) => {
-                const tx = event.output;
-                window.localStorage.setItem("depositMintTx", tx);
-                return tx;
-              },
+        invoke: [
+          invokeMonitoringDepositStatus,
+          {
+            // Again here consider having the depositProcessingStatusActor here so we can still update the relevant
+            // bridge context when in this node...
+            src: "computeMintTx",
+            input: ({ context }) => ({
+              worker: context.mintWorker!,
+              // minaSenderAddress: context.minaSenderAddress!,
+              //ethProof: context.computedEthProof!,
+              //needsToFundAccount: context.needsToFundAccount,
             }),
-            target: "submittingMintTx",
+            onDone: {
+              actions: assign({
+                depositMintTx: ({ event }) => {
+                  const tx = event.output;
+                  window.localStorage.setItem("depositMintTx", tx);
+                  return tx;
+                },
+              }),
+              target: "submittingMintTx",
+            },
+            onError: {
+              target: "error",
+              actions: assign({
+                errorMessage: ({ event }) => {
+                  console.error("Mint transaction error:", event.error);
+                  if (event.error instanceof Error) {
+                    console.error("Stack trace:", event.error.stack);
+                  }
+                  return "Failed to build mint transaction";
+                },
+              }),
+            },
           },
-          onError: {
-            target: "error",
-            actions: assign({
-              errorMessage: ({ event }) => {
-                console.error("Mint transaction error:", event.error);
-                if (event.error instanceof Error) {
-                  console.error("Stack trace:", event.error.stack);
-                }
-                return "Failed to build mint transaction";
-              },
-            }),
-          },
-        },
+        ],
       },
       hasDepositMintTx: {
         on: {
@@ -828,7 +905,11 @@ export const getDepositMachine = (
 
       missedOpportunity: {
         // type: "final",
-        entry: () => console.log("Missed minting opportunity"), // here we should most likley clear localStorage and context
+        entry: [
+          log("Deposit completed successfully"),
+          () => resetLocalStorage(),
+          raise({ type: "RESET" }), // sends to top-level machine
+        ],
       },
 
       completed: {
@@ -836,12 +917,7 @@ export const getDepositMachine = (
           log("Deposit completed successfully"),
           () => {
             // Clear localStorage on reset
-            console.log(
-              "Resetting machine and clearing localStorage on complete"
-            );
-            safeLS.del(LS_KEYS.activeDepositNumber);
-            safeLS.del(LS_KEYS.computedEthProof);
-            safeLS.del(LS_KEYS.depositMintTx);
+            resetLocalStorage();
           },
           raise({ type: "RESET" }), // <- sends RESET to this machine
         ],
@@ -878,16 +954,7 @@ export const getDepositMachine = (
           }),
           () => {
             // Clear localStorage on reset
-            console.log("Resetting machine and clearing localStorage");
-            safeLS.del(LS_KEYS.activeDepositNumber);
-            safeLS.del(LS_KEYS.computedEthProof);
-            safeLS.del(LS_KEYS.depositMintTx);
-            safeLS.del(
-              "codeVerify" +
-                (mintWorker?.ethWalletPubKeyBase58 ?? "") +
-                "-" +
-                (mintWorker?.minaWalletPubKeyBase58 ?? "")
-            );
+            resetLocalStorage();
           },
         ],
       },
