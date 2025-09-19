@@ -1,6 +1,10 @@
 export type WalletButtonTypes = "Mina" | "Ethereum";
+export type ChooseSideTypes = "red" | "green" | "blue";
 
-export type ProgressStep = "lock_tokens" | "get_locked_tokens" | "setup_storage";
+export type ProgressStep =
+  | "lock_tokens"
+  | "get_locked_tokens"
+  | "setup_storage";
 
 export interface ProgressState {
   currentStep: ProgressStep;
