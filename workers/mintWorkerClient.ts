@@ -81,7 +81,7 @@ export default class ZkappMintWorkerClient {
     archiveDefaultHeaders?: HeadersInit;
   }) {
     try {
-      await this.ensureWorkerHealth();
+      this.ensureWorkerHealth();
 
       return this.#mintWorker.minaSetup(options);
 
@@ -92,7 +92,7 @@ export default class ZkappMintWorkerClient {
   // PKARM
   async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
     console.log("getCodeVerifyFromEthSignature called with:", ethSignatureSecret);
-    await this.ensureWorkerHealth();
+    this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
       ethSignatureSecret
     );
@@ -101,7 +101,7 @@ export default class ZkappMintWorkerClient {
   async createCodeChallenge(
     codeVerifierPKARMStr: string,
   ) {
-    await this.ensureWorkerHealth();
+    this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_createCodeChallenge(
       codeVerifierPKARMStr,
       this.minaWalletPubKeyBase58
@@ -111,18 +111,18 @@ export default class ZkappMintWorkerClient {
 
   // Compile if needed
   async compileIfNeeded() {
-    await this.ensureWorkerHealth();
+    this.ensureWorkerHealth();
     if (this.#noriStorageInterfaceVerificationKeySafe) return;
+    if (this.#compiling === true) return; // If we are already compiling, don't trigger compile again!
     await this.compile();
   }
 
   // Ensure worker health
-  private async ensureWorkerHealth() {
+  private ensureWorkerHealth() {
     if (this.#terminated) throw new Error("Worker has been terminated.");
   }
 
-  async compile() {
-    await this.ensureWorkerHealth();
+  private async compile() {
     this.#compiling = true;
     if (this.#noriStorageInterfaceVerificationKeySafe) return;
 
