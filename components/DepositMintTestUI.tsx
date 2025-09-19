@@ -179,7 +179,7 @@ export const DepositMintTestUI: React.FC = () => {
           </button>
           <div className="text-xs text-gray-500 mt-1">
             Presentation:{" "}
-            {state.context.presentationJsonStr ? "✅ Set" : "❌ Not set"}
+            {state.context ? "✅ Set" : "❌ Not set"}
           </div>
         </div>
       </div>

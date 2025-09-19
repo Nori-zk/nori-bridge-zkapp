@@ -1,31 +1,5 @@
-"client";
-import {
-  assign,
-  // assign,
-  fromObservable,
-  fromPromise,
-  setup,
-  log,
-  raise,
-  SnapshotEvent,
-  ObservableSnapshot,
-  ProvidedActor,
-  EventFrom,
-  // type StateMachine,
-  // type AnyStateMachine,
-} from "xstate";
-import {
-  catchError,
-  filter,
-  first,
-  from,
-  interval,
-  Observable,
-  of,
-  startWith,
-  switchMap,
-} from "rxjs";
-import { JsonProof, NetworkId } from "o1js";
+"client"; // The server cannot use this machine! Should build a seperate machine for other purposes
+import { assign, setup, log, raise } from "xstate";
 // Import actual bridge deposit observables
 import {
   getBridgeStateTopic$,
@@ -33,343 +7,33 @@ import {
   getEthStateTopic$,
 } from "@nori-zk/mina-token-bridge/rx/topics";
 import {
-  // BridgeDepositProcessingStatus,
   getDepositProcessingStatus$,
   getCanMint$,
-  // CanMintStatus,
   getCanComputeEthProof$,
-  // canComputeEthProof,
 } from "@nori-zk/mina-token-bridge/rx/deposit";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
-
-// Generic types
-type ObservableValue<T> = T extends Observable<infer U> ? U : never;
-
-// Mint types ------------------------------------------------------------------------
-
-// Eth proof type
-type EthProofResult = {
-  ethVerifierProofJson: JsonProof;
-  depositAttestationInput: {
-    path: string[];
-    depositIndex: number;
-    rootHash: string;
-    despositSlotRaw: {
-      slot_key_address: string;
-      slot_nested_key_attestation_hash: string;
-      value: string;
-    };
-  };
-};
-
-// Deposit processing actor types
-type DepositProcessingValue = ObservableValue<
-  ReturnType<typeof getDepositProcessingStatus$>
->;
-type DepositProcessingInput = {
-  depositBlockNumber: number;
-  ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-  bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
-};
-type DepositProcessingSnapshot = ObservableSnapshot<
-  DepositProcessingValue,
-  DepositProcessingInput
->;
-type DepositSnapshotEvent = SnapshotEvent<DepositProcessingSnapshot>;
-
-// localStorage utils --------------------------------------------------------------------------------------
-
-// Storage helpers (safe SSR), this is silly, the server could never pre-render this in a meaningful way.
-// This file is now marked as client-only, so the `typeof window !== "undefined"`
-// checks are unnecessary. You can safely access localStorage directly.
-/*const localStorage = {
-  get: (k: string): string | null =>
-    typeof window === "undefined" ? null : window.localStorage.getItem(k),
-  set: (k: string, v: string) => {
-    if (typeof window !== "undefined") window.localStorage.setItem(k, v);
-  },
-  del: (k: string) => {
-    if (typeof window !== "undefined") window.localStorage.removeItem(k);
-  },
-};*/
-
-// Local storage fixed keys
-export const LS_KEYS = {
-  activeDepositNumber: "activeDepositNumber",
-  computedEthProof: "computedEthProof",
-  depositMintTx: "depositMintTx",
-  // isStorageSetup: "isStorageSetup",
-} as const;
-
-// Lets define the dynamic keys more rigorously have it as '<concept>:' and then the key information
-
-const LSKeyPairConceptKeys = ["codeVerifier"] as const;
-type LSKeyPairConceptKeys = (typeof LSKeyPairConceptKeys)[number];
-
-function makeKeyPairLSKey(
-  concept: LSKeyPairConceptKeys,
-  ethWalletPubKeyBase58: string,
-  minaWalletPubKeyBase58: string
-) {
-  return `${concept}:${ethWalletPubKeyBase58}-${minaWalletPubKeyBase58}`;
-}
-
-const LSMinaConceptKeys = ["needsToSetupStorage"] as const;
-type LSMinaConceptKeys = (typeof LSMinaConceptKeys)[number];
-
-function makeMinaLSKey(
-  concept: LSMinaConceptKeys,
-  minaWalletPubKeyBase58: string
-) {
-  return `${concept}:${minaWalletPubKeyBase58}`;
-}
-
-// Util to reset the storage but keep the codeVerifier and needsToSetupStorage dynamic keys
-const resetLocalStorage = () => {
-  console.log("Resetting machine and clearing localStorage on complete");
-  // Exact keys we always want to keep
-  const keepKeys: string[] = [];
-
-  // Key-matching functions we always want to keep
-  const keepFilters = [
-    // Key-pair LS keys
-    (key: string) =>
-      LSKeyPairConceptKeys.some((concept) => key.startsWith(`${concept}:`)),
-
-    // Mina LS keys
-    (key: string) =>
-      LSMinaConceptKeys.some((concept) => key.startsWith(`${concept}:`)),
-  ];
-
-  Object.keys(localStorage).forEach((key) => {
-    const inKeepKeys = keepKeys.includes(key);
-    const matchesFilter = keepFilters.some((fn) => fn(key));
-
-    if (!inKeepKeys && !matchesFilter) {
-      localStorage.removeItem(key);
-    }
-  });
-};
-
-// Actors --------------------------------------------------------------------------------
-
-// Observable actors ---------------------
-
-const depositProcessingStatusActor = fromObservable(
-  ({
-    input,
-  }: {
-    input: {
-      depositBlockNumber: number;
-      ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-      bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-      bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
-    };
-  }) => {
-    return getDepositProcessingStatus$(
-      input.depositBlockNumber,
-      input.ethStateTopic$,
-      input.bridgeStateTopic$,
-      input.bridgeTimingsTopic$
-    );
-  }
-);
-
-const canComputeEthProofActor = fromObservable(
-  ({
-    input,
-  }: {
-    input: {
-      depositBlockNumber: number;
-      ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-      bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-      bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
-    };
-  }) => {
-    return getCanComputeEthProof$(
-      getDepositProcessingStatus$(
-        input.depositBlockNumber,
-        input.ethStateTopic$,
-        input.bridgeStateTopic$,
-        input.bridgeTimingsTopic$
-      )
-    );
-  }
-);
-
-const canMintActor = fromObservable(
-  ({
-    input,
-  }: {
-    input: {
-      depositBlockNumber: number;
-      ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-      bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-      bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
-    };
-  }) => {
-    return getCanMint$(
-      getDepositProcessingStatus$(
-        input.depositBlockNumber,
-        input.ethStateTopic$,
-        input.bridgeStateTopic$,
-        input.bridgeTimingsTopic$
-      )
-    );
-  }
-);
-
-const storageIsSetupWithDelayActor = fromObservable(
-  ({
-    input,
-  }: {
-    input: {
-      worker: ZkappMintWorkerClient;
-    };
-  }) => {
-    const period = 1000;
-    return interval(period).pipe(
-      startWith(0), // check immediately
-      switchMap(() => from(input.worker.needsToSetupStorage())),
-      catchError(() => of(true)), // on error treat as "still needs setup" and keep polling
-      filter((needsSetup) => !needsSetup),
-      first() // emits `false` then completes
-    );
-  }
-);
-
-// Promise actors -----------------------------
-
-const checkStorageSetup = fromPromise(
-  async ({
-    input,
-  }: {
-    input: {
-      worker: ZkappMintWorkerClient;
-    };
-  }) => {
-    try {
-      console.log(
-        "Checking storage setup for address eth:",
-        input.worker.ethWalletPubKeyBase58
-      );
-      console.log(
-        "Checking storage setup for address mina:",
-        input.worker.minaWalletPubKeyBase58
-      );
-      //TODO store and then fetch if needSetup from localStorage
-      return input.worker.needsToSetupStorage();
-    } catch (err) {
-      console.log("Error in checkStorageSetup: ", err);
-    }
-  }
-);
-
-const setupStorage = fromPromise(
-  async ({
-    input,
-  }: {
-    input: {
-      worker: ZkappMintWorkerClient;
-    };
-  }) => {
-    const txStr = await input.worker.setupStorage();
-    console.log("Storage setup transactionready");
-    return txStr;
-  }
-);
-
-const computeEthProof = fromPromise(
-  async ({
-    input,
-  }: {
-    input: {
-      worker: ZkappMintWorkerClient;
-      depositBlockNumber: number;
-    };
-  }) => {
-    const codeVerify = localStorage.getItem(
-      makeKeyPairLSKey(
-        "codeVerifier",
-        input.worker.ethWalletPubKeyBase58,
-        input.worker.minaWalletPubKeyBase58
-      )
-    );
-    const codeChallange = await input.worker?.createCodeChallenge(codeVerify!);
-    console.log("about to computeEthProof with codeChallange");
-    const ethProof =
-      await input.worker.computeDepositAttestationWitnessAndEthVerifier(
-        codeChallange!,
-        input.depositBlockNumber
-      );
-
-    // Store in localStorage
-    localStorage.setItem(LS_KEYS.computedEthProof, JSON.stringify(ethProof));
-    // localStorage.setItem(LS_KEYS.lastEthProofCompute, Date.now().toString());
-    console.log(
-      "Computed ethProof value :",
-      ethProof.depositAttestationInput.despositSlotRaw.value
-    );
-    return ethProof;
-  }
-);
-
-const computeMintTx = fromPromise(
-  async ({
-    input,
-  }: {
-    input: {
-      worker: ZkappMintWorkerClient;
-      // ethProof: JsonProof; // from localStorage
-      // needsToFundAccount: boolean;
-    };
-  }) => {
-    const state = localStorage.getItem(LS_KEYS.computedEthProof);
-    const codeVerify = localStorage.getItem(
-      `codeVerify${input.worker.ethWalletPubKeyBase58}-${input.worker.minaWalletPubKeyBase58}`
-    );
-    console.log("codeVerifier", codeVerify);
-    const needsToFundAccount = await input.worker.needsToFundAccount();
-    console.log("needsToFundAccount", needsToFundAccount);
-    if (!state || !codeVerify)
-      throw new Error("No stored eth proof or codeVerify found");
-    const storedProof = JSON.parse(state) as EthProofResult;
-    const mintTxStr = await input.worker.computeMintTx(
-      storedProof.ethVerifierProofJson,
-      storedProof.depositAttestationInput,
-      codeVerify,
-      needsToFundAccount
-    );
-
-    // Store in localStorage
-    localStorage.setItem(LS_KEYS.depositMintTx, mintTxStr);
-    return mintTxStr; //JSON of tx that we need to send to wallet - to componet/provider
-  }
-);
-
-const submitMintTx = fromPromise(
-  async ({ input }: { input: { mintTx: string } }) => {
-    // In a real implementation, this would submit the transaction to the Mina network
-    console.log("Submitting mint transaction:", input.mintTx);
-
-    const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
-    const memo = "Submit mint tx";
-    const onlySign = false;
-    const result = await window.mina?.sendTransaction({
-      // FIXME this is not done in an idiomatic react way, and the type is incomplete.
-      onlySign: onlySign,
-      transaction: input.mintTx,
-      feePayer: {
-        fee: fee,
-        memo: memo,
-      },
-    });
-
-    console.log("submit mint tx result", result);
-    return true;
-  }
-);
+import {
+  isSetupStorageInProgressForMinaKey,
+  LS_KEYS,
+  makeMinaLSKey,
+  resetLocalStorage,
+  storageIsSetupAndFinalizedForCurrentMinaKey,
+} from "@/helpers/localStorage.ts";
+import { DepositSnapshotEvent } from "@/machines/actors/statuses.ts";
+import { EthProofResult, ObservableValue } from "./types.ts";
+import { depositProcessingStatusActor } from "@/machines/actors/statuses.ts";
+import {
+  canComputeEthProofActor,
+  canMintActor,
+  storageIsSetupWithDelayActor,
+} from "@/machines/actors/triggers.ts";
+import {
+  checkStorageSetupOnChain,
+  setupStorage,
+  computeEthProof,
+  computeMintTx,
+  submitMintTx,
+} from "@/machines/actors/actions.ts";
 
 // Commonly used invoke procedures
 
@@ -412,31 +76,31 @@ export interface DepositMintContext {
   computedEthProof: EthProofResult | null;
   depositMintTx: string | null;
 
-  // Observable states
-  processingStatus: ObservableValue<
-    ReturnType<typeof getDepositProcessingStatus$>
-  > | null;
-  canComputeStatus: ObservableValue<
-    ReturnType<typeof getCanComputeEthProof$>
-  > | null;
-  canMintStatus: ObservableValue<ReturnType<typeof getCanMint$>> | null;
-
   // Bridge topics (observables)
   ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
   bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
   bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
 
-  // Worker and user data
-  mintWorker: ZkappMintWorkerClient | null;
-  setupStorageTransaction: string | null;
-  // Status flags
-  needsToSetupStorage: false | null;
+  // Observable statuses
+  processingStatus: ObservableValue<
+    ReturnType<typeof getDepositProcessingStatus$>
+  > | null;
 
-  isWorkerReady: boolean;
-  isStorageSetup: boolean;
-  // isWorkerCompiled: boolean;
+  // Triggers
+  canComputeStatus: ObservableValue<
+    ReturnType<typeof getCanComputeEthProof$>
+  > | null;
+  canMintStatus: ObservableValue<ReturnType<typeof getCanMint$>> | null;
+
+  // Worker
+  mintWorker: ZkappMintWorkerClient | null;
+
+  // Status flags
+  goToSetupStorage: boolean;
   needsToFundAccount: boolean;
-  waitingForStorageSetupTx: boolean;
+
+  // user data
+  setupStorageTransaction: string | null;
 
   // Error handling
   errorMessage: string | null;
@@ -470,7 +134,6 @@ export const getDepositMachine = (
       hasDepositMintTxGuard: ({ context }) => context.depositMintTx !== null,
       hasActiveDepositNumberGuard: ({ context }) =>
         context.activeDepositNumber !== null,
-      //hasWorker: ({ context }) => context.isWorkerReady === true,
       canComputeEthProof: ({ context }) =>
         context.canComputeStatus === "CanCompute",
       canMint: ({ context }) => context.canMintStatus === "ReadyToMint",
@@ -478,19 +141,27 @@ export const getDepositMachine = (
         context.canComputeStatus === "MissedMintingOpportunity" ||
         context.canMintStatus === "MissedMintingOpportunity",
 
-      needsStorageSetup: ({ context }) => !context.isStorageSetup,
-      storageIsSetupGuard: ({ context }) => context.isStorageSetup,
-      storageIsPending: ({ context }) => !context.waitingForStorageSetupTx,
-      //checkingStorageSetupGuard: ({ context }) => context.mintWorker !== null,
-
-      // isWorkerCompiled: ({ context }) => context.isWorkerCompiled,
+      storageIsSetupAndFinalizedForCurrentMinaKeyGuard: ({ context }) =>
+        storageIsSetupAndFinalizedForCurrentMinaKey(
+          context.mintWorker?.minaWalletPubKeyBase58
+        ), // This browser knows for this mina sender key that we have historically setup storage succesfully.
+      setupStorageInProgressGuard: ({ context }) =>
+        isSetupStorageInProgressForMinaKey(
+          context.mintWorker?.minaWalletPubKeyBase58
+        ), // This browser has sent a setupStorageTx
+      setupStorageNotInProgressGuard: ({ context }) =>
+        !isSetupStorageInProgressForMinaKey(
+          context.mintWorker?.minaWalletPubKeyBase58
+        ), // This browser has NOT sent a setupStorageTx
+      shouldGotoSetupStorageGuard: ({ context }) =>
+        context.goToSetupStorage === true, // An indicator used to after setupStorageOnChainCheck that we should go to setupStorage
     },
     actors: {
       depositProcessingStatusActor,
       canComputeEthProofActor,
       canMintActor,
       storageIsSetupWithDelayActor,
-      checkStorageSetup,
+      checkStorageSetupOnChain,
       setupStorage,
       computeEthProof,
       computeMintTx,
@@ -505,27 +176,33 @@ export const getDepositMachine = (
       computedEthProof: null,
       depositMintTx: null,
 
-      processingStatus: null,
-      canComputeStatus: null,
-      canMintStatus: null,
+      // RX topics
       ethStateTopic$: topics.ethStateTopic$,
       bridgeStateTopic$: topics.bridgeStateTopic$,
       bridgeTimingsTopic$: topics.bridgeTimingsTopic$,
+
+      // Statuses
+      processingStatus: null,
+
+      // Trigger results
+      canComputeStatus: null,
+      canMintStatus: null,
+
+      // Mint worker
       mintWorker: mintWorker || null, // Use passed worker or null
 
-      isWorkerReady: false,
-      isStorageSetup: false,
-      needsToSetupStorage: null,
-
-
-      // isWorkerCompiled: false,
+      // Flags
+      goToSetupStorage: false,
       needsToFundAccount: false,
-      errorMessage: null,
+
+      // Data
       setupStorageTransaction: null,
-      waitingForStorageSetupTx: true,
+
+      // Error context
+      errorMessage: null,
     },
     states: {
-      // Initial hydration state - same on server and client
+      // Initial hydration state
       hydrating: {
         entry: log("Entering hydrating 💤"),
         always: {
@@ -599,157 +276,194 @@ export const getDepositMachine = (
           }),
         ],
         always: [
+          // If we have historically setupStorage for this mina key and we determined that tx was succesfull then goto monitoringDepositStatus straight away
           {
             target: "monitoringDepositStatus",
-            guard: "storageIsSetupGuard",
+            guard: "storageIsSetupAndFinalizedForCurrentMinaKeyGuard",
           },
+          // Check if we either need to check setup storage.
           {
-            target: "checkingStorageSetup",
+            target:
+              "needsToCheckSetupStorageOrWaitingForStorageSetupFinalization",
           },
         ],
       },
 
-
-
-
-      /*
-
-      check local storage for state
-
-      WE_SHOULD_SETUP_BUT_WEVE_NOT_EVEN_TRIED, WE_ARE_TRYING, STORAGE_IS_SETUP
-      
-      LS state:
-      STORAGE_IS_SETUP // STORAGE_IS_NOT_SETUP
-
-      in the case that STORAGE_IS_NOT_SETUP
-      WEVE_NOT_EVEN_TRIED (need to submit) // WE_HAVE_SUBMITTED (storage tx in progress)
-
-      pending tx -> poll
-
-      */
-
-      // what nodes do we really want
-
-      // check if needsToSetupStorage based on the mina key is false so we can skip it
-
-      // Step 1: Check if storage setup is needed
-      checkingStorageSetup: {
-        entry: log("Entering checkingStorageSetup 🚀"),
-        invoke: {
-          src: "checkStorageSetup",
-          input: ({ context }) => ({
-            worker: context.mintWorker!,
-          }),
-          onDone: {
-            actions: assign({
-              isStorageSetup: ({ event }) => {
-                const needsToSetupStore = event.output;
-                return !needsToSetupStore; // we have a setup storage
-              },
-            }),
-            target: "storageSetupDecision",
-          },
-          onError: {
-            target: "error",
-            actions: assign({
-              errorMessage: "Failed to check storage setup",
-            }),
-          },
-        },
-      },
-
-      //bit wrong FIXME
-      // Decision point: setup storage or proceed
-      storageSetupDecision: {
+      // Check if we either need to do an on chain setupStorageOnChainCheck, or if we are waiting for setupStorage tx finalization because we have sent a setupStorage tx.
+      needsToCheckSetupStorageOrWaitingForStorageSetupFinalization: {
+        entry: log(
+          "Entering needsToCheckSetupStorageOrWaitingForStorageSetupFinalization 🚀"
+        ),
+        invoke: invokeMonitoringDepositStatus,
         always: [
           {
-            target: "settingUpStorage",
-            guard: "needsStorageSetup",
-          },
+            target: "setupStorageOnChainCheck",
+            guard: "setupStorageNotInProgressGuard",
+          }, // If we are not currently waiting for setupStorageTx finalization then goto setupStorageOnChainCheck
           {
-            target: "waitingForStorageSetupTx",
-            guard: "storageIsPending",
+            target: "waitForStorageSetupFinalization",
+            guard: "setupStorageInProgressGuard",
+          }, // If we have sent a setupStorageTx poll until it is finalized.
+        ],
+      },
+
+      // Use the worker to see if we have actually setup storage based on the on chain state.
+      setupStorageOnChainCheck: {
+        entry: log("Entering setupStorageOnChainCheck 🚀"),
+        invoke: [
+          invokeMonitoringDepositStatus,
+          {
+            src: "checkStorageSetupOnChain",
+            input: ({ context }) => ({
+              worker: context.mintWorker!,
+            }),
+            onDone: {
+              target: "waitForStorageSetupFinalization",
+              actions: ({ event, context }) => {
+                console.log("onDone waitForStorageSetupFinalization.");
+                const minaWalletPubKeyBase58 =
+                  context.mintWorker?.minaWalletPubKeyBase58;
+                if (!minaWalletPubKeyBase58)
+                  throw new Error("MinaWalletPubKeyBase58 should exist by now");
+                // Mark setupStorageInProgress to true.
+                if (event.output === false) {
+                  // mark that we dont need to check setup storage again for this mina key for this browser
+                  localStorage.setItem(
+                    makeMinaLSKey(
+                      "needsToSetupStorage",
+                      minaWalletPubKeyBase58
+                    ),
+                    "false"
+                  );
+                } else {
+                  // set needs to setup storage
+                  context.goToSetupStorage = true;
+                }
+              },
+            },
+            onError: {
+              target: "error",
+              actions: assign({
+                errorMessage: "Failed to setup storage",
+              }),
+            },
           },
+        ],
+        always: [
+          // If we just determined that we dont need to setupStorage based off the onchain check then goto monitoringDepositStatus.
           {
             target: "monitoringDepositStatus",
+            guard: "storageIsSetupAndFinalizedForCurrentMinaKeyGuard",
+          },
+          // If we determined that we do need to setupStorage go to that node.
+          { target: "setupStorage", guard: "shouldGotoSetupStorageGuard" },
+        ],
+      },
+
+      // Use the worker to setup storage
+      setupStorage: {
+        entry: log("Entering setupStorage 🚀"),
+        invoke: [
+          invokeMonitoringDepositStatus,
+          {
+            src: "setupStorage",
+            input: ({ context }) => ({
+              worker: context.mintWorker!,
+            }),
+            onDone: {
+              target: "waitForStorageSetupFinalization", // When we are sending the setupStorage tx goto waitForStorageSetupFinalization
+              actions: ({ event, context }) => {
+                console.log(`onDone storage setup. Tx hash '${event.output}'`);
+                if (event.output)
+                  context.setupStorageTransaction = event.output;
+                const minaWalletPubKeyBase58 =
+                  context.mintWorker?.minaWalletPubKeyBase58;
+                if (!minaWalletPubKeyBase58)
+                  throw new Error("MinaWalletPubKeyBase58 should exist by now");
+                // Mark setupStorageInProgress to true.
+                localStorage.setItem(
+                  makeMinaLSKey(
+                    "setupStorageInProgress",
+                    minaWalletPubKeyBase58
+                  ),
+                  "true"
+                );
+                // Disable goToSetupStorage flag
+                context.goToSetupStorage = false;
+              },
+            },
+            onError: {
+              target: "error",
+              actions: assign({
+                errorMessage: "Failed to setup storage",
+              }),
+            },
           },
         ],
       },
 
-      //this has to return a transactionJSON so you send it to wallet
-      // maybe set it in context and read it in provider/component
-      //submit the storage setup tx from there
-      // TODO and loop on 'needsStorageSetup' until false
-      // Setup storage if needed
-      settingUpStorage: {
-        entry: log("Entering settingUpStorage 🚀"),
-        invoke: {
-          src: "setupStorage",
-          input: ({ context }) => ({
-            worker: context.mintWorker!,
-          }),
-          onDone: {
-            target: "checkingStorageSetup",
-            actions: [
-              log("onDone storage setup"),
-              assign({
-                // isStorageSetup: true,
-                waitingForStorageSetupTx: true,
-                setupStorageTransaction: ({ event }) => event.output, // event.data is txStr
-              }),
-            ],
-          },
-          onError: {
-            target: "error",
-            actions: assign({
-              errorMessage: "Failed to setup storage",
+      // Keep polling needsToSetupStorage on chain in the worker until it return false indicating storage is setup
+      waitForStorageSetupFinalization: {
+        entry: log("Entering waitForStorageSetupFinalization 🚀"),
+        invoke: [
+          invokeMonitoringDepositStatus,
+          {
+            id: "storageIsSetupWithDelay",
+            src: "storageIsSetupWithDelayActor",
+            input: ({ context }) => ({
+              worker: context.mintWorker!,
             }),
-          },
-        },
-      },
-      waitingForStorageSetupTx: {
-        entry: log("Entering waitingForStorageSetupTx 🚀"),
-        invoke: {
-          id: "storageIsSetupWithDelay",
-          src: "storageIsSetupWithDelayActor",
-          input: ({ context }) => ({
-            worker: context.mintWorker!,
-          }),
-          onSnapshot: {
-            actions: assign({
-              waitingForStorageSetupTx: ({ event }) => {
-                console.log(
-                  "onSnapshotstrorageIsSetupWithDelay",
-                  // event.snapshot.
-                  // context.
-                  event.snapshot.context
-                );
-                return event.snapshot.context!;
-                // return event.snapshot.context ?? null;
+            onSnapshot: {
+              actions: ({ event, context }) => {
+                if (event.snapshot.context === false) {
+                  // here we no longer need to setup storage because it is done
+                  const minaWalletPubKeyBase58 =
+                    context.mintWorker?.minaWalletPubKeyBase58;
+                  if (!minaWalletPubKeyBase58)
+                    throw new Error(
+                      "MinaWalletPubKeyBase58 should exist by now"
+                    );
+                  // Remove setupStorageInProgress because it is done
+                  localStorage.removeItem(
+                    makeMinaLSKey(
+                      "setupStorageInProgress",
+                      minaWalletPubKeyBase58
+                    )
+                  );
+                  // Mark needsToSetupStorage as false for this mina public key because we do not need to setup storage again
+                  localStorage.setItem(
+                    makeMinaLSKey(
+                      "needsToSetupStorage",
+                      minaWalletPubKeyBase58
+                    ),
+                    "false"
+                  );
+                }
               },
-            }),
+            },
+            onError: {
+              target: "error",
+              actions: assign({
+                errorMessage: "Failed to wait for storage setup",
+              }),
+            },
           },
-          // onDone: {
-          //   target: "checkingStorageSetup",
-          //   actions: [
-          //     log("onDone storage setup"),
-          //     assign({
-          //       // isStorageSetup: true,
-          //       waitingForStorageSetupTx: true,
-          //       setupStorageTransaction: ({ event }) => event.output, // event.data is txStr
-          //     })],
-          // },
-          onError: {
-            target: "error",
-            actions: assign({
-              errorMessage: "Failed to setup storage",
-            }),
+        ],
+        always: [
+          // this waits for needsToSetupStorage (for this particular mina key) to be set to false meaning we definitely have setupStorage
+          {
+            target: "monitoringDepositStatus",
+            guard: "storageIsSetupAndFinalizedForCurrentMinaKeyGuard",
           },
-        },
+        ],
       },
 
-      // Now monitor deposit status and proceed accordingly
+      // Now monitor deposit status and proceed to canComputeEthProof when ready or missedOpportunity is we have missed our window
       monitoringDepositStatus: {
+        entry: ({ context }) => {
+          console.log("Entered monitoringDepositStatus");
+          context.mintWorker?.compileIfNeeded(); // Try and spin up the worker helps clients which have setup storage f5'd and entered monitoringDepositStatus
+        },
         invoke: [
           invokeMonitoringDepositStatus,
           {
@@ -791,7 +505,7 @@ export const getDepositMachine = (
         ],
         always: [
           {
-            target: "computingEthProof",
+            target: "computeEthProof",
             guard: "canComputeEthProof",
           },
           {
@@ -801,8 +515,8 @@ export const getDepositMachine = (
         ],
       },
 
-      computingEthProof: {
-        entry: log("Entering computingEthProof 🚀"),
+      computeEthProof: {
+        entry: log("Entering computeEthProof 🚀"),
         invoke: [
           invokeMonitoringDepositStatus,
           {
@@ -828,7 +542,13 @@ export const getDepositMachine = (
             onError: {
               target: "error",
               actions: assign({
-                errorMessage: "Failed to compute ETH proof",
+                errorMessage: ({ event }) => {
+                  console.error("Failed to compute ETH proof:", event.error);
+                  if (event.error instanceof Error) {
+                    console.error("Stack trace:", event.error.stack);
+                  }
+                  return "Failed to compute ETH proof";
+                },
               }),
             },
           },
@@ -909,6 +629,7 @@ export const getDepositMachine = (
           },
         ],
       },
+
       hasDepositMintTx: {
         on: {
           SUBMIT_MINT_TX: {
@@ -916,31 +637,29 @@ export const getDepositMachine = (
           },
         },
       },
-      //todo don't think we do submit by the machine, we submit as soon as we get TX json from step before
+
       submittingMintTx: {
-        invoke: {
-          src: "submitMintTx",
-          input: ({ context }) => ({
-            mintTx: context.depositMintTx!,
-          }),
-          onDone: {
-            target: "completed",
-            actions: () => {
-              // window.localStorage.removeItem("activeDepositNumber");
-              // window.localStorage.removeItem("depositMintTx");
-              // window.localStorage.removeItem("computedEthProof");
+        invoke: [
+          invokeMonitoringDepositStatus,
+          {
+            src: "submitMintTx",
+            input: ({ context }) => ({
+              mintTx: context.depositMintTx!,
+            }),
+            onDone: {
+              target: "completed",
+            },
+            onError: {
+              target: "error",
+              actions: assign({
+                errorMessage: "Failed to submit mint transaction",
+              }),
             },
           },
-          onError: {
-            target: "error",
-            actions: assign({
-              errorMessage: "Failed to submit mint transaction",
-            }),
-          },
-        },
+        ],
       },
 
-      // // Error state for handling failures
+      // Error state for handling failures
       error: {
         on: {
           RESET: {
@@ -951,14 +670,16 @@ export const getDepositMachine = (
 
       missedOpportunity: {
         // type: "final",
+        // should probably toast
         entry: [
-          log("Deposit completed successfully"),
+          log("Missed mint oppertunity"),
           () => resetLocalStorage(),
-          raise({ type: "RESET" }), // sends to top-level machine
+          //raise({ type: "RESET" }), // sends to top-level machine,
         ],
       },
 
       completed: {
+        // should probably toast
         entry: [
           log("Deposit completed successfully"),
           () => {
@@ -970,6 +691,7 @@ export const getDepositMachine = (
         ],
       },
     },
+
     // Global reset handler - works from any state
     // Dont see the point of these relative nodes... think they should actually be global so we can visit them from anywhere
     on: {
@@ -978,7 +700,6 @@ export const getDepositMachine = (
         actions: assign(({ event }) => ({
           // event is guaranteed to be ASSIGN_WORKER here
           mintWorker: event.mintWorkerClient,
-          isWorkerReady: true,
         })),
       },
       RESET: {
@@ -993,10 +714,8 @@ export const getDepositMachine = (
             canComputeStatus: null,
             canMintStatus: null,
             mintWorker: mintWorker || null,
-            isWorkerReady: mintWorker !== null,
             // minaSenderAddress: null,
             // ethSenderAddress: null,
-            isStorageSetup: false,
             needsToFundAccount: false,
             errorMessage: null,
           }),

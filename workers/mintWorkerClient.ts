@@ -1,3 +1,4 @@
+"client";
 import { createProxy } from "@nori-zk/workers";
 import { WorkerParent } from "@nori-zk/workers/browser/parent";
 import { type ZkAppWorker as ZkAppWorkerType } from "@nori-zk/mina-token-bridge/workers/defs";
@@ -18,8 +19,13 @@ type DepositAttestationInput = {
   };
 };
 
+type VerificationKeySafe = {
+  hashStr: string;
+  data: string;
+};
+
 // Both of these need to be configurable env vars, will be different for testnet / production
-const MINA_RPC = "https://devnet.minaprotocol.network/graphql"
+const MINA_RPC = "https://devnet.minaprotocol.network/graphql";
 const ethTokenBridgeAddress = "0x3EEACD9caa1aDdBA939FF041C43020b516A51dcF";
 const noriTokenControllerAddressBase58 =
   "B62qrMnJiMerBXb1469Q3qr1jkhFk92MMgk8orNNfXP3fFFWvjKsEja";
@@ -32,16 +38,21 @@ export default class ZkappMintWorkerClient {
   #terminated = false;
   #noriStorageInterfaceVerificationKeySafe:
     | {
-      data: string;
-      hashStr: string;
-    }
+        data: string;
+        hashStr: string;
+      }
     | undefined;
   #compiling = false;
+  #compiled = false;
   minaWalletPubKeyBase58: string;
   ethWalletPubKeyBase58: string;
   fixedValueOrSecret: string;
 
-  constructor(minaWalletPubKeyBase58: string, ethWalletPubKeyBase58: string, optionalSecret = 'NoriZK') {
+  constructor(
+    minaWalletPubKeyBase58: string,
+    ethWalletPubKeyBase58: string,
+    optionalSecret = "NoriZK"
+  ) {
     const worker = new Worker(new URL("./mintWorker.ts", import.meta.url), {
       type: "module",
     });
@@ -51,7 +62,7 @@ export default class ZkappMintWorkerClient {
     this.#ready = this.#mintWorker.ready;
     this.minaWalletPubKeyBase58 = minaWalletPubKeyBase58;
     this.ethWalletPubKeyBase58 = ethWalletPubKeyBase58;
-    this.fixedValueOrSecret = optionalSecret
+    this.fixedValueOrSecret = optionalSecret;
     console.log("Worker proxy created in constructor");
   }
 
@@ -84,23 +95,23 @@ export default class ZkappMintWorkerClient {
       this.ensureWorkerHealth();
 
       return this.#mintWorker.minaSetup(options);
-
     } catch (error) {
       console.error("Error in minaSetup:", error);
     }
   }
   // PKARM
   async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
-    console.log("getCodeVerifyFromEthSignature called with:", ethSignatureSecret);
+    console.log(
+      "getCodeVerifyFromEthSignature called with:",
+      ethSignatureSecret
+    );
     this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
       ethSignatureSecret
     );
   }
 
-  async createCodeChallenge(
-    codeVerifierPKARMStr: string,
-  ) {
+  async createCodeChallenge(codeVerifierPKARMStr: string) {
     this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_createCodeChallenge(
       codeVerifierPKARMStr,
@@ -108,12 +119,11 @@ export default class ZkappMintWorkerClient {
     );
   }
 
-
   // Compile if needed
   async compileIfNeeded() {
     this.ensureWorkerHealth();
     if (this.#noriStorageInterfaceVerificationKeySafe) return;
-    if (this.#compiling === true) return; // If we are already compiling, don't trigger compile again!
+    if (this.#compiling === true) return await this.compiledResolver; // If we are already compiling, don't trigger compile again! But do wait for resolution of the compile.
     await this.compile();
   }
 
@@ -122,16 +132,25 @@ export default class ZkappMintWorkerClient {
     if (this.#terminated) throw new Error("Worker has been terminated.");
   }
 
+  compiledResolver: Promise<{
+    noriStorageInterfaceVerificationKeySafe: VerificationKeySafe;
+    ethVerifierVerificationKeySafe: VerificationKeySafe;
+    noriTokenControllerVerificationKeySafe: VerificationKeySafe;
+    fungibleTokenVerificationKeySafe: VerificationKeySafe;
+  }>;
+
   private async compile() {
     this.#compiling = true;
     if (this.#noriStorageInterfaceVerificationKeySafe) return;
 
+    const compileResolver = this.#mintWorker.compileAll();
+    this.compiledResolver = compileResolver;
     const {
       noriStorageInterfaceVerificationKeySafe,
       ethVerifierVerificationKeySafe,
       noriTokenControllerVerificationKeySafe,
       fungibleTokenVerificationKeySafe,
-    } = await this.#mintWorker.compileAll();
+    } = await compileResolver;
 
     console.log(
       "ethVerifierVerificationKeySafe",
@@ -150,9 +169,9 @@ export default class ZkappMintWorkerClient {
       fungibleTokenVerificationKeySafe
     );
     this.#compiling = false;
+    this.#compiled = true;
     this.#noriStorageInterfaceVerificationKeySafe =
       noriStorageInterfaceVerificationKeySafe;
-
   }
 
   async setupStorage() {
@@ -165,7 +184,10 @@ export default class ZkappMintWorkerClient {
         0.1 * 1e9,
         this.#noriStorageInterfaceVerificationKeySafe!
       );
-      console.log("provedSetupTxStr in mintWorkerClient", provedSetupTxStr.length);
+      console.log(
+        "provedSetupTxStr in mintWorkerClient",
+        provedSetupTxStr.length
+      );
       return provedSetupTxStr;
     } catch (error) {
       console.error("Error in setupStorage:", error);
@@ -175,16 +197,15 @@ export default class ZkappMintWorkerClient {
 
   async computeDepositAttestationWitnessAndEthVerifier(
     codeChallengePKARMStr: string,
-    depositBlockNumber: number,
+    depositBlockNumber: number
     // ethAddressLowerHex: string
   ) {
     await this.compileIfNeeded();
     return this.#mintWorker.computeDepositAttestationWitnessAndEthVerifier(
       codeChallengePKARMStr,
       depositBlockNumber,
-      this.ethWalletPubKeyBase58.toLowerCase(), // Make sure its lower!
+      this.ethWalletPubKeyBase58.toLowerCase() // Make sure its lower!
     );
-
   }
 
   async computeMintTx(
@@ -205,9 +226,6 @@ export default class ZkappMintWorkerClient {
       needsToFundAccount
     );
   }
-
-
-
 
   // Note we should really have graphql versions of the below functions to avoid having to compile the worker to use them @Karol
 
@@ -243,14 +261,17 @@ export default class ZkappMintWorkerClient {
     );
   }
   isCompilingContracts() {
-    return this.#compiling
+    return this.#compiling;
+  }
+  contractsAreCompiled() {
+    return this.#compiled;
   }
 
   async areContractCompiled() {
     if (this.#noriStorageInterfaceVerificationKeySafe) {
-      return true
+      return true;
     } else {
-      return false
+      return false;
     }
   }
 }

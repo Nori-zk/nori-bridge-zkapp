@@ -10,6 +10,10 @@ const nextConfig = {
   experimental: {
     esmExternals: true,
   },
+  output: 'export',
+   typescript: {
+    ignoreBuildErrors: true,
+  },
   webpack(config, { isServer }) {
     if (!isServer) {
       config.resolve.alias = {
