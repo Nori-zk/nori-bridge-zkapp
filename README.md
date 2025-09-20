@@ -1,5 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## ENV setup
+
+Before running the app, ensure you have the following environment variables set up in a `.env` file:
+
+```plaintext
+NEXT_PUBLIC_WALLET=auro
+```
+
 ## Getting Started
 
 First, run the development server:
@@ -63,18 +71,18 @@ XState ensures that:
 
 ```ts
 interface BridgingContext {
-  zkappWorkerClient: ZkappWorkerClient | null;
-  contract: Contract | null;
-  credential: string | null;
-  errorMessage: string | null;
-  step: "create" | "store" | "lock" | "getLockedTokens";
-  lastInput?: {
-    message: string;
-    address: string;
-    signature: string;
-    walletAddress: string;
-  };
-  lockedAmount: string | null;
+	zkappWorkerClient: ZkappWorkerClient | null;
+	contract: Contract | null;
+	credential: string | null;
+	errorMessage: string | null;
+	step: "create" | "store" | "lock" | "getLockedTokens";
+	lastInput?: {
+		message: string;
+		address: string;
+		signature: string;
+		walletAddress: string;
+	};
+	lockedAmount: string | null;
 }
 ```
 
@@ -147,7 +155,7 @@ React to Transitions
 
 ```ts
 if (state.matches("locked")) {
-  console.log("Ready to fetch locked tokens!");
+	console.log("Ready to fetch locked tokens!");
 }
 ```
 

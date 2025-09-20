@@ -4,8 +4,9 @@ import { MetaMaskWalletProvider } from "@/providers/MetaMaskWalletProvider/MetaM
 import { WagminaProvider } from "wagmina";
 import { config } from "@/config/index.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ZkappWorkerProvider } from "@/providers/ZkWorkerProvider/ZkWorkerProvider.tsx";
-import { BridgingProvider } from "@/providers/BridgingProvider/BridgingProvider.tsx";
+import { NoriBridgeProvider } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
+import { SetupProvider } from "./SetupProvider/SetupProvider.tsx";
+import { ProgressProvider } from "./ProgressProvider/ProgressProvider.tsx";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -15,17 +16,19 @@ const queryClient = new QueryClient();
 
 const Providers = ({ children }: AppProvidersProps) => {
   return (
-    <MetaMaskWalletProvider>
-      <WagminaProvider config={config}>
-        <ZkappWorkerProvider>
-          <BridgingProvider>
-            <QueryClientProvider client={queryClient}>
-              {children}
-            </QueryClientProvider>
-          </BridgingProvider>
-        </ZkappWorkerProvider>
-      </WagminaProvider>
-    </MetaMaskWalletProvider>
+    <SetupProvider>
+      <MetaMaskWalletProvider>
+        <WagminaProvider config={config}>
+          <NoriBridgeProvider>
+            <ProgressProvider>
+              <QueryClientProvider client={queryClient}>
+                {children}
+              </QueryClientProvider>
+            </ProgressProvider>
+          </NoriBridgeProvider>
+        </WagminaProvider>
+      </MetaMaskWalletProvider>
+    </SetupProvider>
   );
 };
 
