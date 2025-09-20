@@ -253,6 +253,7 @@ export const getDepositMachine = (
       },
 
       // User needs to configure deposit number
+      //should always be triggered if user actually locks tokens?
       noActiveDepositNumber: {
         entry: [log("Entering noActiveDepositNumber 🚀")],
         on: {
@@ -648,7 +649,10 @@ export const getDepositMachine = (
             onError: {
               actions: ({ event }) => {
                 console.error("canMintActor error in hasComputedEthProof:", event.error);
-              },
+              }
+              //DepositMintMachine.ts:694 computeMintTx error: Error: No stored eth proof or codeVerify found
+
+              // DepositMintMachine.ts:696 Stack trace: Error: No stored eth proof or codeVerify found
             },
           },
         ],
@@ -729,6 +733,10 @@ export const getDepositMachine = (
                 }),
                 ({ event }) => {
                   console.error("submitMintTx error:", event.error);
+                  // if {
+                  // "code": 1002,
+                  // "message": "User rejected the request."
+                  // }
                 },
               ],
             },
