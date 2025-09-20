@@ -43,12 +43,12 @@ const invokeMonitoringDepositStatus = {
   id: "depositProcessingStatus",
   src: "depositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
-    ({
-      depositBlockNumber: context.activeDepositNumber!,
-      ethStateTopic$: context.ethStateTopic$!,
-      bridgeStateTopic$: context.bridgeStateTopic$!,
-      bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
-    } as const),
+  ({
+    depositBlockNumber: context.activeDepositNumber!,
+    ethStateTopic$: context.ethStateTopic$!,
+    bridgeStateTopic$: context.bridgeStateTopic$!,
+    bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+  } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
@@ -58,14 +58,19 @@ const invokeMonitoringDepositStatus = {
       never
     >({
       processingStatus: ({ event }) => {
-        /*console.log(
+        console.log(
           "onSnapshotdepositProcessingStatus",
           event.snapshot.context
-        );*/
+        );
         return event.snapshot.context ?? null;
       },
     }),
   } as const,
+  onError: {
+    actions: ({ event }) => {
+      console.error("depositProcessingStatusActor error:", event.error);
+    },
+  },
 };
 
 // Machine types -----------------------------------------------------------------------
@@ -347,9 +352,14 @@ export const getDepositMachine = (
             },
             onError: {
               target: "error",
-              actions: assign({
-                errorMessage: "Failed to setup storage",
-              }),
+              actions: [
+                assign({
+                  errorMessage: "Failed to setup storage",
+                }),
+                ({ event }) => {
+                  console.error("checkStorageSetupOnChain error:", event.error);
+                },
+              ],
             },
           },
         ],
@@ -398,9 +408,14 @@ export const getDepositMachine = (
             },
             onError: {
               target: "error",
-              actions: assign({
-                errorMessage: "Failed to setup storage",
-              }),
+              actions: [
+                assign({
+                  errorMessage: "Failed to setup storage",
+                }),
+                ({ event }) => {
+                  console.error("setupStorage error:", event.error);
+                },
+              ],
             },
           },
         ],
@@ -409,13 +424,13 @@ export const getDepositMachine = (
       // submitSetupStorageTx requires user interaction
       // FIXME note that this is not sufficient for the machine we should either on error go back to setupStorage or submitSetupStorageTx
       // We need to actually inspect the error to know what to do and perhaps have a decision node for this.
-      submitSetupStorageTx : {
+      submitSetupStorageTx: {
         entry: log("Entering submitSetupStorageTx 🚀"),
         invoke: [
           invokeMonitoringDepositStatus,
           {
             src: "submitSetupStorage",
-            input: ({context}) => ({
+            input: ({ context }) => ({
               setupStorageTx: context.setupStorageTransaction!
             }),
             onDone: {
@@ -423,9 +438,14 @@ export const getDepositMachine = (
             },
             onError: {
               target: "setupStorage",
-               actions: assign({
-                errorMessage: "Failed to submit storage",
-              }),
+              actions: [
+                assign({
+                  errorMessage: "Failed to submit storage",
+                }),
+                ({ event }) => {
+                  console.error("submitSetupStorage error:", event.error);
+                },
+              ],
             }
           }
         ],
@@ -473,9 +493,14 @@ export const getDepositMachine = (
             },
             onError: {
               target: "error",
-              actions: assign({
-                errorMessage: "Failed to wait for storage setup",
-              }),
+              actions: [
+                assign({
+                  errorMessage: "Failed to wait for storage setup",
+                }),
+                ({ event }) => {
+                  console.error("storageIsSetupWithDelayActor error:", event.error);
+                },
+              ],
             },
           },
         ],
@@ -513,6 +538,11 @@ export const getDepositMachine = (
                 },
               }),
             },
+            onError: {
+              actions: ({ event }) => {
+                console.error("canComputeEthProofActor error:", event.error);
+              },
+            },
           },
           {
             id: "canMint",
@@ -530,6 +560,11 @@ export const getDepositMachine = (
                   return event.snapshot.context ?? null;
                 },
               }),
+            },
+            onError: {
+              actions: ({ event }) => {
+                console.error("canMintActor error:", event.error);
+              },
             },
           },
         ],
@@ -571,15 +606,17 @@ export const getDepositMachine = (
             },
             onError: {
               target: "error",
-              actions: assign({
-                errorMessage: ({ event }) => {
-                  console.error("Failed to compute ETH proof:", event.error);
+              actions: [
+                assign({
+                  errorMessage: "Failed to compute ETH proof",
+                }),
+                ({ event }) => {
+                  console.error("computeEthProof error:", event.error);
                   if (event.error instanceof Error) {
                     console.error("Stack trace:", event.error.stack);
                   }
-                  return "Failed to compute ETH proof";
                 },
-              }),
+              ],
             },
           },
         ],
@@ -607,6 +644,11 @@ export const getDepositMachine = (
                   return event.snapshot.context ?? null;
                 },
               }),
+            },
+            onError: {
+              actions: ({ event }) => {
+                console.error("canMintActor error in hasComputedEthProof:", event.error);
+              },
             },
           },
         ],
@@ -644,15 +686,17 @@ export const getDepositMachine = (
             },
             onError: {
               target: "error",
-              actions: assign({
-                errorMessage: ({ event }) => {
-                  console.error("Mint transaction error:", event.error);
+              actions: [
+                assign({
+                  errorMessage: "Failed to build mint transaction",
+                }),
+                ({ event }) => {
+                  console.error("computeMintTx error:", event.error);
                   if (event.error instanceof Error) {
                     console.error("Stack trace:", event.error.stack);
                   }
-                  return "Failed to build mint transaction";
                 },
-              }),
+              ],
             },
           },
         ],
@@ -679,9 +723,14 @@ export const getDepositMachine = (
             },
             onError: {
               target: "error",
-              actions: assign({
-                errorMessage: "Failed to submit mint transaction",
-              }),
+              actions: [
+                assign({
+                  errorMessage: "Failed to submit mint transaction",
+                }),
+                ({ event }) => {
+                  console.error("submitMintTx error:", event.error);
+                },
+              ],
             },
           },
         ],
