@@ -21,6 +21,12 @@ const config: Config = {
     "text-glow-neon-red",
     "text-glow-neon-blue",
     "text-glow-neon-green",
+    "border-glow-red",
+    "border-glow-blue",
+    "border-glow-green",
+    "hover:border-glow-red",
+    "hover:border-glow-blue",
+    "hover:border-glow-green",
   ],
   theme: {
     extend: {
@@ -70,6 +76,21 @@ const config: Config = {
         ".text-glow-neon-green": {
           "text-shadow":
             "0 0 2px rgba(72,237,231,0.8), 0 0 6px rgba(72,237,231,0.5), 0 0 12px rgba(72,237,231,0.3)",
+        },
+        ".border-glow-red": {
+          "border-color": "#FB635E",
+          "box-shadow":
+            "inset 0 0 4px rgba(251,99,94,0.8), inset 0 0 12px rgba(251,99,94,0.5), inset 0 0 24px rgba(251,99,94,0.3)",
+        },
+        ".border-glow-blue": {
+          "border-color": "#84F7FC",
+          "box-shadow":
+            "inset 0 0 4px rgba(132,247,252,0.8), inset 0 0 12px rgba(132,247,252,0.5), inset 0 0 24px rgba(132,247,252,0.3)",
+        },
+        ".border-glow-green": {
+          "border-color": "#48EDE7",
+          "box-shadow":
+            "inset 0 0 4px rgba(72,237,231,0.8), inset 0 0 12px rgba(72,237,231,0.5), inset 0 0 24px rgba(72,237,231,0.3)",
         },
       });
     },

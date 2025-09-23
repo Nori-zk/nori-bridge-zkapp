@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { ChooseSideTypes } from "@/types/types.ts";
 import { useChooseSideProps } from "@/helpers/useChooseSideProps.tsx";
 
@@ -7,6 +8,7 @@ type ChooseSideProps = {
 };
 
 const ChooseSide = ({ side }: ChooseSideProps) => {
+  const [hovered, setHovered] = useState(false);
   const {
     radialBg,
     rightBgSvg,
@@ -20,7 +22,13 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
 
   return (
     <div
-      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center`}
+      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all`}
+      onMouseEnter={() => {
+        setHovered(true);
+      }}
+      onMouseLeave={() => {
+        setHovered(false);
+      }}
     >
       <div className="absolute inset-0 flex">
         <div className="h-full w-1/2">{leftBgSvg}</div>
@@ -28,7 +36,14 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
       </div>
 
       <div className="grid grid-rows-5 h-full relative z-10 w-full max-w-4xl mx-auto">
-        <div></div>
+        <div className="flex h-full">
+          {hovered && (
+            <div className="flex h-full w-full px-10 items-end text-white">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </div>
+          )}
+        </div>
         <div className="flex flex-col row-span-3 items-center justify-center">
           {mainImage}
           <div>{bottomShadowSvg}</div>
