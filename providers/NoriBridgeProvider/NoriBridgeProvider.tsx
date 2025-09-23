@@ -15,34 +15,8 @@ import { useSetup } from "../SetupProvider/SetupProvider.tsx";
 import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
-
-// // Note the gotchas in the tests in the link above:
-
-// // let depositMachine: ReturnType<typeof getDepositMachine>;
-// const { bridgeSocket$ } = getReconnectingBridgeSocket$();
-
-// // Seem to need to add share replay to avoid contention.
-// const ethStateTopic$ = getEthStateTopic$(bridgeSocket$).pipe(shareReplay(1));
-// const bridgeStateTopic$ = getBridgeStateTopic$(bridgeSocket$).pipe(
-//   shareReplay(1)
-// );
-// const bridgeTimingsTopic$ = getBridgeTimingsTopic$(bridgeSocket$).pipe(
-//   shareReplay(1)
-// );
-// // Turn the topics into hot observables... (this is slightly annoying to have to do)
-// ethStateTopic$.subscribe();
-// bridgeStateTopic$.subscribe();
-// bridgeTimingsTopic$.subscribe();
-// // Create single instance of worker
-// // You must ensure we only have one global reference to bridgeSocket$, ethStateTopic$, bridgeTimingsTopic$ and bridgeStateTopic$
-// // They must have:
-// // .pipe(
-// //     shareReplay(1)
-// // )
-// // Applied to them.
-
-// // And you must turn them into hot observables aka the subscribe to them immediately within your global service. Otherwise they react very slowly
-// // to bridge state changes.
+import { NetworkId } from "o1js";
+import { getBridgeMachine } from "@/machines/BridgeMachine.ts";
 
 type NoriBridgeContextType = {
   // Machine state and actions
@@ -59,12 +33,31 @@ type NoriBridgeContextType = {
   canSetupStorage: boolean;
   canSubmitMintTx: boolean;
 
+  // Current bridge stage data
+  bridgeStage: string;
+  bridgeStateElapsedSec: number;
+  bridgeStateTimeRemaining: number;
+
+  // Current deposit status
+  depositNumber: number;
+  hasActiveDeposit: boolean;
+  depositStatus: string;
+  depositBridgeStageName: string;
+  depositStepElapsedTime: number;
+  depositStepTimeRemaining: number;
+  
+
   // Helper methods
   setDepositNumber: (depositNumber: number) => void;
   setPresentation: (presentationJsonStr: string) => void;
   submitMintTx: () => void;
   retry: () => void;
   reset: () => void;
+};
+
+const minaConfig = {
+  networkId: "devnet" as NetworkId,
+  mina: "https://api.minascan.io/node/devnet/v1/graphql",
 };
 
 const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
@@ -80,6 +73,13 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const { walletAddress: ethAddress } = useMetaMaskWallet();
   const { address: minaAddress } = useAccount();
 
+  // Setup the bridgeMachine
+  const bridgeMachine = useMemo(()=> getBridgeMachine(bridgeStateTopic$, bridgeTimingsTopic$), [bridgeStateTopic$, bridgeTimingsTopic$]);
+
+  // Use the bridge machine
+  const [bridgeState, _] = useMachine(bridgeMachine);
+
+  // Setup the depositMintMachine
   const depositMintMachine = useMemo(
     () =>
       getDepositMachine(
@@ -93,72 +93,92 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     [ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$]
   );
 
-  // Use the machine
-  const [state, send] = useMachine(depositMintMachine);
+  // Use the deposit machine
+  const [depositState, sendDepositMachine] = useMachine(depositMintMachine);
 
   useEffect(() => {
+    console.log("Effect ran:", { minaAddress, ethAddress, mintWorker });
     // TODO what if a user switches wallet, will need to generate new MintWorkerClient
     if (minaAddress && ethAddress && !mintWorker) {
       const worker = new ZkappMintWorkerClient(minaAddress, ethAddress);
+      worker.minaSetup(minaConfig); // CHECK FOR RACE
       console.log("creating worker: ", worker);
       setMintWorker(worker);
-      send({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
+      sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
     }
-  }, [minaAddress, ethAddress, mintWorker, send]);
+  }, [minaAddress, ethAddress, mintWorker, sendDepositMachine]);
 
   // Helper functions
+
+  /*
+    The these function makes the dependencies of useMemo Hook change on every render. 
+    Move them inside the useMemo callback. 
+    Alternatively, wrap the definition of the functions in its own useCallback() Hook
+  */
+
   const setDepositNumber = (depositNumber: number) => {
-    send({ type: "SET_DEPOSIT_NUMBER", value: depositNumber });
+    sendDepositMachine({ type: "SET_DEPOSIT_NUMBER", value: depositNumber });
   };
 
+  // Deprecated!
   const setPresentation = (presentationJsonStr: string) => {
     console.log("Setting presentation:", presentationJsonStr);
     // This will be read from localStorage by the machine
   };
 
   const submitMintTx = () => {
-    send({ type: "SUBMIT_MINT_TX" });
+    sendDepositMachine({ type: "SUBMIT_MINT_TX" });
   };
 
   const retry = () => {
-    send({ type: "CHECK_STATUS" });
+    sendDepositMachine({ type: "CHECK_STATUS" });
   };
 
   const reset = () => {
-    send({ type: "RESET" });
+    sendDepositMachine({ type: "RESET" });
   };
 
   // Derived state flags
   const isLoading =
-    state.matches("initializingMina") ||
-    // state.matches("compilingWorker") ||
-    state.matches("checkingStorageSetup") ||
-    state.matches("settingUpStorage") ||
-    state.matches("computingEthProof") ||
-    state.matches("buildingMintTx") ||
-    state.matches("submittingMintTx");
+    depositState.matches("hydrating") ||
+    depositState.matches("checking") ||
+    depositState.matches("needsToCheckSetupStorageOrWaitingForStorageSetupFinalization") ||
+    depositState.matches("computeEthProof") ||
+    depositState.matches("buildingMintTx") ||
+    depositState.matches("submittingMintTx");
 
   const isReady =
-    state.matches("monitoringDepositStatus") ||
-    state.matches("hasComputedEthProof") ||
-    state.matches("hasDepositMintTx");
+    depositState.matches("monitoringDepositStatus") ||
+    depositState.matches("hasComputedEthProof") ||
+    depositState.matches("hasDepositMintTx");
 
-  const isError = state.matches("error") || state.context.errorMessage !== null;
+  const isError = depositState.matches("error") || depositState.context.errorMessage !== null;
 
-  const canSetupStorage =
-    state.matches("storageSetupDecision") && !state.context.isStorageSetup;
+  const canSetupStorage = depositState.context.goToSetupStorage; // state.matches("storageSetupDecision") && !
 
-  const canSubmitMintTx = state.matches("hasDepositMintTx");
+  const canSubmitMintTx = depositState.matches("hasDepositMintTx");
+
+  const bridgeStage = bridgeState.value;
+  const bridgeStateElapsedSec = bridgeState.context.bridgeStatus?.elapsed_sec;
+  const bridgeStateTimeRemaining = bridgeState.context.bridgeStatus?.time_remaining_sec;
+
+  const depositNumber = depositState.context.activeDepositNumber;
+  const hasActiveDeposit = depositNumber !== null;
+
+  const depositStatus = depositState.context.processingStatus?.deposit_processing_status; // This is waiting for eth finality, waiting for current job, waiting for previous job, missed mint oppertunity
+  const depositBridgeStageName = depositState.context.processingStatus?.stage_name; // This is the current bridge heads stage this is only important when depositStatus is waiting for current job or waiting for previous job ignore otherwise
+  const depositStepElapsedTime = depositState.context.processingStatus?.elapsed_sec; // This is the elapsed time for this step.
+  const depositStepTimeRemaining = depositState.context.processingStatus?.time_remaining_sec; // This is the remaining time for this step.
 
   // Derived state
   const contextValue = useMemo(
     () => ({
       // Machine state and actions
       state: {
-        value: state.value as string,
-        context: state.context,
+        value: depositState.value as string,
+        context: depositState.context,
       },
-      send,
+      send: sendDepositMachine,
 
       // Convenience flags
       isLoading,
@@ -166,6 +186,19 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       isError,
       canSetupStorage,
       canSubmitMintTx,
+
+      // Current bridge stage data
+      bridgeStage,
+      bridgeStateElapsedSec,
+      bridgeStateTimeRemaining,
+
+      // Current deposit status
+      depositNumber,
+      hasActiveDeposit,
+      depositStatus,
+      depositBridgeStageName,
+      depositStepElapsedTime,
+      depositStepTimeRemaining,
 
       // Helper methods
       setDepositNumber,
@@ -175,13 +208,25 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       reset,
     }),
     [
-      state,
-      send,
+      depositState,
+      sendDepositMachine,
       isLoading,
       isReady,
       isError,
       canSetupStorage,
       canSubmitMintTx,
+
+      bridgeStage,
+      bridgeStateElapsedSec,
+      bridgeStateTimeRemaining,
+
+      depositNumber,
+      hasActiveDeposit,
+      depositStatus,
+      depositBridgeStageName,
+      depositStepElapsedTime,
+      depositStepTimeRemaining,
+
       setDepositNumber,
       setPresentation,
       submitMintTx,

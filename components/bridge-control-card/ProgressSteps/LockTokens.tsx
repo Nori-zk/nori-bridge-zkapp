@@ -1,6 +1,7 @@
 
 "use client";
 import TextInput from "@/components/ui/TextInput.tsx";
+import { makeKeyPairLSKey } from "@/helpers/localStorage.ts";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
@@ -10,6 +11,15 @@ import { useForm } from "react-hook-form";
 type FormValues = {
   amount: string;
 };
+
+function getLockTokensButtonLabel(
+  mintWorker: { isCompilingContracts: () => boolean; contractsAreCompiled: () => boolean } | null | undefined
+): string {
+  if (!mintWorker) return "Lock Tokens";
+  if (mintWorker.isCompilingContracts()) return "Compiling Contracts...";
+  if (mintWorker.contractsAreCompiled()) return "Contracts Compiled";
+  return "Lock Tokens";
+}
 
 const LockTokens = () => {
   const { lockTokens, signMessage } = useMetaMaskWallet();
@@ -25,12 +35,15 @@ const LockTokens = () => {
     try {
       const amount = parseFloat(data.amount);
       if (!isNaN(amount) && amount >= 0.00000001) {
-        const worker = state.context.mintWorker
+        // THIS IS BUGGY worker might not have spawned before the submit button is clicked
+        const worker = state.context.mintWorker;
+        if (!worker) throw new Error("Worker not ready but called submit anyway");
         const signatureFromUser = await signMessage(worker!.fixedValueOrSecret!);
-        const codeVerify = await worker?.getCodeVerifyFromEthSignature(signatureFromUser.signature)
-        window.localStorage.setItem(`codeVerify${worker?.ethWalletPubKeyBase58}-${worker?.minaWalletPubKeyBase58}`, codeVerify!)
-        const codeChallange = await worker?.createCodeChallenge(codeVerify!);
-        const blockNubmer = await lockTokens(codeChallange!, amount);
+        await worker.ready();
+        const codeVerify = await worker.getCodeVerifyFromEthSignature(signatureFromUser.signature);
+        window.localStorage.setItem(makeKeyPairLSKey("codeVerifier", worker.ethWalletPubKeyBase58, worker.minaWalletPubKeyBase58), codeVerify);
+        const codeChallange = await worker.createCodeChallenge(codeVerify);
+        const blockNubmer = await lockTokens(codeChallange, amount);
         setDepositNumber(blockNubmer);
       } else {
         console.error("Invalid amount");
@@ -76,11 +89,15 @@ const LockTokens = () => {
           <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
         )}
         <button
+          // This disabled check is insufficient
+          // Should be disabled if metamask is currently waiting for a pending deposit
+          // if the contract is compiling
+          // if the contract is compiled
           disabled={!!state.context.mintWorker?.isCompilingContracts()}
           type="submit"
           className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
         >
-          {state.context.mintWorker?.isCompilingContracts() ? 'Compiling Contracts...' : 'Lock Tokens'}
+          {getLockTokensButtonLabel(state.context.mintWorker)}
         </button>
       </form>
     </>
