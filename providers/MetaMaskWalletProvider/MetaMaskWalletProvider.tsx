@@ -14,6 +14,7 @@ import { useToast } from "@/helpers/useToast.tsx";
 import { openExternalLink } from "@/helpers/navigation.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 import { noriTokenBridgeJson } from "@nori-zk/ethereum-token-bridge";
+import envConfig from "@/helpers/env.ts";
 
 interface SignMessageResult {
   signature: string;
@@ -78,7 +79,7 @@ export const MetaMaskWalletProvider = ({
   const toast = useRef(rawToast);
 
   const initializeContract = useCallback(async (signer: Signer) => {
-    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
+    const contractAddress = envConfig.NORI_TOKEN_BRIDGE_ADDRESS; //process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
     return new Contract(contractAddress, noriTokenBridgeJson.abi, signer);
   }, []);
 

@@ -14,6 +14,7 @@ import { ProgressStep } from "@/types/types.ts";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
 import SetupStorage from "./ProgressSteps/SetupStorage.tsx";
+import DepositProcessing from "./ProgressSteps/DepositProcessingProgress.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -51,6 +52,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     isLoading,
     isReady,
     isError,
+    hasActiveDeposit,
     reset
   } = useNoriBridge();
 
@@ -183,6 +185,12 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               )}
               {isReady && <div className="text-green-600 mt-1">✅ Ready</div>}
             </div>
+            {hasActiveDeposit && (
+              <div className="w-full mt-4">
+                <DepositProcessing />
+              </div>
+            )}
+            
             <div>
               <div className="flex flex-row items-center space-x-2">
                 {/* <label className="block text-sm font-medium mb-1">

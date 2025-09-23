@@ -3,6 +3,7 @@ import { createProxy } from "@nori-zk/workers";
 import { WorkerParent } from "@nori-zk/workers/browser/parent";
 import { type ZkAppWorker as ZkAppWorkerType } from "@nori-zk/mina-token-bridge/workers/defs";
 import { JsonProof, NetworkId } from "o1js";
+import envConfig from "@/helpers/env.ts";
 
 type TokenMintWorkerInst = InstanceType<
   ReturnType<typeof createProxy<typeof ZkAppWorkerType>>
@@ -25,12 +26,12 @@ type VerificationKeySafe = {
 };
 
 // Both of these need to be configurable env vars, will be different for testnet / production
-const MINA_RPC = "https://devnet.minaprotocol.network/graphql";
-const ethTokenBridgeAddress = "0x3EEACD9caa1aDdBA939FF041C43020b516A51dcF";
-const noriTokenControllerAddressBase58 =
-  "B62qrMnJiMerBXb1469Q3qr1jkhFk92MMgk8orNNfXP3fFFWvjKsEja";
-const noriTokenBaseBase58 =
-  "B62qrqiUcXEAqTaQPW8tqwaBx3trx36yAeFzsiPigHXvou86APsY6gV";
+//const MINA_RPC = "https://devnet.minaprotocol.network/graphql";
+//const ethTokenBridgeAddress = "0x3EEACD9caa1aDdBA939FF041C43020b516A51dcF";
+// "B62qrMnJiMerBXb1469Q3qr1jkhFk92MMgk8orNNfXP3fFFWvjKsEja";
+// "B62qrqiUcXEAqTaQPW8tqwaBx3trx36yAeFzsiPigHXvou86APsY6gV";
+const noriTokenControllerAddressBase58 = envConfig.NORI_TOKEN_CONTROLLER_ADDRESS;
+const noriTokenBaseBase58 = envConfig.NORI_TOKEN_BRIDGE_ADDRESS;
 
 export default class ZkappMintWorkerClient {
   #mintWorker: TokenMintWorkerInst;

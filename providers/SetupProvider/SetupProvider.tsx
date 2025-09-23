@@ -8,9 +8,9 @@ import { createContext, useContext, useMemo } from "react";
 import { shareReplay } from "rxjs";
 
 type SetupContextType = {
-  ethStateTopic$: any;
-  bridgeStateTopic$: any;
-  bridgeTimingsTopic$: any;
+  ethStateTopic$: any; // Use return type like in the machine
+  bridgeStateTopic$: any; // Use return type like in the machine
+  bridgeTimingsTopic$: any; // Use return type like in the machine
   bridgeSocketConnectionState$: ReturnType<
     typeof getReconnectingBridgeSocket$
   >["bridgeSocketConnectionState$"];
