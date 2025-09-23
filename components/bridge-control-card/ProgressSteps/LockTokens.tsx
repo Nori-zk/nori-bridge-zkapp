@@ -4,14 +4,16 @@ import { makeKeyPairLSKey } from "@/helpers/localStorage.ts";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
-import { useEffect, ReactNode } from "react";
+import { useEffect, ReactNode, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useToast } from "@/helpers/useToast.tsx";
 
 type FormValues = {
   amount: string;
 };
 
 const LockTokens = () => {
+  const [locking, setLocking] = useState(false);
   const { lockTokens, signMessage } = useMetaMaskWallet();
   const { dispatch } = useProgress();
   const { state, setDepositNumber } = useNoriBridge();
@@ -31,23 +33,30 @@ const LockTokens = () => {
       | undefined
   ): ReactNode => {
     if (!mintWorker) return <div>{"Lock Tokens"}</div>;
-    if (mintWorker.isCompilingContracts())
+    if (mintWorker.isCompilingContracts() || locking)
       return (
         <div className="flex flex-row justify-center items-center gap-2">
-          {"Compiling Contracts..."}
+          {locking ? "Locking Tokens" : "Compiling Contracts"}
           <span className="relative flex size-3">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lightGreen opacity-75"></span>
             <span className="relative inline-flex size-3 rounded-full bg-lightGreen"></span>
           </span>
         </div>
       );
-    if (mintWorker.contractsAreCompiled())
-      return <div>{"Contracts Compiled"}</div>;
+    if (mintWorker.contractsAreCompiled()) {
+      useToast({
+        type: "notification",
+        title: "Success",
+        description: "Contracts compiled successfully!",
+      });
+      return <div>{"Contracts Compiled "}</div>;
+    }
     return <div>{"Lock Tokens"}</div>;
   };
 
   const onSubmit = async (data: FormValues) => {
     try {
+      setLocking(true);
       const amount = parseFloat(data.amount);
       if (!isNaN(amount) && amount >= 0.00000001) {
         // THIS IS BUGGY worker might not have spawned before the submit button is clicked
@@ -77,6 +86,8 @@ const LockTokens = () => {
       }
     } catch (error) {
       console.error("Error locking tokens:", error);
+    } finally {
+      setLocking(false);
     }
   };
 
@@ -93,10 +104,15 @@ const LockTokens = () => {
     <>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="mt-6 w-full text-white rounded-lg px-4 py-3 "
+        className={`mt-6 w-full ${
+          state.context.activeDepositNumber != null
+            ? "text-white/20"
+            : "text-white"
+        } rounded-lg px-4 py-3`}
       >
         <TextInput
           id="amount-input"
+          disabled={state.context.activeDepositNumber != null}
           {...register("amount", {
             required: "Amount is required",
             pattern: {
@@ -120,9 +136,19 @@ const LockTokens = () => {
           // Should be disabled if metamask is currently waiting for a pending deposit
           // if the contract is compiling
           // if the contract is compiled
-          disabled={!!state.context.mintWorker?.isCompilingContracts()}
+          disabled={
+            locking ||
+            !!state.context.mintWorker?.isCompilingContracts() ||
+            state.context.mintWorker?.areContractCompiled()
+          }
           type="submit"
-          className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
+          className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${
+            locking ||
+            !!state.context.mintWorker?.isCompilingContracts() ||
+            state.context.mintWorker?.areContractCompiled()
+              ? "border-none"
+              : "border-white"
+          } border-[1px]`}
         >
           {getLockTokensButtonLabel(state.context.mintWorker)}
         </button>

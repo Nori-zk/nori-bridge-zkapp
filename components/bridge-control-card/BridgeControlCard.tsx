@@ -1,30 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
 import { FaArrowRight } from "react-icons/fa";
-import LockTokens from "./ProgressSteps/LockTokens.tsx";
-import GetLockedTokens from "@/components/bridge-control-card/ProgressSteps/GetLockedTokens.tsx";
 import BridgeControlCardSVG from "./BridgeControlCardSVG.tsx";
 import { progressSteps } from "@/static_data.ts";
 import ProgressTracker from "../ui/ProgressTracker/ProgressTracker.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
-import { ProgressStep } from "@/types/types.ts";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
-import SetupStorage from "./ProgressSteps/SetupStorage.tsx";
 
 type BridgeControlCardProps = {
   title: string;
-  width?: string;
-  height?: string;
-};
-
-const stepComponents: Record<ProgressStep, React.ComponentType> = {
-  lock_tokens: LockTokens,
-  setup_storage: SetupStorage,
-  get_locked_tokens: GetLockedTokens,
+  content?: ReactNode;
+  width: string;
+  height: string;
 };
 
 const BridgeControlCard = (props: BridgeControlCardProps) => {
@@ -33,11 +24,9 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const [depositNumber, setDepositNumberInput] = useState<string>("12345");
 
   const { state: progressState } = useProgress();
-  const { title } = props;
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
-
 
   const { bridgeSocketConnectionState$ } = useSetup();
 
@@ -45,16 +34,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     "connecting" | "open" | "closed" | "reconnecting" | "permanently-closed"
   >("connecting");
 
-  const {
-    state,
-    setDepositNumber,
-    isLoading,
-    isReady,
-    isError,
-    reset
-  } = useNoriBridge();
-
-  const CurrentStepComponent = stepComponents[progressState.currentStep];
+  const { state, setDepositNumber, isLoading, isReady, isError, reset } =
+    useNoriBridge();
 
   const getStatusColor = () => {
     if (isError) return "text-red-600";
@@ -104,7 +85,6 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
       : "Connect Wallet"
     : "Connect Wallet";
 
-
   return (
     <div
       style={{
@@ -122,7 +102,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
       <BridgeControlCardSVG width={props.width} height={props.height}>
         <div className="flex flex-col items-center justify-center h-full">
           <h1 className="text-center text-white text-4xl mb-6 font-[400]">
-            {title}
+            {props.title}
           </h1>
           <div className="w-3/4">
             <div className="flex text-white justify-between items-center">
@@ -162,7 +142,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               // ) : (
               //   <GetLockedTokens />
               )} */}
-              <CurrentStepComponent />
+              {props.content}
             </div>
           </div>
           {displayProgressSteps && <ProgressTracker steps={progressSteps} />}
@@ -206,10 +186,13 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 <div className="text-xs text-gray-500 mt-1">
                   Current: {state.context.activeDepositNumber || "Not set"}
                 </div>
-                <div className="text-white">
-                  {status}
-                </div>
-                <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600" onClick={handleResetBridge}>Reset</button>
+                <div className="text-white">{status}</div>
+                <button
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  onClick={handleResetBridge}
+                >
+                  Reset
+                </button>
               </div>
             </div>
           </div>

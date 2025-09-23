@@ -14,12 +14,28 @@ import Flip from "@/public/assets/Flip.svg";
 import { DepositMintTestUI } from "@/components/DepositMintTestUI.tsx";
 import { useState } from "react";
 import ChooseSides from "@/components/choose-side/ChooseSides.tsx";
+import { useBridgeControlCardProps } from "@/helpers/useBridgeControlCardProps.tsx";
+import LockTokens from "@/components/bridge-control-card/ProgressSteps/LockTokens.tsx";
+import GetLockedTokens from "@/components/bridge-control-card/ProgressSteps/GetLockedTokens.tsx";
+import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
+import { ProgressStep } from "@/types/types.ts";
+import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+
+const stepComponents: Record<ProgressStep, React.ComponentType> = {
+  lock_tokens: LockTokens,
+  setup_storage: SetupStorage,
+  get_locked_tokens: GetLockedTokens,
+};
 
 export default function Home() {
   const [showChooseSide, setShowChooseSide] = useState<boolean>(false);
 
   const { isConnected: ethConnected } = useMetaMaskWallet();
   const { isConnected: minaConnected } = useAccount();
+  const { state: progressState } = useProgress();
+  const { title, component } = useBridgeControlCardProps(
+    progressState.currentStep
+  );
 
   return (
     <div className="h-full w-full bg-[radial-gradient(50%_100%_at_50%_0%,theme('colors.darkGreen')_1.31%,theme('colors.veryDarkGreen')_100%)]">
@@ -44,15 +60,12 @@ export default function Home() {
             {/* <DepositMintTestUI /> */}
             <div className="relative inline-block">
               <BridgeControlCard
-                title={
-                  ethConnected && minaConnected
-                    ? "Start locking your ETH"
-                    : "First connect wallets"
-                }
+                title={title}
                 width={"780"}
                 height={"450"}
+                content={component}
               />
-              <button
+              {/* <button
                 onClick={() => console.log("Flip pressed")}
                 className="absolute -top-1 -right-11 z-20 transition-all duration-300 ease-in-out hover:scale-110 hover:rotate-6"
               >
@@ -61,7 +74,7 @@ export default function Home() {
                   height={65}
                   className="scale-[0.82] fill-red-100 transition-colors duration-300 ease-in-out group-hover:fill-red-300"
                 />
-              </button>
+              </button> */}
             </div>
             <div className="w-1/4 h-[450px]">
               {ethConnected && minaConnected && <ScrollingBridge />}
