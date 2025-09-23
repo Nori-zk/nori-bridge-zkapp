@@ -39,7 +39,6 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
 
-
   const { bridgeSocketConnectionState$ } = useSetup();
 
   const [status, setStatus] = useState<
@@ -53,7 +52,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     isReady,
     isError,
     hasActiveDeposit,
-    reset
+    reset,
   } = useNoriBridge();
 
   const CurrentStepComponent = stepComponents[progressState.currentStep];
@@ -106,123 +105,126 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
       : "Connect Wallet"
     : "Connect Wallet";
 
-
   return (
-    <div
-      style={{
-        width: props.width,
-        height: props.height,
-        position: "relative",
-        overflow: "hidden",
-        boxShadow:
-          ethConnected && minaConnected
-            ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
-            : "none",
-        borderRadius: "20px",
-      }}
-    >
-      <BridgeControlCardSVG width={props.width} height={props.height}>
-        <div className="flex flex-col items-center justify-center h-full">
-          <h1 className="text-center text-white text-4xl mb-6 font-[400]">
-            {title}
-          </h1>
-          <div className="w-3/4">
-            <div className="flex text-white justify-between items-center">
-              <WalletButton
-                id="eth-btn"
-                types={"Ethereum"}
-                content={
-                  ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
-                }
-              />
-              <div className="flex items-center justify-center w-7 h-7 text-black bg-white rounded-full mx-2">
-                <FaArrowRight />
+    <div>
+      <div
+        style={{
+          width: props.width,
+          height: props.height,
+          position: "relative",
+          overflow: "hidden",
+          boxShadow:
+            ethConnected && minaConnected
+              ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
+              : "none",
+          borderRadius: "20px",
+        }}
+      >
+        <BridgeControlCardSVG width={props.width} height={props.height}>
+          <div className="flex flex-col items-center justify-center h-full">
+            <h1 className="text-center text-white text-4xl mb-6 font-[400]">
+              {title}
+            </h1>
+            <div className="w-3/4">
+              <div className="flex text-white justify-between items-center">
+                <WalletButton
+                  id="eth-btn"
+                  types={"Ethereum"}
+                  content={
+                    ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
+                  }
+                />
+                <div className="flex items-center justify-center w-7 h-7 text-black bg-white rounded-full mx-2">
+                  <FaArrowRight />
+                </div>
+                <WalletButton
+                  id="mina-btn"
+                  types={"Mina"}
+                  content={minaButtonContent}
+                />
               </div>
-              <WalletButton
-                id="mina-btn"
-                types={"Mina"}
-                content={minaButtonContent}
-              />
+              <div className="flex justify-center mt-1 text-white">
+                {/* {isWorkerLoading || !state.context.zkappWorkerClient ? (
+                  <p>Spinning up zkappWorker...</p>
+                ) : !zkappWorkerClient ? (
+                  <p>zkappWorker is not ready.</p>
+                ) : !credential && !compiledEcdsaCredential ? (
+                  <p>Running step compiledEcdsaCredential...</p>
+                ) : !(ethConnected && minaConnected) ||
+                  !ethConnected ||
+                  !minaConnected ? (
+                  <ConnectWallets />
+                // ) : state.context.step === "create" ? (
+                //   <CreateCredentials />
+                // ) : state.context.step === "obtain" ? (
+                //   <ObtainCredentials />
+                // ) : state.context.step === "lock" ? (
+                //   <LockTokens />
+                // ) : (
+                //   <GetLockedTokens />
+                )} */}
+                <CurrentStepComponent />
+              </div>
             </div>
-            <div className="flex justify-center mt-1 text-white">
-              {/* {isWorkerLoading || !state.context.zkappWorkerClient ? (
-                <p>Spinning up zkappWorker...</p>
-              ) : !zkappWorkerClient ? (
-                <p>zkappWorker is not ready.</p>
-              ) : !credential && !compiledEcdsaCredential ? (
-                <p>Running step compiledEcdsaCredential...</p>
-              ) : !(ethConnected && minaConnected) ||
-                !ethConnected ||
-                !minaConnected ? (
-                <ConnectWallets />
-              // ) : state.context.step === "create" ? (
-              //   <CreateCredentials />
-              // ) : state.context.step === "obtain" ? (
-              //   <ObtainCredentials />
-              // ) : state.context.step === "lock" ? (
-              //   <LockTokens />
-              // ) : (
-              //   <GetLockedTokens />
-              )} */}
-              <CurrentStepComponent />
-            </div>
-          </div>
-          {displayProgressSteps && <ProgressTracker steps={progressSteps} />}
+            {displayProgressSteps && <ProgressTracker steps={progressSteps} />}
 
-          {/* Current State Display */}
-          <div className="flex justify-around items-center">
-            <div className="p-4">
-              <div className={`font-mono text-sm ${getStatusColor()}`}>
-                State: <span className="font-bold">{getStateDisplay()}</span>
-              </div>
-              {isLoading && (
-                <div className="text-yellow-600 mt-1">⏳ Loading...</div>
-              )}
-              {isError && (
-                <div className="text-red-600 mt-1">
-                  ❌ Error: {state.context.errorMessage}
+            {/* Current State Display */}
+            <div className="flex justify-around items-center">
+              <div className="p-4">
+                <div className={`font-mono text-sm ${getStatusColor()}`}>
+                  State: <span className="font-bold">{getStateDisplay()}</span>
                 </div>
-              )}
-              {isReady && <div className="text-green-600 mt-1">✅ Ready</div>}
-            </div>
-            {hasActiveDeposit && (
-              <div className="w-full mt-4">
-                <DepositProcessing />
+                {isLoading && (
+                  <div className="text-yellow-600 mt-1">⏳ Loading...</div>
+                )}
+                {isError && (
+                  <div className="text-red-600 mt-1">
+                    ❌ Error: {state.context.errorMessage}
+                  </div>
+                )}
+                {isReady && <div className="text-green-600 mt-1">✅ Ready</div>}
               </div>
-            )}
-            
-            <div>
-              <div className="flex flex-row items-center space-x-2">
-                {/* <label className="block text-sm font-medium mb-1">
-                  Deposit Block Number
-                </label> */}
-                {/* <div className="flex flex-row gap-2">
-                  {/* <input
-                    type="text"
-                    value={depositNumber}
-                    onChange={(e) => setDepositNumberInput(e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    placeholder="e.g., 12345"
-                  /> */}
-                {/* <button
-                    onClick={handleSetDepositNumber}
+
+              <div>
+                <div className="flex flex-row items-center space-x-2">
+                  {/* <label className="block text-sm font-medium mb-1">
+                    Deposit Block Number
+                  </label> */}
+                  {/* <div className="flex flex-row gap-2">
+                    {/* <input
+                      type="text"
+                      value={depositNumber}
+                      onChange={(e) => setDepositNumberInput(e.target.value)}
+                      className="flex-1 px-3 py-2 border rounded-md"
+                      placeholder="e.g., 12345"
+                    /> */}
+                  {/* <button
+                      onClick={handleSetDepositNumber}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    >
+                      Set
+                    </button> 
+                  </div> */}
+                  <div className="text-xs text-gray-500 mt-1">
+                    Current: {state.context.activeDepositNumber || "Not set"}
+                  </div>
+                  <div className="text-white">{status}</div>
+                  <button
                     className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    onClick={handleResetBridge}
                   >
-                    Set
-                  </button> 
-                </div> */}
-                <div className="text-xs text-gray-500 mt-1">
-                  Current: {state.context.activeDepositNumber || "Not set"}
+                    Reset
+                  </button>
                 </div>
-                <div className="text-white">
-                  {status}
-                </div>
-                <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600" onClick={handleResetBridge}>Reset</button>
               </div>
             </div>
           </div>
-        </div>
-      </BridgeControlCardSVG>
+        </BridgeControlCardSVG>
+      </div>
+      <div>
+        {hasActiveDeposit && <DepositProcessing />}
+      </div>
+      
     </div>
   );
 };

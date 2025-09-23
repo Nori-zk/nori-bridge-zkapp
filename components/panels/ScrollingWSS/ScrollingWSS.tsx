@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import { noticeToText } from "@/helpers/textHelper.tsx";
+import { getScrollingWSSSocketSingleton } from "@/singletons/scrollSocket.ts";
 
 const ScrollingWSS = () => {
   const [messageLines, setMessageLines] = useState<string[]>([]);
@@ -60,7 +61,7 @@ const ScrollingWSS = () => {
 
   useEffect(() => {
     // measureLineHeight();
-    const socket = new WebSocket("wss://wss.nori.it.com/");
+    const socket = getScrollingWSSSocketSingleton();
 
     socket.addEventListener("open", () => {
       console.log("Connected to WebSocket");

@@ -1,4 +1,4 @@
-"client";
+"use client";
 import { createProxy } from "@nori-zk/workers";
 import { WorkerParent } from "@nori-zk/workers/browser/parent";
 import { type ZkAppWorker as ZkAppWorkerType } from "@nori-zk/mina-token-bridge/workers/defs";
