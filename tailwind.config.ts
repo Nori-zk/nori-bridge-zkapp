@@ -12,6 +12,15 @@ const config: Config = {
     "bg-choose-side-red",
     "bg-choose-side-blue",
     "bg-choose-side-green",
+    "bg-button-choose-side-red",
+    "bg-button-choose-side-blue",
+    "bg-button-choose-side-green",
+    "text-neonRed",
+    "text-neonBlue",
+    "text-neonGreen",
+    "text-glow-neon-red",
+    "text-glow-neon-blue",
+    "text-glow-neon-green",
   ],
   theme: {
     extend: {
@@ -25,6 +34,9 @@ const config: Config = {
         veryDarkRed: "#3F1717",
         darkRed: "#950606",
         lightRed: "#FF0000",
+        neonRed: "#FB635E",
+        neonBlue: "#84F7FC",
+        neonGreen: "#48EDE7",
       },
       backgroundImage: {
         "custom-svg": "url('/assets/BackgroundLight.svg')",
@@ -34,10 +46,34 @@ const config: Config = {
           "linear-gradient(0deg, rgba(6,10,8,0.2), rgba(6,10,8,0.2)), radial-gradient(307.14% 100% at 50% 0%, #012D40 0%, #01202D 8.32%, #060A08 51.57%)",
         "choose-side-green":
           "linear-gradient(0deg, rgba(6,10,8,0.2), rgba(6,10,8,0.2)), radial-gradient(307.14% 100% at 50% 0%, #143631 0%, #0F2925 8.32%, #060A08 51.57%)",
+        "button-choose-side-red":
+          "linear-gradient(180deg, rgba(221,40,34,0.2) 0%, rgba(221,40,34,0) 50%, rgba(221,40,34,0.2) 100%), radial-gradient(70.66% 100% at 50% 0%, #841B15 0%, #370507 100%)",
+        "button-choose-side-blue":
+          "linear-gradient(180deg, rgba(30, 86, 118 ,0.2) 0%, rgba(221,40,34,0) 50%, rgba(30, 86, 118 ,0.2) 100%), radial-gradient(70.66% 100% at 50% 0%,rgb(30, 86, 118) 0%, #032637 100%)",
+        "button-choose-side-green":
+          "linear-gradient(180deg, rgba(36, 118, 106, 0)0%, rgba(255, 255, 255, 0.05) 100%, rgba(36, 118, 106, 0) 100%), radial-gradient(70.66% 100% at 50% 0%,rgb(36, 118, 106) 0%, #09231F 100%)",
         radial: "radial-gradient(var(--tw-gradient-stops))",
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function ({ addUtilities }) {
+      addUtilities({
+        ".text-glow-neon-red": {
+          "text-shadow":
+            "0 0 2px rgba(251,99,94,0.8), 0 0 6px rgba(251,99,94,0.5), 0 0 12px rgba(251,99,94,0.3)",
+        },
+        ".text-glow-neon-blue": {
+          "text-shadow":
+            "0 0 2px rgba(132,247,252,0.8), 0 0 6px rgba(132,247,252,0.5), 0 0 12px rgba(132,247,252,0.3)",
+        },
+        ".text-glow-neon-green": {
+          "text-shadow":
+            "0 0 2px rgba(72,237,231,0.8), 0 0 6px rgba(72,237,231,0.5), 0 0 12px rgba(72,237,231,0.3)",
+        },
+      });
+    },
+  ],
 };
+
 export default config;

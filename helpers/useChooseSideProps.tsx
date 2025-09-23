@@ -19,7 +19,8 @@ type ChooseSideUIProps = {
   bottomShadowSvg: React.ReactNode;
   mainImage: React.ReactNode;
   textValue: string;
-  joinButtonClass: string;
+  joinButtonBgClass: string;
+  joinButtonTextClass: string;
 };
 
 export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
@@ -40,7 +41,8 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
         </div>
       ),
       textValue: "370 Members",
-      joinButtonClass: "bg-red-500 hover:bg-blue-600 text-white",
+      joinButtonBgClass: "red",
+      joinButtonTextClass: "neonRed",
     };
   } else if (side === "green") {
     return {
@@ -55,8 +57,9 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
           <GreenSide />
         </div>
       ),
-      textValue: "Join the green Side",
-      joinButtonClass: "bg-red-500 hover:bg-red-600 text-white",
+      textValue: "210 Members",
+      joinButtonBgClass: "green",
+      joinButtonTextClass: "neonGreen",
     };
   } else {
     return {
@@ -74,7 +77,8 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
         </div>
       ),
       textValue: "160 Members",
-      joinButtonClass: "bg-red-500 hover:bg-red-600 text-white",
+      joinButtonBgClass: "blue",
+      joinButtonTextClass: "neonBlue",
     };
   }
 }
