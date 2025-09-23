@@ -38,9 +38,9 @@ export default class ZkappMintWorkerClient {
   #terminated = false;
   #noriStorageInterfaceVerificationKeySafe:
     | {
-      data: string;
-      hashStr: string;
-    }
+        data: string;
+        hashStr: string;
+      }
     | undefined;
   #compiling = false;
   #compiled = false;
@@ -183,7 +183,6 @@ export default class ZkappMintWorkerClient {
       provedSetupTxStr.length
     );
     return provedSetupTxStr;
-
   }
 
   async computeDepositAttestationWitnessAndEthVerifier(
@@ -258,7 +257,7 @@ export default class ZkappMintWorkerClient {
     return this.#compiled;
   }
 
-  async areContractCompiled() {
+  areContractCompiled() {
     if (this.#noriStorageInterfaceVerificationKeySafe) {
       return true;
     } else {
