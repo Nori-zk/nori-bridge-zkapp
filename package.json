@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --no-lint && cp _headers out/_headers",
+    "show-all-errors": "tsc --noEmit",
     "start": "next start",
     "lint": "next lint",
     "ts-watch": "tsc --noEmit --incremental --watch",
