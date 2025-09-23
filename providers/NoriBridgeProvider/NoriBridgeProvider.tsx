@@ -15,8 +15,10 @@ import { useSetup } from "../SetupProvider/SetupProvider.tsx";
 import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAccount } from "wagmina";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
-import { NetworkId } from "o1js";
 import { getBridgeMachine } from "@/machines/BridgeMachine.ts";
+import envConfig from "@/helpers/env.ts";
+import { BridgeDepositProcessingStatus } from "@nori-zk/mina-token-bridge/rx/deposit";
+import { KeyTransitionStageMessageTypes } from "@nori-zk/pts-types";
 
 type NoriBridgeContextType = {
   // Machine state and actions
@@ -42,7 +44,9 @@ type NoriBridgeContextType = {
   depositNumber: number;
   hasActiveDeposit: boolean;
   depositStatus: string;
+  depositStatusStepIndex: number;
   depositBridgeStageName: string;
+  depositBridgeStageIndex: number;
   depositStepElapsedTime: number;
   depositStepTimeRemaining: number;
   
@@ -56,11 +60,13 @@ type NoriBridgeContextType = {
 };
 
 const minaConfig = {
-  networkId: "devnet" as NetworkId,
-  mina: "https://api.minascan.io/node/devnet/v1/graphql",
+  networkId: envConfig.MINA_RPC_NETWORK_ID, // "devnet" as NetworkId,
+  mina: envConfig.MINA_RPC_NETWORK_URL, // "https://api.minascan.io/node/devnet/v1/graphql",
 };
 
 const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
+
+const depositStatusSteps = [BridgeDepositProcessingStatus.WaitingForEthFinality, BridgeDepositProcessingStatus.WaitingForPreviousJobCompletion, BridgeDepositProcessingStatus.WaitingForCurrentJobCompletion, BridgeDepositProcessingStatus.ReadyToMint];
 
 export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -165,8 +171,11 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const depositNumber = depositState.context.activeDepositNumber;
   const hasActiveDeposit = depositNumber !== null;
 
+  
   const depositStatus = depositState.context.processingStatus?.deposit_processing_status; // This is waiting for eth finality, waiting for current job, waiting for previous job, missed mint oppertunity
+  const depositStatusStepIndex = depositStatus !== undefined ? depositStatusSteps.indexOf(depositStatus) : -1;
   const depositBridgeStageName = depositState.context.processingStatus?.stage_name; // This is the current bridge heads stage this is only important when depositStatus is waiting for current job or waiting for previous job ignore otherwise
+  const depositBridgeStageIndex = depositBridgeStageName !== undefined ? KeyTransitionStageMessageTypes.indexOf(depositBridgeStageName) : -1;
   const depositStepElapsedTime = depositState.context.processingStatus?.elapsed_sec; // This is the elapsed time for this step.
   const depositStepTimeRemaining = depositState.context.processingStatus?.time_remaining_sec; // This is the remaining time for this step.
 
@@ -196,7 +205,9 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       depositNumber,
       hasActiveDeposit,
       depositStatus,
+      depositStatusStepIndex,
       depositBridgeStageName,
+      depositBridgeStageIndex,
       depositStepElapsedTime,
       depositStepTimeRemaining,
 
@@ -223,7 +234,9 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       depositNumber,
       hasActiveDeposit,
       depositStatus,
+      depositStatusStepIndex,
       depositBridgeStageName,
+      depositBridgeStageIndex,
       depositStepElapsedTime,
       depositStepTimeRemaining,
 

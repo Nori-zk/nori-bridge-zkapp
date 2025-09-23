@@ -1,4 +1,4 @@
-"client";
+"use client";
 
 // Local storage fixed keys
 export const LS_KEYS = {

@@ -26,9 +26,9 @@ export function useWalletButtonProps(
   const connectors = useConnectors();
   const walletConnector = useMemo(() => {
     const walletId =
-      process.env.NEXT_PUBLIC_WALLET === "auro"
-        ? "com.aurowallet"
-        : "co.pallad";
+      process.env.NEXT_PUBLIC_WALLET === "pallad"
+        ? "co.pallad"
+        : "com.aurowallet";
     return connectors.find((c) => c.id === walletId);
   }, [connectors.length]);
   const [isConnectingWalletOpen, setIsConnectingWalletOpen] = useState(false);

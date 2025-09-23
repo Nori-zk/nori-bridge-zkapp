@@ -1,4 +1,4 @@
-"client";
+"use client";
 import { LS_KEYS, makeKeyPairLSKey } from "@/helpers/localStorage.ts";
 import type ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { fromPromise } from "xstate";

@@ -1,4 +1,4 @@
-"client";
+"use client";
 import { fromObservable } from "xstate";
 import {
   catchError,

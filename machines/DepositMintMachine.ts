@@ -1,4 +1,4 @@
-"client"; // The server cannot use this machine! Should build a seperate machine for other purposes
+"use client"; // The server cannot use this machine! Should build a seperate machine for other purposes
 import { assign, setup, log, raise } from "xstate";
 // Import actual bridge deposit observables
 import {
@@ -58,10 +58,10 @@ const invokeMonitoringDepositStatus = {
       never
     >({
       processingStatus: ({ event }) => {
-        console.log(
-          "onSnapshotdepositProcessingStatus",
-          event.snapshot.context
-        );
+        // console.log(
+        //   "onSnapshotdepositProcessingStatus",
+        //   event.snapshot.context
+        // );
         return event.snapshot.context ?? null;
       },
     }),
