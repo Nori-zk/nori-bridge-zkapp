@@ -13,7 +13,7 @@ const DepositProcessing: React.FC = () => {
   } = useNoriBridge();
 
   const totalStatusSteps = 4;
-  const totalBridgeStages = 5;
+  const totalBridgeStages = 9;
 
   // Timing progress
   const stageTotal = depositStepElapsedTime + depositStepTimeRemaining;

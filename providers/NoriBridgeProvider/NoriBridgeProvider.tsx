@@ -175,7 +175,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const depositStatus = depositState.context.processingStatus?.deposit_processing_status; // This is waiting for eth finality, waiting for current job, waiting for previous job, missed mint oppertunity
   const depositStatusStepIndex = depositStatus !== undefined ? depositStatusSteps.indexOf(depositStatus) : -1;
   const depositBridgeStageName = depositState.context.processingStatus?.stage_name; // This is the current bridge heads stage this is only important when depositStatus is waiting for current job or waiting for previous job ignore otherwise
-  const depositBridgeStageIndex = depositBridgeStageName !== undefined ? KeyTransitionStageMessageTypes.includes(depositBridgeStageName) : -1;
+  const depositBridgeStageIndex = depositBridgeStageName !== undefined ? KeyTransitionStageMessageTypes.indexOf(depositBridgeStageName) : -1;
   const depositStepElapsedTime = depositState.context.processingStatus?.elapsed_sec; // This is the elapsed time for this step.
   const depositStepTimeRemaining = depositState.context.processingStatus?.time_remaining_sec; // This is the remaining time for this step.
 
