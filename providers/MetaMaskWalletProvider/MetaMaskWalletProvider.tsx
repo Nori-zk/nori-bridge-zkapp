@@ -9,7 +9,14 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { BrowserProvider, Contract, ethers, Signer, BigNumberish, TransactionResponse } from "ethers";
+import {
+  BrowserProvider,
+  Contract,
+  ethers,
+  Signer,
+  BigNumberish,
+  TransactionResponse,
+} from "ethers";
 import { useToast } from "@/helpers/useToast.tsx";
 import { openExternalLink } from "@/helpers/navigation.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
@@ -122,11 +129,11 @@ export const MetaMaskWalletProvider = ({
     setSigner(null);
     setContract(null);
     await window.ethereum.request({
-      "method": "wallet_revokePermissions",
-      "params": [
+      method: "wallet_revokePermissions",
+      params: [
         {
-          eth_accounts: {}
-        }
+          eth_accounts: {},
+        },
       ],
     });
     toast.current({
@@ -208,9 +215,17 @@ export const MetaMaskWalletProvider = ({
         const codeChallengePKARMBigInt = BigInt(codeChallange);
         const credentialAttestationBigNumberIsh: BigNumberish =
           codeChallengePKARMBigInt;
-        const tx = await contract.lockTokens(credentialAttestationBigNumberIsh, {
-          value: ethers.parseEther(amount.toString()),
-
+        const tx = await contract.lockTokens(
+          credentialAttestationBigNumberIsh,
+          {
+            value: ethers.parseEther(amount.toString()),
+          }
+        );
+        toast.current({
+          type: "notification",
+          title: "Success",
+          description:
+            "Transaction sent successfully - waiting on confirmation!",
         });
 
         //show toast for transaction pending
@@ -223,7 +238,7 @@ export const MetaMaskWalletProvider = ({
           title: "Success",
           description: "Tokens locked successfully!",
         });
-        return receipt.blockNumber
+        return receipt.blockNumber;
       } catch (error) {
         console.error("Error calling lockTokens:", error);
         toast.current({

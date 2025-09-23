@@ -1,25 +1,15 @@
-
 "use client";
 import TextInput from "@/components/ui/TextInput.tsx";
 import { makeKeyPairLSKey } from "@/helpers/localStorage.ts";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
-import { useEffect } from "react";
+import { useEffect, ReactNode } from "react";
 import { useForm } from "react-hook-form";
 
 type FormValues = {
   amount: string;
 };
-
-function getLockTokensButtonLabel(
-  mintWorker: { isCompilingContracts: () => boolean; contractsAreCompiled: () => boolean } | null | undefined
-): string {
-  if (!mintWorker) return "Lock Tokens";
-  if (mintWorker.isCompilingContracts()) return "Compiling Contracts...";
-  if (mintWorker.contractsAreCompiled()) return "Contracts Compiled";
-  return "Lock Tokens";
-}
 
 const LockTokens = () => {
   const { lockTokens, signMessage } = useMetaMaskWallet();
@@ -31,17 +21,54 @@ const LockTokens = () => {
     formState: { errors },
   } = useForm<FormValues>();
 
+  const getLockTokensButtonLabel = (
+    mintWorker:
+      | {
+          isCompilingContracts: () => boolean;
+          contractsAreCompiled: () => boolean;
+        }
+      | null
+      | undefined
+  ): ReactNode => {
+    if (!mintWorker) return <div>{"Lock Tokens"}</div>;
+    if (mintWorker.isCompilingContracts())
+      return (
+        <div className="flex flex-row justify-center items-center gap-2">
+          {"Compiling Contracts..."}
+          <span className="relative flex size-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lightGreen opacity-75"></span>
+            <span className="relative inline-flex size-3 rounded-full bg-lightGreen"></span>
+          </span>
+        </div>
+      );
+    if (mintWorker.contractsAreCompiled())
+      return <div>{"Contracts Compiled"}</div>;
+    return <div>{"Lock Tokens"}</div>;
+  };
+
   const onSubmit = async (data: FormValues) => {
     try {
       const amount = parseFloat(data.amount);
       if (!isNaN(amount) && amount >= 0.00000001) {
         // THIS IS BUGGY worker might not have spawned before the submit button is clicked
         const worker = state.context.mintWorker;
-        if (!worker) throw new Error("Worker not ready but called submit anyway");
-        const signatureFromUser = await signMessage(worker!.fixedValueOrSecret!);
+        if (!worker)
+          throw new Error("Worker not ready but called submit anyway");
+        const signatureFromUser = await signMessage(
+          worker!.fixedValueOrSecret!
+        );
         await worker.ready();
-        const codeVerify = await worker.getCodeVerifyFromEthSignature(signatureFromUser.signature);
-        window.localStorage.setItem(makeKeyPairLSKey("codeVerifier", worker.ethWalletPubKeyBase58, worker.minaWalletPubKeyBase58), codeVerify);
+        const codeVerify = await worker.getCodeVerifyFromEthSignature(
+          signatureFromUser.signature
+        );
+        window.localStorage.setItem(
+          makeKeyPairLSKey(
+            "codeVerifier",
+            worker.ethWalletPubKeyBase58,
+            worker.minaWalletPubKeyBase58
+          ),
+          codeVerify
+        );
         const codeChallange = await worker.createCodeChallenge(codeVerify);
         const blockNubmer = await lockTokens(codeChallange, amount);
         setDepositNumber(blockNubmer);

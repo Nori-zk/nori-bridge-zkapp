@@ -42,10 +42,13 @@ export default function Home() {
               {ethConnected && minaConnected && <ScrollingWSS />}
             </div>
             {/* <DepositMintTestUI /> */}
-
             <div className="relative inline-block">
               <BridgeControlCard
-                title={"First connect wallets"}
+                title={
+                  ethConnected && minaConnected
+                    ? "Start locking your ETH"
+                    : "First connect wallets"
+                }
                 width={"780"}
                 height={"450"}
               />
