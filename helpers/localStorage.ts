@@ -1,21 +1,5 @@
 "client";
 
-// localStorage utils --------------------------------------------------------------------------------------
-
-// Storage helpers (safe SSR), this is silly, the server could never pre-render this in a meaningful way.
-// This file is now marked as client-only, so the `typeof window !== "undefined"`
-// checks are unnecessary. You can safely access localStorage directly.
-/*export const localStorage = {
-  get: (k: string): string | null =>
-    typeof window === "undefined" ? null : window.localStorage.getItem(k),
-  set: (k: string, v: string) => {
-    if (typeof window !== "undefined") window.localStorage.setItem(k, v);
-  },
-  del: (k: string) => {
-    if (typeof window !== "undefined") window.localStorage.removeItem(k);
-  },
-};*/
-
 // Local storage fixed keys
 export const LS_KEYS = {
   activeDepositNumber: "activeDepositNumber",
@@ -77,7 +61,7 @@ export const resetLocalStorage = () => {
 
 // Local storage key generators
 
-export function storageIsSetupAndFinalizedForCurrentMinaKey (minaSenderPublicKeyBase58?: string) {
+export function storageIsSetupAndFinalizedForCurrentMinaKey(minaSenderPublicKeyBase58?: string) {
   if (!minaSenderPublicKeyBase58) throw new Error(`MinaSenderPublicKeyBase58 should have be defined by now`);
   const needsToSetupStorage = localStorage.getItem(makeMinaLSKey('needsToSetupStorage', minaSenderPublicKeyBase58)); // This key is either set to false or absent (will return null therefore)
   return needsToSetupStorage === "false"; // If we are specifically told by localStorage that for this mina key we have setup storage then we dont need to again and can skip
