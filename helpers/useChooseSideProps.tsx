@@ -33,7 +33,12 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
         <RedBackgroundLightLeft className="absolute left-0 top-0 h-full w-1/2" />
       ),
       bottomShadowSvg: <RedBottomShadow className="bottom-0 w-full" />,
-      mainImage: <RedSide className="w-20 h-20" />,
+      mainImage: (
+        //using inline styles to control size as svg import not responding to tailwind width/height classes
+        <div style={{ width: "60%", height: "80%" }}>
+          <RedSide />
+        </div>
+      ),
       textValue: "370 Members",
       joinButtonClass: "bg-red-500 hover:bg-blue-600 text-white",
     };
@@ -45,7 +50,11 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
       ),
       leftBgSvg: <GreenBackgroundLightLeft className="left-0 top-0 h-full" />,
       bottomShadowSvg: <GreenBottomShadow className="bottom-0 w-full" />,
-      mainImage: <GreenSide className="w-35 h-35" />,
+      mainImage: (
+        <div style={{ width: "60%", height: "80%" }}>
+          <GreenSide />
+        </div>
+      ),
       textValue: "Join the green Side",
       joinButtonClass: "bg-red-500 hover:bg-red-600 text-white",
     };
@@ -59,7 +68,11 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
         <BlueBackgroundLightLeft className="absolute left-0 top-0 h-full w-1/2" />
       ),
       bottomShadowSvg: <BlueBottomShadow className=" bottom-0 w-full" />,
-      mainImage: <BlueSide className="w-35 h-35" />,
+      mainImage: (
+        <div style={{ width: "60%", height: "80%" }}>
+          <BlueSide />
+        </div>
+      ),
       textValue: "160 Members",
       joinButtonClass: "bg-red-500 hover:bg-red-600 text-white",
     };
