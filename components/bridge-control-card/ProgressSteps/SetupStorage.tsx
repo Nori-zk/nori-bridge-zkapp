@@ -1,42 +1,34 @@
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
+import { useEffect } from "react";
+import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 
 const SetupStorage = () => {
-
   const { state } = useNoriBridge();
+  const { dispatch } = useProgress();
 
+  useEffect(() => {
+    if (state.value == "monitoringDepositStatus") {
+      console.log("Are we in this useEffect - 2?");
 
-  const sendTransaction = async (tx: string) => {
-    const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
-    const memo = 'Setting up storage'
-    const onlySign = false
-    // Should we be using useSendSignedTransaction here?
-    const result = await window.mina?.sendTransaction({
-      onlySign: onlySign,
-      transaction: tx,
-      feePayer: {
-        fee: fee,
-        memo: memo,
-      },
-    });
-    console.log("sendTransaction result: ", result);
-  }
+      dispatch({
+        type: "NEXT_STEP",
+        payload: { nextStep: "monitor_deposit" },
+      });
+    }
+  }, [state.value]);
 
   return (
-    <button
-      // should be disabled if we are in the process of settting up storage
-      className="mt-6 w-full text-white rounded-lg px-4 py-3 border-white border-[1px]"
-      // this is now redundant
-      /*onClick={async () => {
-        if (state.context.setupStorageTransaction) {
-          // console.log("setupStorageTransaction changed - this from NoriProvider: ", state.context.setupStorageTransaction);
-          sendTransaction(state.context.setupStorageTransaction)
-        }
-      }}*/
-      disabled={true} // !state.context.setupStorageTransaction
-    >
-      {"Setup Storage"}
-    </button>
-  )
-}
+    //TODO add retry button when user rejects setup transaction
+    <div className="flex flex-row justify-center items-center gap-2">
+      {state.value == "waitForStorageSetupFinalization"
+        ? "Waiting for Mina transaction confirmation"
+        : "Checking storage"}
+      <span className="relative flex size-3">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lightGreen opacity-75"></span>
+        <span className="relative inline-flex size-3 rounded-full bg-lightGreen"></span>
+      </span>
+    </div>
+  );
+};
 
 export default SetupStorage;

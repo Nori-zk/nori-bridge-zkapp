@@ -4,7 +4,10 @@ export type ChooseSideTypes = "red" | "green" | "blue";
 export type ProgressStep =
   | "lock_tokens"
   | "get_locked_tokens"
-  | "setup_storage";
+  | "setup_storage"
+  | "monitor_deposit"
+  | "complete"
+  | "pick_your_side";
 
 export interface ProgressState {
   currentStep: ProgressStep;

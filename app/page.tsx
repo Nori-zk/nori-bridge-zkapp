@@ -17,13 +17,13 @@ import ChooseSides from "@/components/choose-side/ChooseSides.tsx";
 import { useBridgeControlCardProps } from "@/helpers/useBridgeControlCardProps.tsx";
 import LockTokens from "@/components/bridge-control-card/ProgressSteps/LockTokens.tsx";
 import GetLockedTokens from "@/components/bridge-control-card/ProgressSteps/GetLockedTokens.tsx";
-import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
+// import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
 import { ProgressStep } from "@/types/types.ts";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 
 const stepComponents: Record<ProgressStep, React.ComponentType> = {
   lock_tokens: LockTokens,
-  setup_storage: SetupStorage,
+  // setup_storage: SetupStorage,
   get_locked_tokens: GetLockedTokens,
 };
 
@@ -86,7 +86,7 @@ export default function Home() {
               show={!ethConnected || !minaConnected}
             />
           </div>
-          <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
+          {/* <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
             Powered by{" "}
             <a
               href="https://www.coingecko.com/en/api"
@@ -97,7 +97,7 @@ export default function Home() {
             >
               CoinGecko API
             </a>
-          </div>
+          </div> */}
           <div className="flex w-full justify-center relative">
             <BottomShadows
               className="absolute bottom-[-100px] scale-[0.9]"

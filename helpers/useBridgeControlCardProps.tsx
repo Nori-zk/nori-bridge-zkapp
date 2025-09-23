@@ -4,6 +4,8 @@ import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWa
 import { useAccount } from "wagmina";
 import LockTokens from "@/components/bridge-control-card/ProgressSteps/LockTokens.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
+import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
+import DepositStatus from "@/components/bridge-control-card/ProgressSteps/DepositStatus.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -37,8 +39,14 @@ export function useBridgeControlCardProps(
   }
   if (currentStep === "setup_storage") {
     return {
-      title: "Setup Storage Title",
-      component: <div>Setup Storage Content</div>,
+      title: "Setting up storage",
+      component: ethConnected && minaConnected ? <SetupStorage /> : null,
+    };
+  }
+  if (currentStep === "monitor_deposit") {
+    return {
+      title: "Monitoring deposit status",
+      component: ethConnected && minaConnected ? <DepositStatus /> : null,
     };
   } else {
     return {

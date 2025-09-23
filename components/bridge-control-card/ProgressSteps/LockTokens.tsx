@@ -1,6 +1,6 @@
 "use client";
 import TextInput from "@/components/ui/TextInput.tsx";
-import { makeKeyPairLSKey } from "@/helpers/localStorage.ts";
+import { makeKeyPairLSKey, makeMinaLSKey } from "@/helpers/localStorage.ts";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
@@ -93,12 +93,28 @@ const LockTokens = () => {
 
   useEffect(() => {
     if (state.context.setupStorageTransaction) {
+      console.log("Are we in this useEffect?");
+
       dispatch({
         type: "NEXT_STEP",
         payload: { nextStep: "setup_storage" },
       });
     }
-  }, [state.context.setupStorageTransaction]);
+
+    if (
+      !!localStorage.getItem(
+        makeMinaLSKey(
+          "needsToSetupStorage",
+          state.context.mintWorker?.minaWalletPubKeyBase58!
+        )
+      )
+    ) {
+      dispatch({
+        type: "NEXT_STEP",
+        payload: { nextStep: "monitor_deposit" },
+      });
+    }
+  }, [state.value]);
 
   return (
     <>

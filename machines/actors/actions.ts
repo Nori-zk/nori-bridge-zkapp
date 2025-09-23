@@ -78,13 +78,35 @@ export const computeEthProof = fromPromise(
       depositBlockNumber: number;
     };
   }) => {
-    const codeVerify = localStorage.getItem(
+    let codeVerify = localStorage.getItem(
       makeKeyPairLSKey(
         "codeVerifier",
         input.worker.ethWalletPubKeyBase58,
         input.worker.minaWalletPubKeyBase58
       )
     );
+
+    if (codeVerify === null) {
+      const signature = await window.ethereum.request({
+        method: "personal_sign",
+        params: [
+          input.worker.fixedValueOrSecret,
+          input.worker.ethWalletPubKeyBase58!,
+        ],
+      });
+      const createdCodeVerify =
+        await input.worker.getCodeVerifyFromEthSignature(signature);
+      window.localStorage.setItem(
+        makeKeyPairLSKey(
+          "codeVerifier",
+          input.worker.ethWalletPubKeyBase58,
+          input.worker.minaWalletPubKeyBase58
+        ),
+        createdCodeVerify
+      );
+      codeVerify = createdCodeVerify;
+    }
+
     const codeChallange = await input.worker.createCodeChallenge(codeVerify!);
     console.log("about to computeEthProof with codeChallange", codeChallange);
     const ethProof =
