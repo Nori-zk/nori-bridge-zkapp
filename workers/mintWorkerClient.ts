@@ -93,13 +93,7 @@ export default class ZkappMintWorkerClient {
     minaDefaultHeaders?: HeadersInit;
     archiveDefaultHeaders?: HeadersInit;
   }) {
-    try {
-      this.ensureWorkerHealth();
-
-      return this.#mintWorker.minaSetup(options);
-    } catch (error) {
-      console.error("Error in minaSetup:", error);
-    }
+    return this.#mintWorker.minaSetup(options);
   }
   // PKARM
   async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
@@ -177,24 +171,19 @@ export default class ZkappMintWorkerClient {
   }
 
   async setupStorage() {
-    try {
-      await this.compileIfNeeded();
-      // Get a json string of the proved setup storage transaction.
-      const provedSetupTxStr = await this.#mintWorker.setupStorage(
-        this.minaWalletPubKeyBase58,
-        noriTokenControllerAddressBase58,
-        0.1 * 1e9,
-        this.#noriStorageInterfaceVerificationKeySafe!
-      );
-      console.log(
-        "provedSetupTxStr in mintWorkerClient",
-        provedSetupTxStr.length
-      );
-      return provedSetupTxStr;
-    } catch (error) {
-      console.error("Error in setupStorage:", error);
-    }
-    // return 'a'
+    await this.compileIfNeeded();
+    // Get a json string of the proved setup storage transaction.
+    const provedSetupTxStr = await this.#mintWorker.setupStorage(
+      this.minaWalletPubKeyBase58,
+      noriTokenControllerAddressBase58,
+      0.1 * 1e9,
+      this.#noriStorageInterfaceVerificationKeySafe!
+    );
+    console.log(
+      "provedSetupTxStr in mintWorkerClient",
+      provedSetupTxStr.length
+    );
+    return provedSetupTxStr;
   }
 
   async computeDepositAttestationWitnessAndEthVerifier(

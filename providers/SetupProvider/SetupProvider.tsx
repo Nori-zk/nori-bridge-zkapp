@@ -1,3 +1,4 @@
+"client"
 import { getReconnectingBridgeSocket$ } from "@nori-zk/mina-token-bridge/rx/socket";
 import {
   getBridgeStateTopic$,
