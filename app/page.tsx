@@ -8,7 +8,6 @@ import ScrollingWSS from "@/components/panels/ScrollingWSS/ScrollingWSS.tsx";
 import { useAccount } from "wagmina";
 // import Notification from "@/components/ui/Notification/Notification.tsx";
 // import Flip from "@/public/assets/Flip.svg";
-import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import Notification from "@/components/ui/Notification/Notification.tsx";
 import Flip from "@/public/assets/Flip.svg";
 import { DepositMintTestUI } from "@/components/DepositMintTestUI.tsx";
@@ -20,6 +19,7 @@ import GetLockedTokens from "@/components/bridge-control-card/ProgressSteps/GetL
 // import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
 import { ProgressStep } from "@/types/types.ts";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 
 const stepComponents: Record<ProgressStep, React.ComponentType> = {
   lock_tokens: LockTokens,
@@ -36,6 +36,7 @@ export default function Home() {
   const { title, component } = useBridgeControlCardProps(
     progressState.currentStep
   );
+  const { state: bridgeState } = useNoriBridge();
 
   return (
     <div className="h-full w-full bg-[radial-gradient(50%_100%_at_50%_0%,theme('colors.darkGreen')_1.31%,theme('colors.veryDarkGreen')_100%)]">
@@ -60,10 +61,14 @@ export default function Home() {
             {/* <DepositMintTestUI /> */}
             <div className="relative inline-block">
               <BridgeControlCard
-                title={title}
+                title={
+                  ethConnected && minaConnected
+                    ? title
+                    : "First connect wallets"
+                }
                 width={"780"}
                 height={"450"}
-                content={component}
+                content={ethConnected && minaConnected ? component : null}
               />
               {/* <button
                 onClick={() => console.log("Flip pressed")}
@@ -98,6 +103,13 @@ export default function Home() {
               CoinGecko API
             </a>
           </div> */}
+
+          {bridgeState.context.mintWorker?.areContractCompiled() && (
+            <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
+              {`Contracts compiled in: ${bridgeState.context.mintWorker?.getLastCompileTimeSeconds()}s`}
+            </div>
+          )}
+
           <div className="flex w-full justify-center relative">
             <BottomShadows
               className="absolute bottom-[-100px] scale-[0.9]"
