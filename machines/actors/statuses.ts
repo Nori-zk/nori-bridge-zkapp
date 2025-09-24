@@ -1,11 +1,5 @@
-import {
-  fromObservable,
-  ObservableSnapshot,
-  SnapshotEvent
-} from "xstate";
-import {
-  getDepositProcessingStatus$,
-} from "@nori-zk/mina-token-bridge/rx/deposit";
+import { fromObservable, ObservableSnapshot, SnapshotEvent } from "xstate";
+import { getDepositProcessingStatus$ } from "@nori-zk/mina-token-bridge/rx/deposit";
 import {
   type getBridgeStateTopic$,
   type getBridgeTimingsTopic$,
@@ -29,10 +23,7 @@ export type DepositProcessingValue = ObservableValue<
 >;
 
 export type DepositProcessingInput = {
-  depositBlockNumber: number;
-  ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-  bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
+  depositProcessingStatus$: ReturnType<typeof getDepositProcessingStatus$>;
 };
 
 export type DepositProcessingSnapshot = ObservableSnapshot<
@@ -47,18 +38,10 @@ export const depositProcessingStatusActor = fromObservable(
     input,
   }: {
     input: {
-      depositBlockNumber: number;
-      ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-      bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-      bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
+      depositProcessingStatus$: ReturnType<typeof getDepositProcessingStatus$>;
     };
   }) => {
-    return getDepositProcessingStatus$(
-      input.depositBlockNumber,
-      input.ethStateTopic$,
-      input.bridgeStateTopic$,
-      input.bridgeTimingsTopic$
-    );
+    return input.depositProcessingStatus$;
   }
 );
 
@@ -95,7 +78,6 @@ const getBridgeStageWithCountdown$ = (
     shareReplay(1)
   );
 };
-
 
 // Deposit processing actor types
 export type BridgeStageValue = ObservableValue<

@@ -11,11 +11,6 @@ import {
   switchMap,
 } from "rxjs";
 import {
-  type getBridgeStateTopic$,
-  type getBridgeTimingsTopic$,
-  type getEthStateTopic$,
-} from "@nori-zk/mina-token-bridge/rx/topics";
-import {
   getDepositProcessingStatus$,
   getCanMint$,
   getCanComputeEthProof$,
@@ -27,20 +22,10 @@ export const canComputeEthProofActor = fromObservable(
     input,
   }: {
     input: {
-      depositBlockNumber: number;
-      ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-      bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-      bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
+      depositProcessingStatus$: ReturnType<typeof getDepositProcessingStatus$>;
     };
   }) => {
-    return getCanComputeEthProof$(
-      getDepositProcessingStatus$(
-        input.depositBlockNumber,
-        input.ethStateTopic$,
-        input.bridgeStateTopic$,
-        input.bridgeTimingsTopic$
-      )
-    );
+    return getCanComputeEthProof$(input.depositProcessingStatus$);
   }
 );
 
@@ -49,20 +34,10 @@ export const canMintActor = fromObservable(
     input,
   }: {
     input: {
-      depositBlockNumber: number;
-      ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-      bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-      bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
+      depositProcessingStatus$: ReturnType<typeof getDepositProcessingStatus$>;
     };
   }) => {
-    return getCanMint$(
-      getDepositProcessingStatus$(
-        input.depositBlockNumber,
-        input.ethStateTopic$,
-        input.bridgeStateTopic$,
-        input.bridgeTimingsTopic$
-      )
-    );
+    return getCanMint$(input.depositProcessingStatus$);
   }
 );
 
