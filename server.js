@@ -10,7 +10,7 @@ app.use(express.static(path.resolve('out'), {
   setHeaders: (res, filePath) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin'); // 🔑 required for workers
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin'); // required for workers - check its probably not needed....
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');

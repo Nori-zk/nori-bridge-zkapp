@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
+import TerserPlugin from "terser-webpack-plugin";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -10,18 +10,43 @@ const nextConfig = {
   experimental: {
     esmExternals: true,
   },
-  output: 'export',
-   typescript: {
+  output: "export",
+  typescript: {
     ignoreBuildErrors: true,
   },
   webpack(config, { isServer }) {
     if (!isServer) {
+      // Dont this this is actually needed anymore but leaving it here. See https://docs.o1labs.org/o1js/tutorials/frontent-integration-guides/next#initialize-the-project
       config.resolve.alias = {
         ...config.resolve.alias,
         o1js: path.resolve(__dirname, "node_modules/o1js/dist/web/index.js"),
       };
     } else {
       config.externals.push("o1js"); // https://nextjs.org/docs/app/api-reference/next-config-js/serverExternalPackages
+    }
+
+    if (!isServer) {
+      // config.optimization.minimizer = true causes o1js Provable to be undefined. Use TerserPlugin instead seems to resolve those issues.
+      config.optimization.minimizer = [
+        new TerserPlugin(),
+        /*{
+          terserOptions: {
+            compress: {
+              passes: 3,
+              drop_console: false,
+              unsafe: true,
+            },
+            mangle: {
+              toplevel: true,
+            },
+            format: {
+              comments: false,
+              beautify: false,
+            },
+          },
+          extractComments: true,
+        }*/
+      ];
     }
 
     config.module.rules.push({
