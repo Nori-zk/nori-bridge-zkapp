@@ -93,14 +93,11 @@ export default class ZkappMintWorkerClient {
     minaDefaultHeaders?: HeadersInit;
     archiveDefaultHeaders?: HeadersInit;
   }) {
+    this.ensureWorkerHealth();
     return this.#mintWorker.minaSetup(options);
   }
   // PKARM
   async getCodeVerifyFromEthSignature(ethSignatureSecret: string) {
-    console.log(
-      "getCodeVerifyFromEthSignature called with:",
-      ethSignatureSecret
-    );
     this.ensureWorkerHealth();
     return this.#mintWorker.PKARM_obtainCodeVerifierFromEthSignature(
       ethSignatureSecret

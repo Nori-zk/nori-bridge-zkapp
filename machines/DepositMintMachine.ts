@@ -7,7 +7,7 @@ import {
   getEthStateTopic$,
 } from "@nori-zk/mina-token-bridge/rx/topics";
 import {
-  getDepositProcessingStatus$,
+  //getDepositProcessingStatus$,
   getCanMint$,
   getCanComputeEthProof$,
 } from "@nori-zk/mina-token-bridge/rx/deposit";
@@ -35,7 +35,8 @@ import {
   submitMintTx,
   submitSetupStorage,
 } from "@/machines/actors/actions.ts";
-
+import _ from "@/node_modules/xstate/dist/declarations/src/guards.js"; // this is just to supress the xstate guards ref needed.
+import { getDepositProcessingStatus$ } from "./obs/getDepositProcessingStatus$.ts";
 // Commonly used invoke procedures
 
 // This invoke entry will update the machine context when the deposit status changes can be used in any node.
@@ -44,10 +45,7 @@ const invokeMonitoringDepositStatus = {
   src: "depositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
     ({
-      depositBlockNumber: context.activeDepositNumber!,
-      ethStateTopic$: context.ethStateTopic$!,
-      bridgeStateTopic$: context.bridgeStateTopic$!,
-      bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+      depositProcessingStatus$: context.depositProcessingStatus$!,
     } as const),
   onSnapshot: {
     actions: assign<
@@ -68,6 +66,17 @@ const invokeMonitoringDepositStatus = {
   } as const,
 };
 
+// Get deposit processing status
+
+function getDepositProcessingStatus(context: DepositMintContext) {
+  return getDepositProcessingStatus$(
+    context.activeDepositNumber!,
+    context.ethStateTopic$,
+    context.bridgeStateTopic$,
+    context.bridgeTimingsTopic$
+  );
+}
+
 // Machine types -----------------------------------------------------------------------
 
 // Machine Context
@@ -81,6 +90,9 @@ export interface DepositMintContext {
   ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
   bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
   bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
+  depositProcessingStatus$: ReturnType<
+    typeof getDepositProcessingStatus$
+  > | null;
 
   // Observable statuses
   processingStatus: ObservableValue<
@@ -141,7 +153,8 @@ export const getDepositMachine = (
       isMissedOpportunity: ({ context }) =>
         context.canComputeStatus === "MissedMintingOpportunity" ||
         context.canMintStatus === "MissedMintingOpportunity" ||
-        context.processingStatus?.deposit_processing_status == "MissedMintingOpportunity",
+        context.processingStatus?.deposit_processing_status ==
+          "MissedMintingOpportunity",
 
       storageIsSetupAndFinalizedForCurrentMinaKeyGuard: ({ context }) =>
         storageIsSetupAndFinalizedForCurrentMinaKey(
@@ -183,6 +196,7 @@ export const getDepositMachine = (
       ethStateTopic$: topics.ethStateTopic$,
       bridgeStateTopic$: topics.bridgeStateTopic$,
       bridgeTimingsTopic$: topics.bridgeTimingsTopic$,
+      depositProcessingStatus$: null,
 
       // Statuses
       processingStatus: null,
@@ -276,6 +290,8 @@ export const getDepositMachine = (
             processingStatus: () => null as null,
             canComputeStatus: () => null as null,
             canMintStatus: () => null as null,
+            depositProcessingStatus$: ({ context }) =>
+              getDepositProcessingStatus(context),
             errorMessage: null,
           }),
         ],
@@ -409,28 +425,27 @@ export const getDepositMachine = (
       // submitSetupStorageTx requires user interaction
       // FIXME note that this is not sufficient for the machine we should either on error go back to setupStorage or submitSetupStorageTx
       // We need to actually inspect the error to know what to do and perhaps have a decision node for this.
-      submitSetupStorageTx : {
+      submitSetupStorageTx: {
         entry: log("Entering submitSetupStorageTx 🚀"),
         invoke: [
           invokeMonitoringDepositStatus,
           {
             src: "submitSetupStorage",
-            input: ({context}) => ({
-              setupStorageTx: context.setupStorageTransaction!
+            input: ({ context }) => ({
+              setupStorageTx: context.setupStorageTransaction!,
             }),
             onDone: {
-              target: "waitForStorageSetupFinalization"
+              target: "waitForStorageSetupFinalization",
             },
             onError: {
               target: "setupStorage",
-               actions: assign({
+              actions: assign({
                 errorMessage: "Failed to submit storage",
               }),
-            }
-          }
+            },
+          },
         ],
       }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
-
 
       // Keep polling needsToSetupStorage on chain in the worker until it return false indicating storage is setup
       waitForStorageSetupFinalization: {
@@ -500,10 +515,7 @@ export const getDepositMachine = (
             id: "canComputeEthProof",
             src: "canComputeEthProofActor",
             input: ({ context }) => ({
-              depositBlockNumber: context.activeDepositNumber!,
-              ethStateTopic$: context.ethStateTopic$!,
-              bridgeStateTopic$: context.bridgeStateTopic$!,
-              bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+              depositProcessingStatus$: context.depositProcessingStatus$!,
             }),
             onSnapshot: {
               actions: assign({
@@ -518,10 +530,7 @@ export const getDepositMachine = (
             id: "canMint",
             src: "canMintActor",
             input: ({ context }) => ({
-              depositBlockNumber: context.activeDepositNumber!,
-              ethStateTopic$: context.ethStateTopic$!,
-              bridgeStateTopic$: context.bridgeStateTopic$!,
-              bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+              depositProcessingStatus$: context.depositProcessingStatus$!,
             }),
             onSnapshot: {
               actions: assign({
@@ -567,7 +576,7 @@ export const getDepositMachine = (
                   return proof;
                 },
               }),
-              target: "hasComputedEthProof"
+              target: "hasComputedEthProof",
             },
             onError: {
               target: "error",
@@ -595,10 +604,7 @@ export const getDepositMachine = (
           {
             src: "canMintActor",
             input: ({ context }) => ({
-              depositBlockNumber: context.activeDepositNumber!,
-              ethStateTopic$: context.ethStateTopic$!,
-              bridgeStateTopic$: context.bridgeStateTopic$!,
-              bridgeTimingsTopic$: context.bridgeTimingsTopic$!,
+              depositProcessingStatus$: context.depositProcessingStatus$!,
             }),
             onSnapshot: {
               actions: assign({
