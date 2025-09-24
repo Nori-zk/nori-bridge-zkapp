@@ -17,3 +17,24 @@ export interface ProgressState {
 export type ProgressAction =
   | { type: "NEXT_STEP"; payload: { nextStep: ProgressStep } }
   | { type: "RESET" };
+
+// Define specific state values as literal types
+export type DepositStates =
+  | "hydrating"
+  | "checking"
+  | "noActiveDepositNumber"
+  | "hasActiveDepositNumber"
+  | "needsToCheckSetupStorageOrWaitingForStorageSetupFinalization"
+  | "setupStorageOnChainCheck"
+  | "setupStorage"
+  | "submitSetupStorageTx"
+  | "waitForStorageSetupFinalization"
+  | "monitoringDepositStatus"
+  | "computeEthProof"
+  | "hasComputedEthProof"
+  | "buildingMintTx"
+  | "hasDepositMintTx"
+  | "submittingMintTx"
+  | "error"
+  | "missedOpportunity"
+  | "completed";
