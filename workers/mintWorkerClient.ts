@@ -40,12 +40,13 @@ export default class ZkappMintWorkerClient {
   #terminated = false;
   #noriStorageInterfaceVerificationKeySafe:
     | {
-        data: string;
-        hashStr: string;
-      }
+      data: string;
+      hashStr: string;
+    }
     | undefined;
   #compiling = false;
   #compiled = false;
+  #compileTimeSeconds = 0;
   minaWalletPubKeyBase58: string;
   ethWalletPubKeyBase58: string;
   fixedValueOrSecret: string;
@@ -79,10 +80,11 @@ export default class ZkappMintWorkerClient {
   ready() {
     return this.#ready;
   }
-  // async setWallets(minaWalletPubKeyBase58: string, ethWalletPubKeyBase58: string,optionalSecret = 'NoriZK') {
-  //   this.minaWalletPubKeyBase58 = minaWalletPubKeyBase58;
-  //   this.ethWalletPubKeyBase58 = ethWalletPubKeyBase58;
-  // }
+
+  setWallets(minaWalletPubKeyBase58?: string, ethWalletPubKeyBase58?: string) {
+    this.minaWalletPubKeyBase58 = minaWalletPubKeyBase58 || this.minaWalletPubKeyBase58;
+    this.ethWalletPubKeyBase58 = ethWalletPubKeyBase58 || this.ethWalletPubKeyBase58;
+  }
 
   async minaSetup(options: {
     networkId?: NetworkId;
@@ -135,7 +137,7 @@ export default class ZkappMintWorkerClient {
   private async compile() {
     this.#compiling = true;
     if (this.#noriStorageInterfaceVerificationKeySafe) return;
-
+    const start = performance.now();
     const compileResolver = this.#mintWorker.compileAll();
     this.compiledResolver = compileResolver;
     const {
@@ -144,6 +146,10 @@ export default class ZkappMintWorkerClient {
       noriTokenControllerVerificationKeySafe,
       fungibleTokenVerificationKeySafe,
     } = await compileResolver;
+    const end = performance.now();
+    const elapsedSeconds = ((end - start) / 1000).toFixed(2);
+    console.log(`Compilation took ${elapsedSeconds} seconds.`);
+    this.#compileTimeSeconds = parseFloat(elapsedSeconds);
 
     console.log(
       "ethVerifierVerificationKeySafe",
@@ -265,5 +271,8 @@ export default class ZkappMintWorkerClient {
     } else {
       return false;
     }
+  }
+  getLastCompileTimeSeconds() {
+    return this.#compileTimeSeconds;
   }
 }
