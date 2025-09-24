@@ -1,12 +1,12 @@
 "use client";
 import TextInput from "@/components/ui/TextInput.tsx";
-import { makeKeyPairLSKey, makeMinaLSKey } from "@/helpers/localStorage.ts";
+import { makeKeyPairLSKey } from "@/helpers/localStorage.ts";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
-import { useEffect, ReactNode, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useToast } from "@/helpers/useToast.tsx";
+import { getContractCompileLabel } from "@/helpers/useBridgeControlCardProps.tsx";
 
 type FormValues = {
   amount: string;
@@ -22,37 +22,6 @@ const LockTokens = () => {
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>();
-
-  const getLockTokensButtonLabel = (
-    mintWorker:
-      | {
-          isCompilingContracts: () => boolean;
-          contractsAreCompiled: () => boolean;
-        }
-      | null
-      | undefined
-  ): ReactNode => {
-    if (!mintWorker) return <div>{"Lock Tokens"}</div>;
-    if (mintWorker.isCompilingContracts() || locking)
-      return (
-        <div className="flex flex-row justify-center items-center gap-2">
-          {locking ? "Locking Tokens" : "Compiling Contracts"}
-          <span className="relative flex size-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lightGreen opacity-75"></span>
-            <span className="relative inline-flex size-3 rounded-full bg-lightGreen"></span>
-          </span>
-        </div>
-      );
-    if (mintWorker.contractsAreCompiled()) {
-      useToast({
-        type: "notification",
-        title: "Success",
-        description: "Contracts compiled successfully!",
-      });
-      return <div>{"Contracts Compiled "}</div>;
-    }
-    return <div>{"Lock Tokens"}</div>;
-  };
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -90,31 +59,6 @@ const LockTokens = () => {
       setLocking(false);
     }
   };
-
-  useEffect(() => {
-    if (state.context.setupStorageTransaction) {
-      console.log("Are we in this useEffect?");
-
-      dispatch({
-        type: "NEXT_STEP",
-        payload: { nextStep: "setup_storage" },
-      });
-    }
-
-    if (
-      !!localStorage.getItem(
-        makeMinaLSKey(
-          "needsToSetupStorage",
-          state.context.mintWorker?.minaWalletPubKeyBase58!
-        )
-      )
-    ) {
-      dispatch({
-        type: "NEXT_STEP",
-        payload: { nextStep: "monitor_deposit" },
-      });
-    }
-  }, [state.value]);
 
   return (
     <>
@@ -166,7 +110,7 @@ const LockTokens = () => {
               : "border-white"
           } border-[1px]`}
         >
-          {getLockTokensButtonLabel(state.context.mintWorker)}
+          {"Lock Tokens"}
         </button>
       </form>
     </>
