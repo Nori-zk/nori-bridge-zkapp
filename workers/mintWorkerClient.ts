@@ -40,12 +40,12 @@ export default class ZkappMintWorkerClient {
   #terminated = false;
   #noriStorageInterfaceVerificationKeySafe:
     | {
-      data: string;
-      hashStr: string;
-    }
+        data: string;
+        hashStr: string;
+      }
     | undefined;
   #compiling = false;
-  #compiled = false;
+  compiled = false;
   #compileTimeSeconds = 0;
   minaWalletPubKeyBase58: string;
   ethWalletPubKeyBase58: string;
@@ -82,8 +82,10 @@ export default class ZkappMintWorkerClient {
   }
 
   setWallets(minaWalletPubKeyBase58?: string, ethWalletPubKeyBase58?: string) {
-    this.minaWalletPubKeyBase58 = minaWalletPubKeyBase58 || this.minaWalletPubKeyBase58;
-    this.ethWalletPubKeyBase58 = ethWalletPubKeyBase58 || this.ethWalletPubKeyBase58;
+    this.minaWalletPubKeyBase58 =
+      minaWalletPubKeyBase58 || this.minaWalletPubKeyBase58;
+    this.ethWalletPubKeyBase58 =
+      ethWalletPubKeyBase58 || this.ethWalletPubKeyBase58;
   }
 
   async minaSetup(options: {
@@ -168,7 +170,7 @@ export default class ZkappMintWorkerClient {
       fungibleTokenVerificationKeySafe
     );
     this.#compiling = false;
-    this.#compiled = true;
+    this.compiled = true;
     this.#noriStorageInterfaceVerificationKeySafe =
       noriStorageInterfaceVerificationKeySafe;
   }
@@ -262,7 +264,7 @@ export default class ZkappMintWorkerClient {
     return this.#compiling;
   }
   contractsAreCompiled() {
-    return this.#compiled;
+    return this.compiled;
   }
 
   areContractCompiled() {
