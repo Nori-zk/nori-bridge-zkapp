@@ -108,7 +108,7 @@ export const MetaMaskWalletProvider = ({
       if (chainIdHex !== holesky_network_id) {
         toast.current({
           type: "error",
-          title: "Network Changed",
+          title: "Wrong Network",
           description: `Please ensure you are on the Holesky network`,
         });
         return;
