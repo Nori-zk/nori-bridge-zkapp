@@ -63,6 +63,8 @@ export const useMetaMaskWallet = (): MetaMaskWalletContextType => {
   return context;
 };
 
+const holesky_chain_id = "0x4268";
+
 export const MetaMaskWalletProvider = ({
   children,
 }: {
@@ -99,6 +101,20 @@ export const MetaMaskWalletProvider = ({
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
+
+      const network = (await provider.getNetwork()).chainId;
+      const chainIdHex = "0x" + network.toString(16);
+
+      //on connect attempt if not holesky,return
+      if (chainIdHex !== holesky_chain_id) {
+        toast.current({
+          type: "error",
+          title: "Network Changed",
+          description: `Please ensure you are on the Holesky network`,
+        });
+        return;
+      }
+
       if (accounts.length > 0) {
         const signer = await provider.getSigner();
         const address = accounts[0];
@@ -125,24 +141,28 @@ export const MetaMaskWalletProvider = ({
   }, [initializeContract, toast]);
 
   const disconnect = useCallback(async () => {
+    if (!isConnected) return;
+
     setWalletAddress(null);
     setIsConnected(false);
     setSigner(null);
     setContract(null);
-    await window.ethereum.request({
-      method: "wallet_revokePermissions",
-      params: [
-        {
-          eth_accounts: {},
-        },
-      ],
-    });
+
+    try {
+      await window.ethereum.request({
+        method: "wallet_revokePermissions",
+        params: [{ eth_accounts: {} }],
+      });
+    } catch (err) {
+      console.warn("Failed to revoke permissions:", err);
+    }
+
     toast.current({
       type: "notification",
       title: "Disconnected",
       description: "Wallet disconnected successfully.",
     });
-  }, [toast]);
+  }, [isConnected, toast]);
 
   const signMessage = useCallback(
     async (message: string): Promise<SignMessageResult> => {
@@ -326,6 +346,34 @@ export const MetaMaskWalletProvider = ({
       window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
     };
   }, [walletAddress, disconnect, toast]);
+
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    const handleChainChanged = async (chainId: string) => {
+      if (chainId !== holesky_chain_id) {
+        toast.current({
+          type: "error",
+          title: "Network Changed",
+          description: `Please ensure you are on the Holesky network`,
+        });
+
+        disconnect();
+      } else {
+        toast.current({
+          type: "notification",
+          title: "Network Changed",
+          description: `Switched to Holesky network`,
+        });
+      }
+    };
+
+    window.ethereum.on("chainChanged", handleChainChanged);
+
+    return () => {
+      window.ethereum?.removeListener("chainChanged", handleChainChanged);
+    };
+  }, [connect, disconnect, toast]);
 
   const value = useMemo(
     () => ({
