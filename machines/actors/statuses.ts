@@ -1,5 +1,5 @@
 import { fromObservable, ObservableSnapshot, SnapshotEvent } from "xstate";
-import { getDepositProcessingStatus$ } from "@nori-zk/mina-token-bridge/rx/deposit";
+import { BridgeDepositProcessingStatus, getDepositProcessingStatus$ } from "@nori-zk/mina-token-bridge/rx/deposit";
 import {
   type getBridgeStateTopic$,
   type getBridgeTimingsTopic$,
@@ -16,32 +16,82 @@ import {
   switchMap,
   takeWhile,
 } from "rxjs";
+import { type DepositMintContext } from "../DepositMintMachine.ts";
+import { KeyTransitionStageMessageTypes, TransitionNoticeMessageType } from "@nori-zk/pts-types";
 
-// Deposit processing actor types
-export type DepositProcessingValue = ObservableValue<
-  ReturnType<typeof getDepositProcessingStatus$>
->;
 
-export type DepositProcessingInput = {
-  depositProcessingStatus$: ReturnType<typeof getDepositProcessingStatus$>;
+// Get deposit processing status
+// This state is responsible for driving the triggers (aka logic such as canMint and canCompute)
+export function getDepositProcessingStatus(context: DepositMintContext) {
+  return getDepositProcessingStatus$(
+    context.activeDepositNumber!,
+    context.ethStateTopic$,
+    context.bridgeStateTopic$,
+    context.bridgeTimingsTopic$
+  ).pipe(map((status) => {
+    const { deposit_processing_status } = status;
+    if (deposit_processing_status === BridgeDepositProcessingStatus.MissedMintingOpportunity) {
+      status.deposit_processing_status = BridgeDepositProcessingStatus.ReadyToMint;
+    }
+    return status;
+  }));
+}
+
+// This new replacement is so we can rename system event names with user friend names.....
+
+export const ReplacementStageName = ["Proving light client inside zkvm", "asdasdsd"] as const;
+export type ReplacementStageName = typeof ReplacementStageName[number];
+
+const replacementNamesMap: Record<KeyTransitionStageMessageTypes, ReplacementStageName> = {
+  [TransitionNoticeMessageType.BridgeHeadJobCreated]: "Proving light client inside zkvm",
+  [TransitionNoticeMessageType.BridgeHeadJobSucceeded]: "Proving light client inside zkvm"
 };
 
-export type DepositProcessingSnapshot = ObservableSnapshot<
-  DepositProcessingValue,
-  DepositProcessingInput
+export const ReplacementDepositProcessingStatus = ["Ready to mint"] as const;
+export type ReplacementDepositProcessingStatus = typeof ReplacementDepositProcessingStatus[number];
+
+export const replacementDepositStatus: Record<BridgeDepositProcessingStatus, ReplacementDepositProcessingStatus> = {
+  [BridgeDepositProcessingStatus.ReadyToMint]: "Ready to mint"
+};
+
+export function getCompressedDepositProcessingStatus$(depositProcessingStatus$: ReturnType<typeof getDepositProcessingStatus>) {
+  return depositProcessingStatus$.pipe(
+    map((status) => {
+      const { stage_name, deposit_processing_status, elapsed_sec, time_remaining_sec } = status;
+      const newStage = replacementNamesMap[stage_name];
+      const newStatus = replacementDepositStatus[deposit_processing_status];
+      return {...status, stage_name: newStage, deposit_processing_status: newStatus };
+    }),
+    // scan reduce.....
+  )
+}
+
+// Compressed deposit processing actor types 
+
+export type CompressedDepositProcessingValue = ObservableValue<
+  ReturnType<typeof getCompressedDepositProcessingStatus$>
 >;
 
-export type DepositSnapshotEvent = SnapshotEvent<DepositProcessingSnapshot>;
+export type CompressedDepositProcessingInput = {
+  compressedDepositProcessingStatus$: ReturnType<typeof getCompressedDepositProcessingStatus$>;
+};
 
-export const depositProcessingStatusActor = fromObservable(
+export type CompressedDepositProcessingSnapshot = ObservableSnapshot<
+  CompressedDepositProcessingValue,
+  CompressedDepositProcessingInput
+>;
+
+export type CompressedDepositSnapshotEvent = SnapshotEvent<CompressedDepositProcessingSnapshot>;
+
+export const compressedDepositProcessingStatusActor = fromObservable(
   ({
     input,
   }: {
     input: {
-      depositProcessingStatus$: ReturnType<typeof getDepositProcessingStatus$>;
+      compressedDepositProcessingStatus$: ReturnType<typeof getCompressedDepositProcessingStatus$>;
     };
   }) => {
-    return input.depositProcessingStatus$;
+    return input.compressedDepositProcessingStatus$;
   }
 );
 
