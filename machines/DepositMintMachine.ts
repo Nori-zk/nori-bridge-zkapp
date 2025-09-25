@@ -294,7 +294,7 @@ export const getDepositMachine = (
             canMintStatus: () => null as null,
             depositProcessingStatus$: ({ context }) =>
               getDepositProcessingStatus(context),
-            compressedDepositProcessingStatus$: ({context}) => getCompressedDepositProcessingStatus$(context.depositProcessingStatus$!),
+            compressedDepositProcessingStatus$: ({context}) => getCompressedDepositProcessingStatus$(context.depositProcessingStatus$!), // checkme if this isnt actually sequential then we will get undefined errors
 
             errorMessage: null,
           }),
