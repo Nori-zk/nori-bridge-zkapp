@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NoriBridgeProvider } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { SetupProvider } from "./SetupProvider/SetupProvider.tsx";
 import { ProgressProvider } from "./ProgressProvider/ProgressProvider.tsx";
+import { AuroWalletProvider } from "./AuroWalletProvider/AuroWalletProvider.tsx";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -16,19 +17,19 @@ const queryClient = new QueryClient();
 
 const Providers = ({ children }: AppProvidersProps) => {
   return (
-    <SetupProvider>
-      <MetaMaskWalletProvider>
-        <WagminaProvider config={config}>
-          <NoriBridgeProvider>
-            <ProgressProvider>
-              <QueryClientProvider client={queryClient}>
-                {children}
-              </QueryClientProvider>
-            </ProgressProvider>
-          </NoriBridgeProvider>
-        </WagminaProvider>
-      </MetaMaskWalletProvider>
-    </SetupProvider>
+    <QueryClientProvider client={queryClient}>
+      <SetupProvider>
+        <MetaMaskWalletProvider>
+          <WagminaProvider config={config}>
+            <AuroWalletProvider>
+              <NoriBridgeProvider>
+                <ProgressProvider>{children}</ProgressProvider>
+              </NoriBridgeProvider>
+            </AuroWalletProvider>
+          </WagminaProvider>
+        </MetaMaskWalletProvider>
+      </SetupProvider>
+    </QueryClientProvider>
   );
 };
 

@@ -2,9 +2,9 @@ import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWa
 import { WalletButtonTypes } from "@/types/types.ts";
 import Mina from "@/public/assets/Mina.svg";
 import Ethereum from "@/public/assets/Ethereum.svg";
-import { useAccount, useConnect, useConnectors, useDisconnect } from "wagmina";
+import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "./walletHelper.tsx";
-import { useMemo, useState } from "react";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 
 type WalletButtonUIProps = {
   bgClass: string;
@@ -20,35 +20,9 @@ export function useWalletButtonProps(
   content: string = "Connect Wallet"
 ): WalletButtonUIProps {
   const eth = useMetaMaskWallet();
-  const { disconnect } = useDisconnect();
   const { address, isConnected } = useAccount();
-  const { connectAsync: wagminaConnectAsync } = useConnect();
-  const connectors = useConnectors();
-  const walletConnector = useMemo(() => {
-    const walletId =
-      process.env.NEXT_PUBLIC_WALLET === "pallad"
-        ? "co.pallad"
-        : "com.aurowallet";
-    return connectors.find((c) => c.id === walletId);
-  }, [connectors.length]);
-  const [isConnectingWalletOpen, setIsConnectingWalletOpen] = useState(false);
-
+  const { isConnectingWalletOpen, connect, disconnect } = useAuroWallet();
   const isEthereum = type === "Ethereum";
-
-  const handleConnect = async () => {
-    if (walletConnector) {
-      setIsConnectingWalletOpen(true);
-      try {
-        await wagminaConnectAsync({
-          connector: walletConnector,
-        });
-      } catch (error) {
-        console.error("Failed to connect wallet:", error);
-      } finally {
-        setIsConnectingWalletOpen(false);
-      }
-    }
-  };
 
   if (isEthereum) {
     return {
@@ -67,7 +41,7 @@ export function useWalletButtonProps(
         ? formatDisplayAddress(address ?? "") || content
         : content,
       logo: <Mina title="Mina logo" className="scale-[0.65]" />,
-      onClick: () => (isConnected ? disconnect() : handleConnect()),
+      onClick: () => (isConnected ? disconnect() : connect()),
       isConnecting: isConnectingWalletOpen,
     };
   }
