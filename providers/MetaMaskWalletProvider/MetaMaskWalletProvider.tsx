@@ -15,7 +15,6 @@ import {
   ethers,
   Signer,
   BigNumberish,
-  TransactionResponse,
 } from "ethers";
 import { useToast } from "@/helpers/useToast.tsx";
 import { openExternalLink } from "@/helpers/navigation.tsx";
@@ -63,7 +62,7 @@ export const useMetaMaskWallet = (): MetaMaskWalletContextType => {
   return context;
 };
 
-const holesky_chain_id = "0x4268";
+const holesky_network_id = "0x4268";
 
 export const MetaMaskWalletProvider = ({
   children,
@@ -106,7 +105,7 @@ export const MetaMaskWalletProvider = ({
       const chainIdHex = "0x" + network.toString(16);
 
       //on connect attempt if not holesky,return
-      if (chainIdHex !== holesky_chain_id) {
+      if (chainIdHex !== holesky_network_id) {
         toast.current({
           type: "error",
           title: "Network Changed",
@@ -153,8 +152,8 @@ export const MetaMaskWalletProvider = ({
         method: "wallet_revokePermissions",
         params: [{ eth_accounts: {} }],
       });
-    } catch (err) {
-      console.warn("Failed to revoke permissions:", err);
+    } catch (error) {
+      console.warn("Failed to revoke permissions:", error);
     }
 
     toast.current({
@@ -351,7 +350,7 @@ export const MetaMaskWalletProvider = ({
     if (!window.ethereum) return;
 
     const handleChainChanged = async (chainId: string) => {
-      if (chainId !== holesky_chain_id) {
+      if (chainId !== holesky_network_id) {
         toast.current({
           type: "error",
           title: "Network Changed",
