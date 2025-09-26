@@ -1,11 +1,39 @@
 "use client";
 
+// Global concepts aka apply to a client and not siloed to key pairs
+
+export const GlobalConceptKeys = ["activeDeposits"] as const;
+export type GlobalConceptKeys = (typeof GlobalConceptKeys)[number];
+
+export function getGlobalValue(
+  concept: GlobalConceptKeys,
+): string | null {
+  return localStorage.getItem(concept);
+}
+
+// Helpers
+
+export function setGlobalValue(
+  concept: GlobalConceptKeys,
+  value: string
+): void {
+  localStorage.setItem(concept, value);
+}
+
+export function makeGlobalLSKey(
+  concept: GlobalConceptKeys
+) {
+  return `${concept}`;
+}
+
 // Convert former fixed keys to key-pair concept keys
 export const LSKeyPairConceptKeys = [
   "codeVerifier",
   "activeDepositNumber",
   "computedEthProof",
-  "depositMintTx"
+  "depositMintTx",
+  "needsToSetupStorage",
+  "setupStorageInProgress"
 ] as const;
 export type LSKeyPairConceptKeys = (typeof LSKeyPairConceptKeys)[number];
 
