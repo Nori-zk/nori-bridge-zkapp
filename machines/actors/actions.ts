@@ -1,14 +1,8 @@
 "use client";
-import {
-  getCodeVerifier,
-  setCodeVerifier,
-  getComputedEthProof,
-  setComputedEthProof,
-  setDepositMintTx
-} from "@/helpers/localStorage.ts";
 import type ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { fromPromise } from "xstate";
 import { EthProofResult } from "../types.ts";
+import { Store } from "@/helpers/localStorage2.ts";
 
 export const checkStorageSetupOnChain = fromPromise(
   async ({
@@ -84,10 +78,9 @@ export const computeEthProof = fromPromise(
       depositBlockNumber: number;
     };
   }) => {
-    let codeVerify = getCodeVerifier(
+    let codeVerify = Store.forEth(
       input.worker.ethWalletPubKeyBase58,
-      input.worker.minaWalletPubKeyBase58
-    );
+    ).codeVerifier;
 
     if (codeVerify === null) {
       const signature = await window.ethereum.request({
@@ -99,11 +92,9 @@ export const computeEthProof = fromPromise(
       });
       const createdCodeVerify =
         await input.worker.getCodeVerifyFromEthSignature(signature);
-      setCodeVerifier(
+      Store.forEth(
         input.worker.ethWalletPubKeyBase58,
-        input.worker.minaWalletPubKeyBase58,
-        createdCodeVerify
-      );
+      ).codeVerifier = createdCodeVerify;
       codeVerify = createdCodeVerify;
     }
 
@@ -116,11 +107,10 @@ export const computeEthProof = fromPromise(
       );
 
     // Store in localStorage using the new helper
-    setComputedEthProof(
+    Store.forPair(
       input.worker.ethWalletPubKeyBase58,
       input.worker.minaWalletPubKeyBase58,
-      JSON.stringify(ethProof)
-    );
+    ).computedEthProof = JSON.stringify(ethProof);
     console.log(
       "Computed ethProof value :",
       ethProof.depositAttestationInput.despositSlotRaw.value
@@ -139,14 +129,13 @@ export const computeMintTx = fromPromise(
       // needsToFundAccount: boolean;
     };
   }) => {
-    const state = getComputedEthProof(
+    const state = Store.forPair(
       input.worker.ethWalletPubKeyBase58,
       input.worker.minaWalletPubKeyBase58
-    );
-    const codeVerify = getCodeVerifier(
+    ).computedEthProof;
+    const codeVerify = Store.forEth(
       input.worker.ethWalletPubKeyBase58,
-      input.worker.minaWalletPubKeyBase58
-    );
+    ).codeVerifier;
     console.log("codeVerifier", codeVerify);
     const needsToFundAccount = await input.worker.needsToFundAccount();
     console.log("needsToFundAccount", needsToFundAccount);
@@ -161,11 +150,10 @@ export const computeMintTx = fromPromise(
     );
 
     // Store in localStorage using the new helper
-    setDepositMintTx(
+    Store.forPair(
       input.worker.ethWalletPubKeyBase58,
       input.worker.minaWalletPubKeyBase58,
-      mintTxStr
-    );
+    ).depositMintTx = mintTxStr;
     return mintTxStr; //JSON of tx that we need to send to wallet - to componet/provider
   }
 );

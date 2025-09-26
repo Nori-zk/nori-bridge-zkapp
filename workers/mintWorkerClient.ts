@@ -81,6 +81,8 @@ export default class ZkappMintWorkerClient {
     return this.#ready;
   }
 
+  // So we expect ... this to be event driven either key can change at any time!
+  // 
   setWallets(addresses: { minaPubKeyBase58?: string, ethPubKeyBase58?: string }): ZkappMintWorkerClient {
     this.minaWalletPubKeyBase58 =
       addresses.minaPubKeyBase58 || this.minaWalletPubKeyBase58;

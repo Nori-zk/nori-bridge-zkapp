@@ -1,6 +1,6 @@
 import React from "react";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
-import { BridgeDepositProcessingStatus } from "@nori-zk/mina-token-bridge/rx/deposit";
+import { ReplacementDepositProcessingStatus } from "@/machines/actors/statuses.ts";
 
 const DepositProcessing: React.FC = () => {
   const {
@@ -14,7 +14,7 @@ const DepositProcessing: React.FC = () => {
 
   // ReplacementDepositProcessingStatus.length
   const totalStatusSteps = 4;
-  const totalBridgeStages = 9;
+  const totalBridgeStages = 9; // fixme
 
   // Timing progress
   const stageTotal = depositStepElapsedTime + depositStepTimeRemaining;
@@ -22,10 +22,11 @@ const DepositProcessing: React.FC = () => {
 
   // Determine what to show
   const showBridgeStage =
-    depositStatus === BridgeDepositProcessingStatus.WaitingForCurrentJobCompletion ||
-    depositStatus === BridgeDepositProcessingStatus.WaitingForPreviousJobCompletion;
+    depositStatus === ReplacementDepositProcessingStatus.WaitingForCurrentJobCompletion ||
+    depositStatus === ReplacementDepositProcessingStatus.WaitingForPreviousJobCompletion;
 
-  const showTimingOnly = depositStatus === BridgeDepositProcessingStatus.WaitingForEthFinality;
+
+  const showTimingOnly = depositStatus === ReplacementDepositProcessingStatus.WaitingForEthFinality;
 
   return (
     <div className="w-full p-4 bg-gray-900 text-white rounded-lg shadow-md space-y-4">

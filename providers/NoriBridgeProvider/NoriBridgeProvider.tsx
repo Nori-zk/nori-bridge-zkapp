@@ -19,9 +19,8 @@ import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { getBridgeMachine } from "@/machines/BridgeMachine.ts";
 import envConfig from "@/helpers/env.ts";
 import { BridgeDepositProcessingStatus } from "@nori-zk/mina-token-bridge/rx/deposit";
-import { KeyTransitionStageMessageTypes } from "@nori-zk/pts-types";
 import { DepositStates } from "@/types/types.ts";
-import { ReplacementDepositProcessingStatus, ReplacementStageName } from "@/machines/actors/statuses.ts";
+import { ReplacementDepositProcessingStatus, ReplacementStageName, ReplacementStageNameValues, ReplacementDepositProcessingStatusValues } from "@/machines/actors/statuses.ts";
 
 // Extract the machine type
 type DepositMachine = ReturnType<typeof getDepositMachine>;
@@ -88,13 +87,6 @@ const minaConfig = {
 };
 
 const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
-
-const depositStatusSteps = [
-  BridgeDepositProcessingStatus.WaitingForEthFinality,
-  BridgeDepositProcessingStatus.WaitingForPreviousJobCompletion,
-  BridgeDepositProcessingStatus.WaitingForCurrentJobCompletion,
-  BridgeDepositProcessingStatus.ReadyToMint,
-];
 
 export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -229,13 +221,13 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     depositState.context.processingStatus?.deposit_processing_status;
   const depositStatusStepIndex =
     depositStatus !== undefined
-      ? ReplacementDepositProcessingStatus.indexOf(depositStatus)
+      ? ReplacementDepositProcessingStatusValues.indexOf(depositStatus)
       : -1;
   const depositBridgeStageName =
     depositState.context.processingStatus?.stage_name;
   const depositBridgeStageIndex =
     depositBridgeStageName !== undefined
-      ? ReplacementStageName.indexOf(depositBridgeStageName)
+      ? ReplacementStageNameValues.indexOf(depositBridgeStageName)
       : -1;
 
   // react state for the last tick of this callback

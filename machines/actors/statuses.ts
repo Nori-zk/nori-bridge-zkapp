@@ -1,7 +1,7 @@
 import { fromObservable, ObservableSnapshot, SnapshotEvent } from "xstate";
 import {
   BridgeDepositProcessingStatus,
-  getDepositProcessingStatus$,
+  //getDepositProcessingStatus$,
 } from "@nori-zk/mina-token-bridge/rx/deposit";
 import {
   type getBridgeStateTopic$,
@@ -24,6 +24,7 @@ import {
   KeyTransitionStageMessageTypes,
   TransitionNoticeMessageType,
 } from "@nori-zk/pts-types";
+import { getDepositProcessingStatus$ } from "../obs/getDepositProcessingStatus$.ts";
 
 // Get deposit processing status
 // This state is responsible for driving the triggers (aka logic such as canMint and canCompute)
@@ -35,6 +36,7 @@ export function getDepositProcessingStatus(context: DepositMintContext) {
     context.bridgeTimingsTopic$
   ).pipe(
     map((status) => {
+      console.log('original get deposit status', status); // REMOVEME
       const { deposit_processing_status } = status;
       if (
         deposit_processing_status ===
@@ -50,46 +52,45 @@ export function getDepositProcessingStatus(context: DepositMintContext) {
 
 // This new replacement is so we can rename system event names with user friend names.....
 
-export const ReplacementStageName = [
-  "Proving light client inside zkVM",
-  "Verifying zkVM proof in o1js",
-  "Settling proof on Mina",
-  "Waiting for Mina confirmation",
-] as const;
-export type ReplacementStageName = (typeof ReplacementStageName)[number];
+export enum ReplacementStageName {
+  ProvingLightClient = "Proving light client inside zkVM",
+  VerifyingZkVMProof = "Verifying zkVM proof in o1js",
+  SettlingProof = "Settling proof on Mina",
+  WaitingForConfirmation = "Waiting for Mina confirmation",
+}
 
-const replacementNamesMap: Record<
-  KeyTransitionStageMessageTypes, ReplacementStageName
-> = {
-  [TransitionNoticeMessageType.BridgeHeadJobCreated]: "Proving light client inside zkVM",
-  [TransitionNoticeMessageType.BridgeHeadJobSucceeded]: "Proving light client inside zkVM",
-  [TransitionNoticeMessageType.ProofConversionJobReceived]: "Verifying zkVM proof in o1js",
-  [TransitionNoticeMessageType.ProofConversionJobSucceeded]: "Verifying zkVM proof in o1js",
-  [TransitionNoticeMessageType.EthProcessorProofRequest]: "Settling proof on Mina",
-  [TransitionNoticeMessageType.EthProcessorProofSucceeded]: "Settling proof on Mina",
-  [TransitionNoticeMessageType.EthProcessorTransactionSubmitting]: "Settling proof on Mina",
-  [TransitionNoticeMessageType.EthProcessorTransactionSubmitSucceeded]: "Waiting for Mina confirmation",
-  [TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded]: "Waiting for Mina confirmation",
+export const ReplacementStageNameValues = Object.values(ReplacementStageName);
+
+const replacementNamesMap: Record<KeyTransitionStageMessageTypes, ReplacementStageName> = {
+  [TransitionNoticeMessageType.BridgeHeadJobCreated]: ReplacementStageName.ProvingLightClient,
+  [TransitionNoticeMessageType.BridgeHeadJobSucceeded]: ReplacementStageName.ProvingLightClient,
+  [TransitionNoticeMessageType.ProofConversionJobReceived]: ReplacementStageName.VerifyingZkVMProof,
+  [TransitionNoticeMessageType.ProofConversionJobSucceeded]: ReplacementStageName.VerifyingZkVMProof,
+  [TransitionNoticeMessageType.EthProcessorProofRequest]: ReplacementStageName.SettlingProof,
+  [TransitionNoticeMessageType.EthProcessorProofSucceeded]: ReplacementStageName.SettlingProof,
+  [TransitionNoticeMessageType.EthProcessorTransactionSubmitting]: ReplacementStageName.SettlingProof,
+  [TransitionNoticeMessageType.EthProcessorTransactionSubmitSucceeded]: ReplacementStageName.WaitingForConfirmation,
+  [TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded]: ReplacementStageName.WaitingForConfirmation,
 };
 
-export const ReplacementDepositProcessingStatus = [
-  "Waiting for Ethereum finality",
-  "Processing previous job",
-  "Processing current job",
-  "Ready to mint",
-  "Missed minting opportunity",
-] as const;
-export type ReplacementDepositProcessingStatus =
-  (typeof ReplacementDepositProcessingStatus)[number];
+export enum ReplacementDepositProcessingStatus {
+  WaitingForEthFinality = "Waiting for Ethereum finality",
+  WaitingForPreviousJobCompletion = "Processing previous job",
+  WaitingForCurrentJobCompletion = "Processing current job",
+  ReadyToMint = "Ready to mint",
+  MissedMintingOpportunity = "Missed minting opportunity",
+}
+
+export const ReplacementDepositProcessingStatusValues = Object.values(ReplacementDepositProcessingStatus);
 
 export const replacementDepositStatus: Record<
   BridgeDepositProcessingStatus, ReplacementDepositProcessingStatus
 > = {
-  [BridgeDepositProcessingStatus.WaitingForEthFinality]: "Waiting for Ethereum finality",
-  [BridgeDepositProcessingStatus.WaitingForPreviousJobCompletion]: "Processing previous job",
-  [BridgeDepositProcessingStatus.WaitingForCurrentJobCompletion]: "Processing current job",
-  [BridgeDepositProcessingStatus.ReadyToMint]: "Ready to mint",
-  [BridgeDepositProcessingStatus.MissedMintingOpportunity]: "Missed minting opportunity",
+  [BridgeDepositProcessingStatus.WaitingForEthFinality]: ReplacementDepositProcessingStatus.WaitingForEthFinality,
+  [BridgeDepositProcessingStatus.WaitingForPreviousJobCompletion]: ReplacementDepositProcessingStatus.WaitingForPreviousJobCompletion,
+  [BridgeDepositProcessingStatus.WaitingForCurrentJobCompletion]: ReplacementDepositProcessingStatus.WaitingForCurrentJobCompletion,
+  [BridgeDepositProcessingStatus.ReadyToMint]: ReplacementDepositProcessingStatus.ReadyToMint,
+  [BridgeDepositProcessingStatus.MissedMintingOpportunity]: ReplacementDepositProcessingStatus.MissedMintingOpportunity,
 };
 
 export function getCompressedDepositProcessingStatus$(
@@ -103,6 +104,7 @@ export function getCompressedDepositProcessingStatus$(
         // elapsed_sec,
         // time_remaining_sec,
       } = status;
+      console.log('compressed get deposit status', status);
       const newStage = replacementNamesMap[stage_name];
       const newStatus = replacementDepositStatus[deposit_processing_status];
       return {
@@ -168,7 +170,7 @@ const getBridgeStageWithCountdown$ = (
       const timeToWait = expected - elapsed_sec;
 
       return concat(of(0), interval(1000)).pipe(
-        takeWhile((tick) => timeToWait - tick + 1 >= 0, true),
+        takeWhile((tick) => timeToWait - tick + 1 >= 0, true), // check me @jk
         map((tick) => {
           const timeRemaining = timeToWait - tick + 1;
           return {

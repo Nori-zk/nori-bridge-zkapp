@@ -68,6 +68,8 @@ export const getDepositProcessingStatus$ = (
   bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>,
   bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>
 ) => {
+
+  console.error("depositBlockNumberdepositBlockNumberdepositBlockNumber", depositBlockNumber); // REMOVEME
   // base ticker
   const tick$ = interval(1000).pipe(startWith(0));
 
@@ -191,6 +193,8 @@ export const getDepositProcessingStatus$ = (
       if (status === BridgeDepositProcessingStatus.WaitingForEthFinality) {
         const delta =
           ethState.latest_finality_slot - ethState.latest_finality_block_number;
+
+        console.log("delta between bridge ethState.latest_finality_slot - ethState.latest_finality_block_number; ");
         const depositSlot = depositBlockNumber + delta;
         const rounded = Math.ceil(depositSlot / 32) * 32;
         const blocksRemaining =
@@ -203,7 +207,8 @@ export const getDepositProcessingStatus$ = (
         // lastKnownExpected = bridgeTimings.extension[stage_name]; 
         timeToWait = expected - elapsed_sec;
       }
-
+      console.error("depositBlockNumberdepositBlockNumberdepositBlockNumber", depositBlockNumber); // REMOVEME
+  
       const elapsed =
         status === BridgeDepositProcessingStatus.WaitingForEthFinality
           ? tick
@@ -234,6 +239,8 @@ export const getDepositProcessingStatus$ = (
         // Calculate timeRemaining
         map((tick) => {
           // elapsed counting logic
+          console.log("timing in status pipe", elapsed, tick);
+
           const totalElapsed =
             status === BridgeDepositProcessingStatus.WaitingForEthFinality
               ? elapsed + tick // keep counting with tick

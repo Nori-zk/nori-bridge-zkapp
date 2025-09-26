@@ -32,31 +32,6 @@ type InferSchemaType<T extends SchemaEntry> = T extends { type: "string" }
   ? D
   : never;
 
-// Get default value for a schema entry
-function getDefaultValue<T extends SchemaEntry>(entry: T): InferSchemaType<T> {
-  switch (entry.type) {
-    case "string":
-      return "" as InferSchemaType<T>;
-    case "number":
-      return 0 as InferSchemaType<T>;
-    case "boolean":
-      return false as InferSchemaType<T>;
-    case "date":
-    case "object":
-    case "array":
-      return (entry as ComplexSchemaEntry<any>).default as InferSchemaType<T>;
-  }
-}
-
-const MinaSchema = {
-  needsToSetupStorage: { type: "string" as const },
-  setupStorageInProgress: { type: "string" as const },
-  nestedObject: { type: "object" as const, default: { a: 1, b: [1, 2] } },
-  someArray: { type: "array" as const, default: [1, 2, 3] },
-  someDate: { type: "date" as const, default: new Date() },
-  someNumber: { type: "number" as const },
-} satisfies Schema;
-
 function serializeByType(value: any, type: SchemaType): string {
   switch (type) {
     case "string":
@@ -102,16 +77,6 @@ function createStorageObjectFromSchema<T extends Schema>(
         const storageKey = suffix ? `${key}:${suffix}` : key;
         const raw = localStorage.getItem(storageKey);
         const deserialized = deserializeByType(raw, entry.type);
-
-        if (
-          deserialized === null &&
-          (entry.type === "string" ||
-            entry.type === "number" ||
-            entry.type === "boolean")
-        ) {
-          return getDefaultValue(entry);
-        }
-
         return deserialized;
       },
       set(value) {
@@ -154,14 +119,16 @@ export class Store {
   static forPair(ethWallet: string, minaWallet: string) {
     const suffix = `${ethWallet}-${minaWallet}`;
     return createStorageObjectFromSchema(suffix, {
-      activeDepositNumber: { type: "string" as const },
+      activeDepositNumber: { type: "number" as const },
       computedEthProof: { type: "string" as const },
       depositMintTx: { type: "string" as const },
     });
   }
 }
 
-export function resetStore(ethWallet: string, minaWallet: string) {
+//const activeDepositNumber = Store.forPair("","").activeDepositNumber;
+
+export function resetLocalStorage(ethWallet: string, minaWallet: string) {
     const keys = ["activeDepositNumber", "computedEthProof", "depositMintTx"] as const;
     keys.forEach((key) => {
         Store.forPair(ethWallet, minaWallet)[key] = null;
