@@ -12,6 +12,7 @@ const DepositProcessing: React.FC = () => {
     depositBridgeStageIndex = 0,
   } = useNoriBridge();
 
+  // ReplacementDepositProcessingStatus.length
   const totalStatusSteps = 4;
   const totalBridgeStages = 9;
 

@@ -21,6 +21,7 @@ import envConfig from "@/helpers/env.ts";
 import { BridgeDepositProcessingStatus } from "@nori-zk/mina-token-bridge/rx/deposit";
 import { KeyTransitionStageMessageTypes } from "@nori-zk/pts-types";
 import { DepositStates } from "@/types/types.ts";
+import { ReplacementDepositProcessingStatus, ReplacementStageName } from "@/machines/actors/statuses.ts";
 
 // Extract the machine type
 type DepositMachine = ReturnType<typeof getDepositMachine>;
@@ -216,7 +217,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const canSetupStorage = depositState.context.goToSetupStorage;
   const canSubmitMintTx = stateCheckers.hasDepositMintTx;
 
-  const bridgeStage = bridgeState.value as string;
+  const bridgeStage = bridgeState.value as unknown as string;
   const bridgeStateElapsedSec = bridgeState.context.bridgeStatus?.elapsed_sec;
   const bridgeStateTimeRemaining =
     bridgeState.context.bridgeStatus?.time_remaining_sec;
@@ -228,18 +229,20 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     depositState.context.processingStatus?.deposit_processing_status;
   const depositStatusStepIndex =
     depositStatus !== undefined
-      ? depositStatusSteps.indexOf(depositStatus)
+      ? ReplacementDepositProcessingStatus.indexOf(depositStatus)
       : -1;
   const depositBridgeStageName =
     depositState.context.processingStatus?.stage_name;
   const depositBridgeStageIndex =
     depositBridgeStageName !== undefined
-      ? KeyTransitionStageMessageTypes.indexOf(depositBridgeStageName)
+      ? ReplacementStageName.indexOf(depositBridgeStageName)
       : -1;
+
+  // react state for the last tick of this callback
   const depositStepElapsedTime =
     depositState.context.processingStatus?.elapsed_sec;
   const depositStepTimeRemaining =
-    depositState.context.processingStatus?.time_remaining_sec;
+    depositState.context.processingStatus?.time_remaining_sec; // use 0 for ... come back to this
 
   // Derived state
   const contextValue = useMemo(
