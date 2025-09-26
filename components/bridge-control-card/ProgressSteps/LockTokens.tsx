@@ -64,11 +64,10 @@ const LockTokens = () => {
     <>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className={`mt-6 w-full ${
-          state.context.activeDepositNumber != null
-            ? "text-white/20"
-            : "text-white"
-        } rounded-lg px-4 py-3`}
+        className={`mt-6 w-full ${state.context.activeDepositNumber != null
+          ? "text-white/20"
+          : "text-white"
+          } rounded-lg px-4 py-3`}
       >
         <TextInput
           id="amount-input"
@@ -102,15 +101,14 @@ const LockTokens = () => {
             state.context.mintWorker?.areContractCompiled()
           }
           type="submit"
-          className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${
-            locking ||
+          className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${locking ||
             !!state.context.mintWorker?.isCompilingContracts() ||
             state.context.mintWorker?.areContractCompiled()
-              ? "border-none"
-              : "border-white"
-          } border-[1px]`}
+            ? "border-none"
+            : "border-white"
+            } border-[1px]`}
         >
-          {"Lock Tokens"}
+          {locking ? "Locking tokens in progress" : "Lock Tokens"}
         </button>
       </form>
     </>

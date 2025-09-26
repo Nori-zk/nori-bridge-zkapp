@@ -185,7 +185,7 @@ export const getDepositProcessingStatus$ = (
 
       // Do time estimate computation
       let timeToWait: number;
-      //Maybe useful later
+      // Maybe useful later
       // let lastKnownExpected: number;
 
       if (status === BridgeDepositProcessingStatus.WaitingForEthFinality) {

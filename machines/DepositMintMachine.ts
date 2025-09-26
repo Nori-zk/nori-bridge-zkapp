@@ -46,9 +46,9 @@ const invokeMonitoringDepositStatus = {
   id: "compressedDepositProcessingStatus",
   src: "compressedDepositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
-    ({
-      compressedDepositProcessingStatus$: context.compressedDepositProcessingStatus$!,
-    } as const),
+  ({
+    compressedDepositProcessingStatus$: context.compressedDepositProcessingStatus$!,
+  } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
@@ -151,10 +151,10 @@ export const getDepositMachine = (
         context.canComputeStatus === "CanCompute",
       canMint: ({ context }) => context.canMintStatus === "ReadyToMint",
       isMissedOpportunity: ({ context }) => false,
-        /*context.canComputeStatus === "MissedMintingOpportunity" ||
-        context.canMintStatus === "MissedMintingOpportunity" ||
-        context.processingStatus?.deposit_processing_status ==
-          "MissedMintingOpportunity", // return to this*/
+      /*context.canComputeStatus === "MissedMintingOpportunity" ||
+      context.canMintStatus === "MissedMintingOpportunity" ||
+      context.processingStatus?.deposit_processing_status ==
+        "MissedMintingOpportunity", // return to this*/
 
       storageIsSetupAndFinalizedForCurrentMinaKeyGuard: ({ context }) =>
         storageIsSetupAndFinalizedForCurrentMinaKey(
@@ -287,20 +287,18 @@ export const getDepositMachine = (
         // invoke invokeMonitoringDepositStatus
         entry: [
           log("Entering hasActiveDepositNumber 🚀"),
-          assign({
-            // is this redundant?
-            processingStatus: () => null as null,
-            canComputeStatus: () => null as null,
-            canMintStatus: () => null as null,
-            depositProcessingStatus$: ({ context }) =>
-              getDepositProcessingStatus(context),
-            compressedDepositProcessingStatus$: ({context}) => getCompressedDepositProcessingStatus$(context.depositProcessingStatus$!), // checkme if this isnt actually sequential then we will get undefined errors
+          assign(({ context }) => {
+            const depositProcessingStatus$ = getDepositProcessingStatus(context);
 
-            errorMessage: null,
+            return {
+              processingStatus: null as null,
+              canComputeStatus: null as null,
+              canMintStatus: null as null,
+              depositProcessingStatus$,
+              compressedDepositProcessingStatus$: getCompressedDepositProcessingStatus$(depositProcessingStatus$),
+              errorMessage: null,
+            };
           }),
-          /*({context}) => {
-            context.depositProcessingStatus$
-          }*/
         ],
         always: [
           // If we have historically setupStorage for this mina key and we determined that tx was succesfull then goto monitoringDepositStatus straight away

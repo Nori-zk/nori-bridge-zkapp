@@ -54,7 +54,7 @@ export const ReplacementStageName = [
   "Proving light client inside zkVM",
   "Verifying zkVM proof in o1js",
   "Settling proof on Mina",
-  "Waiting for Mina finality",
+  "Waiting for Mina confirmation",
 ] as const;
 export type ReplacementStageName = (typeof ReplacementStageName)[number];
 
@@ -68,8 +68,8 @@ const replacementNamesMap: Record<
   [TransitionNoticeMessageType.EthProcessorProofRequest]: "Settling proof on Mina",
   [TransitionNoticeMessageType.EthProcessorProofSucceeded]: "Settling proof on Mina",
   [TransitionNoticeMessageType.EthProcessorTransactionSubmitting]: "Settling proof on Mina",
-  [TransitionNoticeMessageType.EthProcessorTransactionSubmitSucceeded]: "Waiting for Mina finality",
-  [TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded]: "Waiting for Mina finality",
+  [TransitionNoticeMessageType.EthProcessorTransactionSubmitSucceeded]: "Waiting for Mina confirmation",
+  [TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded]: "Waiting for Mina confirmation",
 };
 
 export const ReplacementDepositProcessingStatus = [
