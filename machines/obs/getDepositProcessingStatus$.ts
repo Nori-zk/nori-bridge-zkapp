@@ -36,15 +36,15 @@ const stageIndexEthProcessorTransactionSubmitSucceeded = stageIndex(
 );
 
 const timingsStatsMap: Record<KeyTransitionStageMessageTypes, number> = {
-  [TransitionNoticeMessageType.BridgeHeadJobCreated]: 10,
+  [TransitionNoticeMessageType.BridgeHeadJobCreated]: 170,
   [TransitionNoticeMessageType.BridgeHeadJobSucceeded]: 0,
-  [TransitionNoticeMessageType.ProofConversionJobReceived]: 10,
-  [TransitionNoticeMessageType.ProofConversionJobSucceeded]: 10,
-  [TransitionNoticeMessageType.EthProcessorProofRequest]: 10,
-  [TransitionNoticeMessageType.EthProcessorProofSucceeded]: 10,
-  [TransitionNoticeMessageType.EthProcessorTransactionSubmitting]: 10,
-  [TransitionNoticeMessageType.EthProcessorTransactionSubmitSucceeded]: 10,
-  [TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded]: 10
+  [TransitionNoticeMessageType.ProofConversionJobReceived]: 320,
+  [TransitionNoticeMessageType.ProofConversionJobSucceeded]: 0,
+  [TransitionNoticeMessageType.EthProcessorProofRequest]: 48,
+  [TransitionNoticeMessageType.EthProcessorProofSucceeded]: 0,
+  [TransitionNoticeMessageType.EthProcessorTransactionSubmitting]: 36,
+  [TransitionNoticeMessageType.EthProcessorTransactionSubmitSucceeded]: 560, // chance every 3min in theory
+  [TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded]: 0
 };
 
 /**
@@ -185,6 +185,8 @@ export const getDepositProcessingStatus$ = (
 
       // Do time estimate computation
       let timeToWait: number;
+      //Maybe useful later
+      // let lastKnownExpected: number;
 
       if (status === BridgeDepositProcessingStatus.WaitingForEthFinality) {
         const delta =
@@ -198,6 +200,7 @@ export const getDepositProcessingStatus$ = (
         // put custom rules here for the network timed pieces  ***********************
         // @Karol
         const expected = timingsStatsMap[stage_name] ?? 0;//bridgeTimings.extension[stage_name] ?? 15;
+        // lastKnownExpected = bridgeTimings.extension[stage_name]; 
         timeToWait = expected - elapsed_sec;
       }
 
@@ -239,7 +242,7 @@ export const getDepositProcessingStatus$ = (
           let timeRemaining = timeToWait - totalElapsed + 1;
           if (
             bridgeState.stage_name ===
-              TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded &&
+            TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded &&
             status !== BridgeDepositProcessingStatus.WaitingForEthFinality
           ) {
             timeRemaining = ((timeRemaining % 384) + 384) % 384;
@@ -250,6 +253,7 @@ export const getDepositProcessingStatus$ = (
             elapsed_sec: totalElapsed,
             deposit_processing_status: status,
             deposit_block_number: depositBlockNumber,
+
           };
         })
       );
