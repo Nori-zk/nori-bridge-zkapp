@@ -1,16 +1,12 @@
 "use client";
 
-// Local storage fixed keys
-export const LS_KEYS = {
-  activeDepositNumber: "activeDepositNumber",
-  computedEthProof: "computedEthProof",
-  depositMintTx: "depositMintTx",
-  // isStorageSetup: "isStorageSetup",
-} as const;
-
-// Lets define the dynamic keys more rigorously have it as '<concept>:' and then the key information
-
-export const LSKeyPairConceptKeys = ["codeVerifier"] as const;
+// Convert former fixed keys to key-pair concept keys
+export const LSKeyPairConceptKeys = [
+  "codeVerifier",
+  "activeDepositNumber",
+  "computedEthProof",
+  "depositMintTx"
+] as const;
 export type LSKeyPairConceptKeys = (typeof LSKeyPairConceptKeys)[number];
 
 export function makeKeyPairLSKey(
@@ -29,6 +25,35 @@ export function makeMinaLSKey(
   minaWalletPubKeyBase58: string
 ) {
   return `${concept}:${minaWalletPubKeyBase58}`;
+}
+
+// Helper functions to get/set key-pair specific values
+export function getKeyPairValue(
+  concept: LSKeyPairConceptKeys,
+  ethWalletPubKeyBase58: string,
+  minaWalletPubKeyBase58: string
+): string | null {
+  const key = makeKeyPairLSKey(concept, ethWalletPubKeyBase58, minaWalletPubKeyBase58);
+  return localStorage.getItem(key);
+}
+
+export function setKeyPairValue(
+  concept: LSKeyPairConceptKeys,
+  ethWalletPubKeyBase58: string,
+  minaWalletPubKeyBase58: string,
+  value: string
+): void {
+  const key = makeKeyPairLSKey(concept, ethWalletPubKeyBase58, minaWalletPubKeyBase58);
+  localStorage.setItem(key, value);
+}
+
+export function removeKeyPairValue(
+  concept: LSKeyPairConceptKeys,
+  ethWalletPubKeyBase58: string,
+  minaWalletPubKeyBase58: string
+): void {
+  const key = makeKeyPairLSKey(concept, ethWalletPubKeyBase58, minaWalletPubKeyBase58);
+  localStorage.removeItem(key);
 }
 
 // Util to reset the storage but keep the codeVerifier and needsToSetupStorage dynamic keys
@@ -58,8 +83,7 @@ export const resetLocalStorage = () => {
   });
 };
 
-
-// Local storage key generators
+// Local storage key generators and checkers
 
 export function storageIsSetupAndFinalizedForCurrentMinaKey(minaSenderPublicKeyBase58?: string) {
   if (!minaSenderPublicKeyBase58) throw new Error(`MinaSenderPublicKeyBase58 should have be defined by now`);
@@ -72,4 +96,37 @@ export function isSetupStorageInProgressForMinaKey(minaSenderPublicKeyBase58?: s
   const key = makeMinaLSKey('setupStorageInProgress', minaSenderPublicKeyBase58);
   const setupStorageInProgress = localStorage.getItem(key);
   return setupStorageInProgress === "true";
+}
+
+// Convenience functions for specific key-pair concepts
+export function getActiveDepositNumber(ethWallet: string, minaWallet: string): string | null {
+  return getKeyPairValue("activeDepositNumber", ethWallet, minaWallet);
+}
+
+export function setActiveDepositNumber(ethWallet: string, minaWallet: string, value: string): void {
+  setKeyPairValue("activeDepositNumber", ethWallet, minaWallet, value);
+}
+
+export function getComputedEthProof(ethWallet: string, minaWallet: string): string | null {
+  return getKeyPairValue("computedEthProof", ethWallet, minaWallet);
+}
+
+export function setComputedEthProof(ethWallet: string, minaWallet: string, value: string): void {
+  setKeyPairValue("computedEthProof", ethWallet, minaWallet, value);
+}
+
+export function getDepositMintTx(ethWallet: string, minaWallet: string): string | null {
+  return getKeyPairValue("depositMintTx", ethWallet, minaWallet);
+}
+
+export function setDepositMintTx(ethWallet: string, minaWallet: string, value: string): void {
+  setKeyPairValue("depositMintTx", ethWallet, minaWallet, value);
+}
+
+export function getCodeVerifier(ethWallet: string, minaWallet: string): string | null {
+  return getKeyPairValue("codeVerifier", ethWallet, minaWallet);
+}
+
+export function setCodeVerifier(ethWallet: string, minaWallet: string, value: string): void {
+  setKeyPairValue("codeVerifier", ethWallet, minaWallet, value);
 }

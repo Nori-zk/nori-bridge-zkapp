@@ -13,10 +13,15 @@ import {
 } from "@nori-zk/mina-token-bridge/rx/deposit";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import {
+  getActiveDepositNumber,
+  getComputedEthProof,
+  getDepositMintTx,
   isSetupStorageInProgressForMinaKey,
-  LS_KEYS,
   makeMinaLSKey,
   resetLocalStorage,
+  setActiveDepositNumber,
+  setComputedEthProof,
+  setDepositMintTx,
   storageIsSetupAndFinalizedForCurrentMinaKey,
 } from "@/helpers/localStorage.ts";
 import { DepositSnapshotEvent } from "@/machines/actors/statuses.ts";
@@ -44,9 +49,9 @@ const invokeMonitoringDepositStatus = {
   id: "depositProcessingStatus",
   src: "depositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
-    ({
-      depositProcessingStatus$: context.depositProcessingStatus$!,
-    } as const),
+  ({
+    depositProcessingStatus$: context.depositProcessingStatus$!,
+  } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
@@ -159,7 +164,7 @@ export const getDepositMachine = (
         context.canComputeStatus === "MissedMintingOpportunity" ||
         context.canMintStatus === "MissedMintingOpportunity" ||
         context.processingStatus?.deposit_processing_status ==
-          "MissedMintingOpportunity",
+        "MissedMintingOpportunity",
 
       storageIsSetupAndFinalizedForCurrentMinaKeyGuard: ({ context }) =>
         storageIsSetupAndFinalizedForCurrentMinaKey(
@@ -238,17 +243,26 @@ export const getDepositMachine = (
         entry: [
           log("Entering checking 🚀"),
           assign({
-            activeDepositNumber: () => {
-              const v = localStorage.getItem(LS_KEYS.activeDepositNumber);
+            activeDepositNumber: ({ context }) => {
+              const v = getActiveDepositNumber(
+                context.mintWorker!.ethWalletPubKeyBase58!,
+                context.mintWorker!.minaWalletPubKeyBase58!
+              );
               if (!v) return null;
               return parseInt(v); // should check for NaN
             },
-            computedEthProof: () => {
-              const v = localStorage.getItem(LS_KEYS.computedEthProof);
+            computedEthProof: ({ context }) => {
+              const v = getComputedEthProof(
+                context.mintWorker!.ethWalletPubKeyBase58!,
+                context.mintWorker!.minaWalletPubKeyBase58!
+              );
               if (!v) return null;
               return JSON.parse(v) as EthProofResult; // should try catch and do something with this.
             },
-            depositMintTx: () => localStorage.getItem(LS_KEYS.depositMintTx),
+            depositMintTx: ({ context }) => getDepositMintTx(
+              context.mintWorker!.ethWalletPubKeyBase58!,
+              context.mintWorker!.minaWalletPubKeyBase58!
+            ),
             errorMessage: null,
           }),
         ],
@@ -274,12 +288,13 @@ export const getDepositMachine = (
           SET_DEPOSIT_NUMBER: {
             target: "hasActiveDepositNumber",
             actions: assign({
-              activeDepositNumber: ({ event }) => {
+              activeDepositNumber: ({ event, context }) => {
                 console.log("Setting activeDepositNumber:", event.value);
-                localStorage.setItem(
-                  LS_KEYS.activeDepositNumber,
+                setActiveDepositNumber(
+                  context.mintWorker!.ethWalletPubKeyBase58!,
+                  context.mintWorker!.minaWalletPubKeyBase58!,
                   event.value.toString()
-                );
+                )
                 return event.value;
               },
             }),
@@ -597,12 +612,13 @@ export const getDepositMachine = (
             }),
             onDone: {
               actions: assign({
-                computedEthProof: ({ event }) => {
+                computedEthProof: ({ event, context }) => {
                   const proof = event.output;
-                  localStorage.setItem(
-                    "computedEthProof",
+                  setComputedEthProof(
+                    context.mintWorker!.ethWalletPubKeyBase58!,
+                    context.mintWorker!.minaWalletPubKeyBase58!,
                     JSON.stringify(proof)
-                  );
+                  )
                   console.log("done comupting and saved to LS");
                   return proof;
                 },
@@ -681,9 +697,13 @@ export const getDepositMachine = (
             }),
             onDone: {
               actions: assign({
-                depositMintTx: ({ event }) => {
+                depositMintTx: ({ event, context }) => {
                   const tx = event.output;
-                  window.localStorage.setItem("depositMintTx", tx);
+                  setDepositMintTx(
+                    context.mintWorker!.ethWalletPubKeyBase58!,
+                    context.mintWorker!.minaWalletPubKeyBase58!,
+                    tx
+                  )
                   return tx;
                 },
               }),
@@ -786,6 +806,14 @@ export const getDepositMachine = (
         actions: assign(({ event }) => ({
           // event is guaranteed to be ASSIGN_WORKER here
           mintWorker: event.mintWorkerClient,
+          activeDepositNumber: null,
+          depositMintTx: null,
+          computedEthProof: null,
+          processingStatus: null,
+          canComputeStatus: null,
+          canMintStatus: null,
+          needsToFundAccount: false,
+          errorMessage: null,
         })),
       },
       RESET: {
@@ -800,8 +828,6 @@ export const getDepositMachine = (
             canComputeStatus: null,
             canMintStatus: null,
             mintWorker: mintWorker || null,
-            // minaSenderAddress: null,
-            // ethSenderAddress: null,
             needsToFundAccount: false,
             errorMessage: null,
           }),

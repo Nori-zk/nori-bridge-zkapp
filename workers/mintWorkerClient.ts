@@ -40,9 +40,9 @@ export default class ZkappMintWorkerClient {
   #terminated = false;
   #noriStorageInterfaceVerificationKeySafe:
     | {
-        data: string;
-        hashStr: string;
-      }
+      data: string;
+      hashStr: string;
+    }
     | undefined;
   #compiling = false;
   compiled = false;
@@ -81,11 +81,12 @@ export default class ZkappMintWorkerClient {
     return this.#ready;
   }
 
-  setWallets(minaWalletPubKeyBase58?: string, ethWalletPubKeyBase58?: string) {
+  setWallets(addresses: { minaPubKeyBase58?: string, ethPubKeyBase58?: string }): ZkappMintWorkerClient {
     this.minaWalletPubKeyBase58 =
-      minaWalletPubKeyBase58 || this.minaWalletPubKeyBase58;
+      addresses.minaPubKeyBase58 || this.minaWalletPubKeyBase58;
     this.ethWalletPubKeyBase58 =
-      ethWalletPubKeyBase58 || this.ethWalletPubKeyBase58;
+      addresses.ethPubKeyBase58 || this.ethWalletPubKeyBase58;
+    return this
   }
 
   async minaSetup(options: {

@@ -1,5 +1,11 @@
 "use client";
-import { LS_KEYS, makeKeyPairLSKey } from "@/helpers/localStorage.ts";
+import {
+  getCodeVerifier,
+  setCodeVerifier,
+  getComputedEthProof,
+  setComputedEthProof,
+  setDepositMintTx
+} from "@/helpers/localStorage.ts";
 import type ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { fromPromise } from "xstate";
 import { EthProofResult } from "../types.ts";
@@ -78,12 +84,9 @@ export const computeEthProof = fromPromise(
       depositBlockNumber: number;
     };
   }) => {
-    let codeVerify = localStorage.getItem(
-      makeKeyPairLSKey(
-        "codeVerifier",
-        input.worker.ethWalletPubKeyBase58,
-        input.worker.minaWalletPubKeyBase58
-      )
+    let codeVerify = getCodeVerifier(
+      input.worker.ethWalletPubKeyBase58,
+      input.worker.minaWalletPubKeyBase58
     );
 
     if (codeVerify === null) {
@@ -96,12 +99,9 @@ export const computeEthProof = fromPromise(
       });
       const createdCodeVerify =
         await input.worker.getCodeVerifyFromEthSignature(signature);
-      window.localStorage.setItem(
-        makeKeyPairLSKey(
-          "codeVerifier",
-          input.worker.ethWalletPubKeyBase58,
-          input.worker.minaWalletPubKeyBase58
-        ),
+      setCodeVerifier(
+        input.worker.ethWalletPubKeyBase58,
+        input.worker.minaWalletPubKeyBase58,
         createdCodeVerify
       );
       codeVerify = createdCodeVerify;
@@ -115,9 +115,12 @@ export const computeEthProof = fromPromise(
         input.depositBlockNumber
       );
 
-    // Store in localStorage
-    localStorage.setItem(LS_KEYS.computedEthProof, JSON.stringify(ethProof));
-    // localStorage.setItem(LS_KEYS.lastEthProofCompute, Date.now().toString());
+    // Store in localStorage using the new helper
+    setComputedEthProof(
+      input.worker.ethWalletPubKeyBase58,
+      input.worker.minaWalletPubKeyBase58,
+      JSON.stringify(ethProof)
+    );
     console.log(
       "Computed ethProof value :",
       ethProof.depositAttestationInput.despositSlotRaw.value
@@ -136,13 +139,13 @@ export const computeMintTx = fromPromise(
       // needsToFundAccount: boolean;
     };
   }) => {
-    const state = localStorage.getItem(LS_KEYS.computedEthProof);
-    const codeVerify = localStorage.getItem(
-      makeKeyPairLSKey(
-        "codeVerifier",
-        input.worker.ethWalletPubKeyBase58,
-        input.worker.minaWalletPubKeyBase58
-      )
+    const state = getComputedEthProof(
+      input.worker.ethWalletPubKeyBase58,
+      input.worker.minaWalletPubKeyBase58
+    );
+    const codeVerify = getCodeVerifier(
+      input.worker.ethWalletPubKeyBase58,
+      input.worker.minaWalletPubKeyBase58
     );
     console.log("codeVerifier", codeVerify);
     const needsToFundAccount = await input.worker.needsToFundAccount();
@@ -157,8 +160,12 @@ export const computeMintTx = fromPromise(
       needsToFundAccount
     );
 
-    // Store in localStorage
-    localStorage.setItem(LS_KEYS.depositMintTx, mintTxStr);
+    // Store in localStorage using the new helper
+    setDepositMintTx(
+      input.worker.ethWalletPubKeyBase58,
+      input.worker.minaWalletPubKeyBase58,
+      mintTxStr
+    );
     return mintTxStr; //JSON of tx that we need to send to wallet - to componet/provider
   }
 );
