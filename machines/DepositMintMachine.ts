@@ -49,9 +49,9 @@ const invokeMonitoringDepositStatus = {
   id: "depositProcessingStatus",
   src: "depositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
-  ({
-    depositProcessingStatus$: context.depositProcessingStatus$!,
-  } as const),
+    ({
+      depositProcessingStatus$: context.depositProcessingStatus$!,
+    } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
@@ -164,7 +164,7 @@ export const getDepositMachine = (
         context.canComputeStatus === "MissedMintingOpportunity" ||
         context.canMintStatus === "MissedMintingOpportunity" ||
         context.processingStatus?.deposit_processing_status ==
-        "MissedMintingOpportunity",
+          "MissedMintingOpportunity",
 
       storageIsSetupAndFinalizedForCurrentMinaKeyGuard: ({ context }) =>
         storageIsSetupAndFinalizedForCurrentMinaKey(
@@ -259,10 +259,11 @@ export const getDepositMachine = (
               if (!v) return null;
               return JSON.parse(v) as EthProofResult; // should try catch and do something with this.
             },
-            depositMintTx: ({ context }) => getDepositMintTx(
-              context.mintWorker!.ethWalletPubKeyBase58!,
-              context.mintWorker!.minaWalletPubKeyBase58!
-            ),
+            depositMintTx: ({ context }) =>
+              getDepositMintTx(
+                context.mintWorker!.ethWalletPubKeyBase58!,
+                context.mintWorker!.minaWalletPubKeyBase58!
+              ),
             errorMessage: null,
           }),
         ],
@@ -294,7 +295,7 @@ export const getDepositMachine = (
                   context.mintWorker!.ethWalletPubKeyBase58!,
                   context.mintWorker!.minaWalletPubKeyBase58!,
                   event.value.toString()
-                )
+                );
                 return event.value;
               },
             }),
@@ -524,7 +525,10 @@ export const getDepositMachine = (
                   errorMessage: "Failed to wait for storage setup",
                 }),
                 ({ event }) => {
-                  console.error("storageIsSetupWithDelayActor error:", event.error);
+                  console.error(
+                    "storageIsSetupWithDelayActor error:",
+                    event.error
+                  );
                 },
               ],
             },
@@ -618,7 +622,7 @@ export const getDepositMachine = (
                     context.mintWorker!.ethWalletPubKeyBase58!,
                     context.mintWorker!.minaWalletPubKeyBase58!,
                     JSON.stringify(proof)
-                  )
+                  );
                   console.log("done comupting and saved to LS");
                   return proof;
                 },
@@ -665,8 +669,11 @@ export const getDepositMachine = (
             },
             onError: {
               actions: ({ event }) => {
-                console.error("canMintActor error in hasComputedEthProof:", event.error);
-              }
+                console.error(
+                  "canMintActor error in hasComputedEthProof:",
+                  event.error
+                );
+              },
               //DepositMintMachine.ts:694 computeMintTx error: Error: No stored eth proof or codeVerify found
 
               // DepositMintMachine.ts:696 Stack trace: Error: No stored eth proof or codeVerify found
@@ -703,7 +710,7 @@ export const getDepositMachine = (
                     context.mintWorker!.ethWalletPubKeyBase58!,
                     context.mintWorker!.minaWalletPubKeyBase58!,
                     tx
-                  )
+                  );
                   return tx;
                 },
               }),
@@ -803,18 +810,30 @@ export const getDepositMachine = (
     on: {
       ASSIGN_WORKER: {
         target: ".checking", // or ".checking" if you want to skip hydrating
-        actions: assign(({ event }) => ({
-          // event is guaranteed to be ASSIGN_WORKER here
-          mintWorker: event.mintWorkerClient,
-          activeDepositNumber: null,
-          depositMintTx: null,
-          computedEthProof: null,
-          processingStatus: null,
-          canComputeStatus: null,
-          canMintStatus: null,
-          needsToFundAccount: false,
-          errorMessage: null,
-        })),
+        actions: [
+          assign(({ event }) => ({
+            // event is guaranteed to be ASSIGN_WORKER here
+            mintWorker: event.mintWorkerClient,
+            activeDepositNumber: null,
+            depositMintTx: null,
+            computedEthProof: null,
+            processingStatus: null,
+            canComputeStatus: null,
+            canMintStatus: null,
+            needsToFundAccount: false,
+            errorMessage: null,
+          })),
+          ({ event }) => {
+            console.log(
+              "worker ETH address",
+              event.mintWorkerClient.ethWalletPubKeyBase58
+            );
+            console.log(
+              "worker MINA address",
+              event.mintWorkerClient.minaWalletPubKeyBase58
+            );
+          },
+        ],
       },
       RESET: {
         target: ".checking", // or ".hydrating"

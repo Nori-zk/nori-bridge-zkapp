@@ -133,13 +133,24 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const [depositState, sendDepositMachine] = useMachine(depositMintMachine);
 
   useEffect(() => {
-    console.log("Effect ran:", { minaAddress, ethAddress, mintWorker });
-    if (minaAddress && ethAddress && !mintWorker) {
-      const worker = new ZkappMintWorkerClient(minaAddress, ethAddress);
-      worker.minaSetup(minaConfig);
-      console.log("creating worker: ", worker);
-      setMintWorker(worker);
-      sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
+    if (minaAddress && ethAddress) {
+      if (!mintWorker) {
+        const worker = new ZkappMintWorkerClient(minaAddress, ethAddress);
+        worker.minaSetup(minaConfig);
+        console.log("creating worker: ", worker);
+        setMintWorker(worker);
+        sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
+      } else {
+        //update existing worker
+        mintWorker.setWallets({
+          minaPubKeyBase58: minaAddress,
+          ethPubKeyBase58: ethAddress,
+        });
+        sendDepositMachine({
+          type: "ASSIGN_WORKER",
+          mintWorkerClient: mintWorker,
+        });
+      }
     }
   }, [minaAddress, ethAddress, mintWorker, sendDepositMachine]);
 
