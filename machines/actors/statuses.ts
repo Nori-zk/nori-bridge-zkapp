@@ -36,7 +36,6 @@ export function getDepositProcessingStatus(context: DepositMintContext) {
     context.bridgeTimingsTopic$
   ).pipe(
     map((status) => {
-      console.log('original get deposit status', status); // REMOVEME
       const { deposit_processing_status } = status;
       if (
         deposit_processing_status ===
@@ -104,7 +103,6 @@ export function getCompressedDepositProcessingStatus$(
         // elapsed_sec,
         // time_remaining_sec,
       } = status;
-      console.log('compressed get deposit status', status);
       const newStage = replacementNamesMap[stage_name];
       const newStatus = replacementDepositStatus[deposit_processing_status];
       return {

@@ -69,7 +69,6 @@ export const getDepositProcessingStatus$ = (
   bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>
 ) => {
 
-  console.error("depositBlockNumberdepositBlockNumberdepositBlockNumber", depositBlockNumber); // REMOVEME
   // base ticker
   const tick$ = interval(1000).pipe(startWith(0));
 
@@ -207,7 +206,6 @@ export const getDepositProcessingStatus$ = (
         // lastKnownExpected = bridgeTimings.extension[stage_name]; 
         timeToWait = expected - elapsed_sec;
       }
-      console.error("depositBlockNumberdepositBlockNumberdepositBlockNumber", depositBlockNumber); // REMOVEME
   
       const elapsed =
         status === BridgeDepositProcessingStatus.WaitingForEthFinality
@@ -239,7 +237,6 @@ export const getDepositProcessingStatus$ = (
         // Calculate timeRemaining
         map((tick) => {
           // elapsed counting logic
-          console.log("timing in status pipe", elapsed, tick);
 
           const totalElapsed =
             status === BridgeDepositProcessingStatus.WaitingForEthFinality
