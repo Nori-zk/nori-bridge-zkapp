@@ -1,5 +1,6 @@
 "use client"; // The server cannot use this machine! Should build a seperate machine for other purposes
 import { assign, setup, log, raise } from "xstate";
+import { map } from "rxjs";
 // Import actual bridge deposit observables
 import {
   getBridgeStateTopic$,
@@ -10,6 +11,7 @@ import {
   //getDepositProcessingStatus$,
   getCanMint$,
   getCanComputeEthProof$,
+  BridgeDepositProcessingStatus,
 } from "@nori-zk/mina-token-bridge/rx/deposit";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import {
@@ -19,9 +21,9 @@ import {
   resetLocalStorage,
   storageIsSetupAndFinalizedForCurrentMinaKey,
 } from "@/helpers/localStorage.ts";
-import { DepositSnapshotEvent } from "@/machines/actors/statuses.ts";
+import { CompressedDepositSnapshotEvent, getCompressedDepositProcessingStatus$, getDepositProcessingStatus } from "@/machines/actors/statuses.ts";
 import { EthProofResult, ObservableValue } from "./types.ts";
-import { depositProcessingStatusActor } from "@/machines/actors/statuses.ts";
+import { compressedDepositProcessingStatusActor } from "@/machines/actors/statuses.ts";
 import {
   canComputeEthProofActor,
   canMintActor,
@@ -41,16 +43,16 @@ import { getDepositProcessingStatus$ } from "./obs/getDepositProcessingStatus$.t
 
 // This invoke entry will update the machine context when the deposit status changes can be used in any node.
 const invokeMonitoringDepositStatus = {
-  id: "depositProcessingStatus",
-  src: "depositProcessingStatusActor" as const,
+  id: "compressedDepositProcessingStatus",
+  src: "compressedDepositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
     ({
-      depositProcessingStatus$: context.depositProcessingStatus$!,
+      compressedDepositProcessingStatus$: context.compressedDepositProcessingStatus$!,
     } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
-      DepositSnapshotEvent,
+      CompressedDepositSnapshotEvent,
       undefined,
       DepositMintEvents,
       never
@@ -66,21 +68,12 @@ const invokeMonitoringDepositStatus = {
   } as const,
   onError: {
     actions: ({ event }) => {
-      console.error("depositProcessingStatusActor error:", event.error);
+      console.error("compressedDepositProcessingStatus error:", event.error);
     },
   },
 };
 
-// Get deposit processing status
 
-function getDepositProcessingStatus(context: DepositMintContext) {
-  return getDepositProcessingStatus$(
-    context.activeDepositNumber!,
-    context.ethStateTopic$,
-    context.bridgeStateTopic$,
-    context.bridgeTimingsTopic$
-  );
-}
 
 // Machine types -----------------------------------------------------------------------
 
@@ -99,9 +92,11 @@ export interface DepositMintContext {
     typeof getDepositProcessingStatus$
   > | null;
 
+  compressedDepositProcessingStatus$: ReturnType<typeof getCompressedDepositProcessingStatus$> | null;
+
   // Observable statuses
   processingStatus: ObservableValue<
-    ReturnType<typeof getDepositProcessingStatus$>
+    ReturnType<typeof getCompressedDepositProcessingStatus$>
   > | null;
 
   // Triggers
@@ -155,11 +150,11 @@ export const getDepositMachine = (
       canComputeEthProof: ({ context }) =>
         context.canComputeStatus === "CanCompute",
       canMint: ({ context }) => context.canMintStatus === "ReadyToMint",
-      isMissedOpportunity: ({ context }) =>
-        context.canComputeStatus === "MissedMintingOpportunity" ||
+      isMissedOpportunity: ({ context }) => false,
+        /*context.canComputeStatus === "MissedMintingOpportunity" ||
         context.canMintStatus === "MissedMintingOpportunity" ||
         context.processingStatus?.deposit_processing_status ==
-          "MissedMintingOpportunity",
+          "MissedMintingOpportunity", // return to this*/
 
       storageIsSetupAndFinalizedForCurrentMinaKeyGuard: ({ context }) =>
         storageIsSetupAndFinalizedForCurrentMinaKey(
@@ -177,7 +172,7 @@ export const getDepositMachine = (
         context.goToSetupStorage === true, // An indicator used to after setupStorageOnChainCheck that we should go to setupStorage
     },
     actors: {
-      depositProcessingStatusActor,
+      compressedDepositProcessingStatusActor,
       canComputeEthProofActor,
       canMintActor,
       storageIsSetupWithDelayActor,
@@ -202,6 +197,7 @@ export const getDepositMachine = (
       bridgeStateTopic$: topics.bridgeStateTopic$,
       bridgeTimingsTopic$: topics.bridgeTimingsTopic$,
       depositProcessingStatus$: null,
+      compressedDepositProcessingStatus$: null,
 
       // Statuses
       processingStatus: null,
@@ -298,8 +294,13 @@ export const getDepositMachine = (
             canMintStatus: () => null as null,
             depositProcessingStatus$: ({ context }) =>
               getDepositProcessingStatus(context),
+            compressedDepositProcessingStatus$: ({context}) => getCompressedDepositProcessingStatus$(context.depositProcessingStatus$!), // checkme if this isnt actually sequential then we will get undefined errors
+
             errorMessage: null,
           }),
+          /*({context}) => {
+            context.depositProcessingStatus$
+          }*/
         ],
         always: [
           // If we have historically setupStorage for this mina key and we determined that tx was succesfull then goto monitoringDepositStatus straight away
@@ -509,7 +510,10 @@ export const getDepositMachine = (
                   errorMessage: "Failed to wait for storage setup",
                 }),
                 ({ event }) => {
-                  console.error("storageIsSetupWithDelayActor error:", event.error);
+                  console.error(
+                    "storageIsSetupWithDelayActor error:",
+                    event.error
+                  );
                 },
               ],
             },
@@ -649,8 +653,11 @@ export const getDepositMachine = (
             },
             onError: {
               actions: ({ event }) => {
-                console.error("canMintActor error in hasComputedEthProof:", event.error);
-              }
+                console.error(
+                  "canMintActor error in hasComputedEthProof:",
+                  event.error
+                );
+              },
               //DepositMintMachine.ts:694 computeMintTx error: Error: No stored eth proof or codeVerify found
 
               // DepositMintMachine.ts:696 Stack trace: Error: No stored eth proof or codeVerify found

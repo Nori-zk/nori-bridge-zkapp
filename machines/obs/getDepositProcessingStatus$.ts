@@ -35,6 +35,18 @@ const stageIndexEthProcessorTransactionSubmitSucceeded = stageIndex(
   TransitionNoticeMessageType.EthProcessorTransactionSubmitSucceeded
 );
 
+const timingsStatsMap: Record<KeyTransitionStageMessageTypes, number> = {
+  [TransitionNoticeMessageType.BridgeHeadJobCreated]: 10,
+  [TransitionNoticeMessageType.BridgeHeadJobSucceeded]: 0,
+  [TransitionNoticeMessageType.ProofConversionJobReceived]: 10,
+  [TransitionNoticeMessageType.ProofConversionJobSucceeded]: 10,
+  [TransitionNoticeMessageType.EthProcessorProofRequest]: 10,
+  [TransitionNoticeMessageType.EthProcessorProofSucceeded]: 10,
+  [TransitionNoticeMessageType.EthProcessorTransactionSubmitting]: 10,
+  [TransitionNoticeMessageType.EthProcessorTransactionSubmitSucceeded]: 10,
+  [TransitionNoticeMessageType.EthProcessorTransactionFinalizationSucceeded]: 10
+};
+
 /**
  * Monitors the status of a bridge deposit and emits a stream of updates regarding its processing state.
  *
@@ -184,7 +196,8 @@ export const getDepositProcessingStatus$ = (
         timeToWait = Math.max(0, blocksRemaining * 12) + tick;
       } else {
         // put custom rules here for the network timed pieces  ***********************
-        const expected = bridgeTimings.extension[stage_name] ?? 15;
+        // @Karol
+        const expected = timingsStatsMap[stage_name] ?? 0;//bridgeTimings.extension[stage_name] ?? 15;
         timeToWait = expected - elapsed_sec;
       }
 
