@@ -164,54 +164,63 @@ export const MetaMaskWalletProvider = ({
 
   // React to chain changes - this is where the magic happens
   useEffect(() => {
-    if (!chainId) return;
+    const checkChain = async () => {
+      if (!chainId) return;
 
-    console.log(
-      "Reacting to chain change. ChainId:",
-      chainId,
-      "IsConnected:",
-      isConnected
-    );
+      console.log(
+        "Reacting to chain change. ChainId:",
+        chainId,
+        "IsConnected:",
+        isConnected
+      );
 
-    if (chainId !== holesky_network_id) {
-      // User switched to wrong network
-      if (isConnected) {
-        toast.current({
-          type: "error",
-          title: "Wrong Network",
-          description:
-            "You've switched to an unsupported network. Disconnecting wallet.",
-        });
-
-        // Disconnect immediately
-        clearWalletState();
-
-        // Try to revoke permissions
-        try {
-          window.ethereum?.request({
-            method: "wallet_revokePermissions",
-            params: [{ eth_accounts: {} }],
+      if (chainId !== holesky_network_id) {
+        // User switched to wrong network
+        if (isConnected) {
+          toast.current({
+            type: "error",
+            title: "Wrong Network",
+            description:
+              "You've switched to an unsupported network. Disconnecting wallet.",
           });
-        } catch (error) {
-          console.warn("Failed to revoke permissions:", error);
+
+          // Disconnect immediately
+          clearWalletState();
+
+          // Try to revoke permissions
+          try {
+            window.ethereum?.request({
+              method: "wallet_revokePermissions",
+              params: [{ eth_accounts: {} }],
+            });
+
+            await window.ethereum.request({
+              method: "wallet_switchEthereumChain",
+              params: [{ chainId: holesky_network_id }],
+            });
+          } catch (error) {
+            console.warn("Failed to revoke permissions:", error);
+          }
+        }
+      } else {
+        // User is on correct network
+        if (walletAddress && !isConnected) {
+          // Re-initialize connection if we have an address but aren't connected
+          console.log("Re-initializing connection on correct network");
+          initializeWalletConnection(walletAddress).then((success) => {
+            if (success) {
+              toast.current({
+                type: "notification",
+                title: "Network Connected",
+                description: "Reconnected to Holesky network successfully!",
+              });
+            }
+          });
         }
       }
-    } else {
-      // User is on correct network
-      if (walletAddress && !isConnected) {
-        // Re-initialize connection if we have an address but aren't connected
-        console.log("Re-initializing connection on correct network");
-        initializeWalletConnection(walletAddress).then((success) => {
-          if (success) {
-            toast.current({
-              type: "notification",
-              title: "Network Connected",
-              description: "Reconnected to Holesky network successfully!",
-            });
-          }
-        });
-      }
-    }
+    };
+
+    checkChain();
   }, [
     chainId,
     isConnected,
@@ -235,6 +244,12 @@ export const MetaMaskWalletProvider = ({
           description:
             "Please switch to Holesky network before connecting your wallet.",
         });
+
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: holesky_network_id }],
+        });
+
         return;
       }
 
