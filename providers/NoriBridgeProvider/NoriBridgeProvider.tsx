@@ -21,6 +21,7 @@ import envConfig from "@/helpers/env.ts";
 import { BridgeDepositProcessingStatus } from "@nori-zk/mina-token-bridge/rx/deposit";
 import { DepositStates } from "@/types/types.ts";
 import { ReplacementDepositProcessingStatus, ReplacementStageName, ReplacementStageNameValues, ReplacementDepositProcessingStatusValues } from "@/machines/actors/statuses.ts";
+import getWorkerClient from "@/singletons/workerSingleton.ts";
 
 // Extract the machine type
 type DepositMachine = ReturnType<typeof getDepositMachine>;
@@ -128,7 +129,11 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (minaAddress && ethAddress) {
       if (!mintWorker) {
-        const worker = new ZkappMintWorkerClient(minaAddress, ethAddress);
+        const worker = getWorkerClient()
+        worker.setWallets({
+          minaPubKeyBase58: minaAddress,
+          ethPubKeyBase58: ethAddress,
+        });
         worker.minaSetup(minaConfig);
         console.log("creating worker: ", worker);
         setMintWorker(worker);

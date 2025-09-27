@@ -6,7 +6,6 @@ import LockTokens from "@/components/bridge-control-card/ProgressSteps/LockToken
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
 import DepositStatus from "@/components/bridge-control-card/ProgressSteps/DepositStatus.tsx";
-import ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { useToast } from "@/helpers/useToast.tsx";
 import Ping from "@/components/ui/Ping/Ping.tsx";

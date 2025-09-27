@@ -49,12 +49,9 @@ export default class ZkappMintWorkerClient {
   #compileTimeSeconds = 0;
   minaWalletPubKeyBase58: string;
   ethWalletPubKeyBase58: string;
-  fixedValueOrSecret: string;
+  fixedValueOrSecret: string = "NoriZK"
 
   constructor(
-    minaWalletPubKeyBase58: string,
-    ethWalletPubKeyBase58: string,
-    optionalSecret = "NoriZK"
   ) {
     const worker = new Worker(new URL("./mintWorker.ts", import.meta.url), {
       type: "module",
@@ -63,9 +60,6 @@ export default class ZkappMintWorkerClient {
     const TokenMintWorker = createProxy<typeof ZkAppWorkerType>(workerParent);
     this.#mintWorker = new TokenMintWorker();
     this.#ready = this.#mintWorker.ready;
-    this.minaWalletPubKeyBase58 = minaWalletPubKeyBase58;
-    this.ethWalletPubKeyBase58 = ethWalletPubKeyBase58;
-    this.fixedValueOrSecret = optionalSecret;
     console.log("Worker proxy created in constructor");
   }
 
