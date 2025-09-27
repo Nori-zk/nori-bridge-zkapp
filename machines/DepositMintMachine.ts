@@ -43,10 +43,10 @@ const invokeMonitoringDepositStatus = {
   id: "compressedDepositProcessingStatus",
   src: "compressedDepositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
-    ({
-      compressedDepositProcessingStatus$:
-        context.compressedDepositProcessingStatus$!,
-    } as const),
+  ({
+    compressedDepositProcessingStatus$:
+      context.compressedDepositProcessingStatus$!,
+  } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
@@ -237,7 +237,7 @@ export const getDepositMachine = (
                 context.mintWorker!.ethWalletPubKeyBase58!,
                 context.mintWorker!.minaWalletPubKeyBase58!
               ).activeDepositNumber;
-              console.log(`!!!1activeDepositNumber '${v}'`, typeof v);
+              // console.log(`!!!1activeDepositNumber '${v}'`, typeof v);
               if (!v) return null;
               return v; //parseInt(v); // should check for NaN
             },
@@ -815,19 +815,32 @@ export const getDepositMachine = (
     on: {
       ASSIGN_WORKER: {
         target: ".checking", // or ".checking" if you want to skip hydrating
-        actions: assign(({ event }) => ({
-          // event is guaranteed to be ASSIGN_WORKER here
-          mintWorker: event.mintWorkerClient,
-          activeDepositNumber: null,
-          depositMintTx: null,
-          computedEthProof: null,
-          processingStatus: null,
-          canComputeStatus: null,
-          canMintStatus: null,
-          needsToFundAccount: false,
-          errorMessage: null,
-        })),
+        actions: [
+          assign(({ event }) => ({
+            // event is guaranteed to be ASSIGN_WORKER here
+            mintWorker: event.mintWorkerClient,
+            activeDepositNumber: null,
+            depositMintTx: null,
+            computedEthProof: null,
+            processingStatus: null,
+            canComputeStatus: null,
+            canMintStatus: null,
+            needsToFundAccount: false,
+            errorMessage: null,
+          })),
+          ({ event }) => {
+            console.log(
+              "worker ETH address",
+              event.mintWorkerClient.ethWalletPubKeyBase58
+            );
+            console.log(
+              "worker MINA address",
+              event.mintWorkerClient.minaWalletPubKeyBase58
+            );
+          },
+        ],
       },
+
       RESET: {
         target: ".checking", // or ".hydrating"
         reenter: true, // v5 only; re-run entry even if already there

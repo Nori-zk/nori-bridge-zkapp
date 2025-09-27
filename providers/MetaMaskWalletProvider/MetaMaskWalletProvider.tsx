@@ -34,6 +34,8 @@ interface MetaMaskWalletContextType {
   isConnected: boolean;
   lockedAmount: string | null;
   contract: Contract | null;
+  chainId: string | null;
+  isOnCorrectNetwork: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   signMessage: (message: string) => Promise<SignMessageResult>;
@@ -62,7 +64,8 @@ export const useMetaMaskWallet = (): MetaMaskWalletContextType => {
   return context;
 };
 
-const holesky_network_id = "0x4268";
+// const holesky_network_id = "0x4268";
+const SEPOLIA_NETWORK_ID = "0xaa36a7"; // 11155111 in hex
 
 export const MetaMaskWalletProvider = ({
   children,
@@ -74,6 +77,8 @@ export const MetaMaskWalletProvider = ({
   const [signer, setSigner] = useState<Signer | null>(null);
   const [contract, setContract] = useState<Contract | null>(null);
   const [lockedAmount, setLockedAmount] = useState<string | null>(null);
+  // NEW: Track current chain ID
+  const [chainId, setChainId] = useState<string | null>(null);
 
   const rawToast = useToast({
     type: "error",
@@ -86,10 +91,144 @@ export const MetaMaskWalletProvider = ({
   });
   const toast = useRef(rawToast);
 
+  // Helper to check if we're on the correct network
+  const isOnCorrectNetwork = useMemo(() => {
+    return chainId === SEPOLIA_NETWORK_ID;
+  }, [chainId]);
+
   const initializeContract = useCallback(async (signer: Signer) => {
-    const contractAddress = envConfig.NORI_TOKEN_BRIDGE_ADDRESS; //process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
+    const contractAddress = envConfig.NORI_TOKEN_BRIDGE_ADDRESS;
     return new Contract(contractAddress, noriTokenBridgeJson.abi, signer);
   }, []);
+
+  // Helper function to clear wallet state
+  const clearWalletState = useCallback(() => {
+    setWalletAddress(null);
+    setIsConnected(false);
+    setSigner(null);
+    setContract(null);
+    setLockedAmount(null);
+  }, []);
+
+  // Helper function to initialize wallet connection
+  const initializeWalletConnection = useCallback(
+    async (address: string) => {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+
+        setWalletAddress(address);
+        setIsConnected(true);
+        setSigner(signer);
+
+        const newContract = await initializeContract(signer);
+        setContract(newContract);
+
+        return true;
+      } catch (error) {
+        console.error("Failed to initialize wallet connection:", error);
+        clearWalletState();
+        return false;
+      }
+    },
+    [initializeContract, clearWalletState]
+  );
+
+  // Set up chain change listener (runs once)
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    const handleChainChanged = (newChainId: string) => {
+      console.log("Chain changed to:", newChainId);
+      setChainId(newChainId);
+    };
+
+    // Get initial chain ID
+    const getInitialChainId = async () => {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const network = await provider.getNetwork();
+        const initialChainId = "0x" + network.chainId.toString(16);
+        setChainId(initialChainId);
+      } catch (error) {
+        console.error("Failed to get initial chain ID:", error);
+      }
+    };
+
+    getInitialChainId();
+    window.ethereum.on("chainChanged", handleChainChanged);
+
+    return () => {
+      window.ethereum?.removeListener("chainChanged", handleChainChanged);
+    };
+  }, []);
+
+  // React to chain changes - this is where the magic happens
+  useEffect(() => {
+    const checkChain = async () => {
+      if (!chainId) return;
+
+      console.log(
+        "Reacting to chain change. ChainId:",
+        chainId,
+        "IsConnected:",
+        isConnected
+      );
+
+      if (chainId !== SEPOLIA_NETWORK_ID) {
+        // User switched to wrong network
+        if (isConnected) {
+          toast.current({
+            type: "error",
+            title: "Wrong Network",
+            description:
+              "You've switched to an unsupported network. Disconnecting wallet.",
+          });
+
+          // Disconnect immediately
+          clearWalletState();
+
+          // Try to revoke permissions
+          try {
+            window.ethereum?.request({
+              method: "wallet_revokePermissions",
+              params: [{ eth_accounts: {} }],
+            });
+
+            await window.ethereum.request({
+              method: "wallet_switchEthereumChain",
+              params: [{ chainId: SEPOLIA_NETWORK_ID }],
+            });
+          } catch (error) {
+            console.warn("Failed to revoke permissions:", error);
+          }
+        }
+      } else {
+        // User is on correct network
+        if (walletAddress && !isConnected) {
+          // Re-initialize connection if we have an address but aren't connected
+          console.log("Re-initializing connection on correct network");
+          initializeWalletConnection(walletAddress).then((success) => {
+            if (success) {
+              toast.current({
+                type: "notification",
+                title: "Network Connected",
+                description: "Reconnected to Sepolia network successfully!",
+              });
+            }
+          });
+        }
+      }
+    };
+
+    checkChain();
+  }, [
+    chainId,
+    isConnected,
+    walletAddress,
+    clearWalletState,
+    initializeWalletConnection,
+  ]);
 
   const connect = useCallback(async () => {
     if (!window.ethereum) {
@@ -98,36 +237,35 @@ export const MetaMaskWalletProvider = ({
     }
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.send("eth_requestAccounts", []);
-
-      const network = (await provider.getNetwork()).chainId;
-      const chainIdHex = "0x" + network.toString(16);
-
-      //on connect attempt if not holesky,return
-      if (chainIdHex !== holesky_network_id) {
+      // First check if we're on the correct network before connecting
+      if (!isOnCorrectNetwork) {
         toast.current({
           type: "error",
           title: "Wrong Network",
-          description: `Please ensure you are on the Holesky network`,
+          description:
+            "Please switch to Sepolia network before connecting your wallet.",
         });
+
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: SEPOLIA_NETWORK_ID }],
+        });
+
         return;
       }
 
-      if (accounts.length > 0) {
-        const signer = await provider.getSigner();
-        const address = accounts[0];
-        setWalletAddress(address);
-        setIsConnected(true);
-        setSigner(signer);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
 
-        const newContract = await initializeContract(signer);
-        setContract(newContract);
-        toast.current({
-          type: "notification",
-          title: "Success",
-          description: "Wallet connected successfully!",
-        });
+      if (accounts.length > 0) {
+        const success = await initializeWalletConnection(accounts[0]);
+        if (success) {
+          toast.current({
+            type: "notification",
+            title: "Success",
+            description: "Wallet connected successfully!",
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to connect wallet:", error);
@@ -137,15 +275,12 @@ export const MetaMaskWalletProvider = ({
         description: "Failed to connect wallet.",
       });
     }
-  }, [initializeContract, toast]);
+  }, [isOnCorrectNetwork, initializeWalletConnection]);
 
   const disconnect = useCallback(async () => {
     if (!isConnected) return;
 
-    setWalletAddress(null);
-    setIsConnected(false);
-    setSigner(null);
-    setContract(null);
+    clearWalletState();
 
     try {
       await window.ethereum.request({
@@ -161,22 +296,19 @@ export const MetaMaskWalletProvider = ({
       title: "Disconnected",
       description: "Wallet disconnected successfully.",
     });
-  }, [isConnected, toast]);
+  }, [isConnected, clearWalletState]);
 
   const signMessage = useCallback(
     async (message: string): Promise<SignMessageResult> => {
-      if (!isConnected) {
+      if (!isConnected || !isOnCorrectNetwork) {
         toast.current({
           type: "error",
           title: "Error",
-          description: "Please connect wallet first.",
+          description: "Please connect wallet on Sepolia network first.",
         });
-        throw new Error("Wallet not connected");
+        throw new Error("Wallet not connected or on wrong network");
       }
       try {
-        // const parseHex = (hex: string) => ethers.getBytes(hex);
-        // const hashMessage = (msg: string) => parseHex(ethers.id(msg));
-        // const hashedMessage = ethers.hexlify(hashMessage(message));
         const signature = await window.ethereum.request({
           method: "personal_sign",
           params: [message, walletAddress!],
@@ -192,15 +324,15 @@ export const MetaMaskWalletProvider = ({
         throw error;
       }
     },
-    [signer, walletAddress, toast]
+    [isConnected, isOnCorrectNetwork, walletAddress]
   );
 
   const bridgeOperator = useCallback(async () => {
-    if (!contract) {
+    if (!contract || !isOnCorrectNetwork) {
       toast.current({
         type: "error",
         title: "Error",
-        description: "Please connect wallet first.",
+        description: "Please connect wallet on Sepolia network first.",
       });
       return;
     }
@@ -219,17 +351,17 @@ export const MetaMaskWalletProvider = ({
         description: "Error calling bridge operator.",
       });
     }
-  }, [contract, toast]);
+  }, [contract, isOnCorrectNetwork]);
 
   const lockTokens = useCallback(
     async (codeChallange: string, amount: number): Promise<number> => {
-      if (!contract) {
+      if (!contract || !isOnCorrectNetwork) {
         toast.current({
           type: "error",
           title: "Error",
-          description: "Please connect wallet first.",
+          description: "Please connect wallet on Sepolia network first.",
         });
-        throw Error("contract not connected");
+        throw Error("contract not connected or wrong network");
       }
       try {
         const codeChallengePKARMBigInt = BigInt(codeChallange);
@@ -248,11 +380,10 @@ export const MetaMaskWalletProvider = ({
             "Transaction sent successfully - waiting on confirmation!",
         });
 
-        //show toast for transaction pending
         const receipt = await tx.wait();
         console.log("Transaction Receipt:", receipt);
         console.log("Block Number:", receipt.blockNumber);
-        // toast to have link to etherscan
+
         toast.current({
           type: "notification",
           title: "Success",
@@ -269,15 +400,15 @@ export const MetaMaskWalletProvider = ({
         throw error;
       }
     },
-    [contract, toast]
+    [contract, isOnCorrectNetwork]
   );
 
   const getLockedTokens = useCallback(async () => {
-    if (!contract) {
+    if (!contract || !isOnCorrectNetwork) {
       toast.current({
         type: "error",
         title: "Error",
-        description: "Please connect wallet first.",
+        description: "Please connect wallet on Sepolia network first.",
       });
       return;
     }
@@ -295,8 +426,9 @@ export const MetaMaskWalletProvider = ({
         description: "Error locking tokens.",
       });
     }
-  }, [contract, toast]);
+  }, [contract, walletAddress, isOnCorrectNetwork]);
 
+  // Check existing connection on mount
   useEffect(() => {
     const checkConnection = async () => {
       if (!window.ethereum) {
@@ -304,38 +436,73 @@ export const MetaMaskWalletProvider = ({
         return;
       }
 
-      const provider = new BrowserProvider(window.ethereum);
-      const accounts = await provider.send("eth_accounts", []);
-      if (accounts.length > 0) {
-        const signer = await provider.getSigner();
-        const address = accounts[0];
-        setWalletAddress(address);
-        setIsConnected(true);
-        setSigner(signer);
-        const newContract = await initializeContract(signer);
-        setContract(newContract);
+      try {
+        const provider = new BrowserProvider(window.ethereum);
+        const accounts = await provider.send("eth_accounts", []);
+
+        if (accounts.length > 0) {
+          // We have connected accounts, but only proceed if on correct network
+          // The chain change effect will handle reconnection if needed
+          const address = accounts[0];
+
+          // If we're already on the correct network, initialize immediately
+          if (isOnCorrectNetwork) {
+            await initializeWalletConnection(address);
+          } else {
+            // Just store the address, the chain change effect will handle the rest
+            setWalletAddress(address);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking existing connection:", error);
       }
     };
 
-    void checkConnection();
-  }, [initializeContract, toast]);
+    // Only run this after we've determined the initial chain ID
+    if (chainId !== null) {
+      void checkConnection();
+    }
+  }, [chainId, isOnCorrectNetwork, initializeWalletConnection]);
 
+  // Handle account changes
   useEffect(() => {
     if (!window.ethereum) return;
 
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
-        disconnect();
+        // All accounts disconnected
+        clearWalletState();
+        toast.current({
+          type: "notification",
+          title: "Wallet Disconnected",
+          description: "All accounts have been disconnected.",
+        });
       } else {
-        if (accounts[0] !== walletAddress) {
-          setWalletAddress(accounts[0]);
-          toast.current({
-            type: "notification",
-            title: "Account Changed",
-            description: `Switched to account: ${formatDisplayAddress(
-              accounts[0]
-            )}`,
-          });
+        // Account switched
+        const newAddress = accounts[0];
+        if (newAddress !== walletAddress) {
+          if (isOnCorrectNetwork) {
+            // Re-initialize with new account if on correct network
+            initializeWalletConnection(newAddress).then(() => {
+              toast.current({
+                type: "notification",
+                title: "Account Changed",
+                description: `Switched to account: ${formatDisplayAddress(
+                  newAddress
+                )}`,
+              });
+            });
+          } else {
+            // Just update the address, don't connect
+            setWalletAddress(newAddress);
+            toast.current({
+              type: "notification",
+              title: "Account Changed",
+              description: `Account switched to: ${formatDisplayAddress(
+                newAddress
+              )}. Please switch to Sepolia network to connect.`,
+            });
+          }
         }
       }
     };
@@ -344,35 +511,12 @@ export const MetaMaskWalletProvider = ({
     return () => {
       window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
     };
-  }, [walletAddress, disconnect, toast]);
-
-  useEffect(() => {
-    if (!window.ethereum) return;
-
-    const handleChainChanged = async (chainId: string) => {
-      if (chainId !== holesky_network_id) {
-        toast.current({
-          type: "error",
-          title: "Network Changed",
-          description: `Please ensure you are on the Holesky network`,
-        });
-
-        disconnect();
-      } else {
-        toast.current({
-          type: "notification",
-          title: "Network Changed",
-          description: `Switched to Holesky network`,
-        });
-      }
-    };
-
-    window.ethereum.on("chainChanged", handleChainChanged);
-
-    return () => {
-      window.ethereum?.removeListener("chainChanged", handleChainChanged);
-    };
-  }, [connect, disconnect, toast]);
+  }, [
+    walletAddress,
+    isOnCorrectNetwork,
+    clearWalletState,
+    initializeWalletConnection,
+  ]);
 
   const value = useMemo(
     () => ({
@@ -381,6 +525,8 @@ export const MetaMaskWalletProvider = ({
       isConnected,
       lockedAmount,
       contract,
+      chainId,
+      isOnCorrectNetwork,
       connect,
       disconnect,
       signMessage,
@@ -393,6 +539,8 @@ export const MetaMaskWalletProvider = ({
       isConnected,
       lockedAmount,
       contract,
+      chainId,
+      isOnCorrectNetwork,
       connect,
       disconnect,
       signMessage,

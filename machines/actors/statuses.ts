@@ -74,8 +74,8 @@ const replacementNamesMap: Record<KeyTransitionStageMessageTypes, ReplacementSta
 
 export enum ReplacementDepositProcessingStatus {
   WaitingForEthFinality = "Waiting for Ethereum finality",
-  WaitingForPreviousJobCompletion = "Processing previous job",
-  WaitingForCurrentJobCompletion = "Processing current job",
+  WaitingForPreviousJobCompletion = "Processing previous deposits",
+  WaitingForCurrentJobCompletion = "Processing your deposit",
   ReadyToMint = "Ready to mint",
   MissedMintingOpportunity = "Missed minting opportunity",
 }

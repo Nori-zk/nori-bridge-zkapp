@@ -116,6 +116,32 @@ export function useBridgeControlCardProps(
         component: <DepositStatus />,
       };
 
+    case "computeEthProof":
+      return {
+        title: "Computing deposit proof",
+        component:
+          <DepositStatus />
+      };
+    case "hasComputedEthProof":
+      return {
+        title: "Awaiting smart contract readiness",
+        component:
+          <DepositStatus />
+      };
+    case "buildingMintTx":
+      return {
+        title: "Building mint transaction",
+        component:
+          <DepositStatus />
+      }
+
+    case "submittingMintTx":
+      return {
+        title: "Submitting mint transaction",
+        component:
+          <DepositStatus />
+      }
+
     default:
       return {
         title: "Loading",

@@ -14,7 +14,7 @@ const DepositProcessing: React.FC = () => {
 
   // ReplacementDepositProcessingStatus.length
   const totalStatusSteps = 4;
-  const totalBridgeStages = 9; // fixme
+  const totalBridgeStages = 4; // fixme
 
   // Timing progress
   const stageTotal = depositStepElapsedTime + depositStepTimeRemaining;
@@ -37,9 +37,8 @@ const DepositProcessing: React.FC = () => {
         {Array.from({ length: totalStatusSteps }).map((_, idx) => (
           <div
             key={idx}
-            className={`w-3 h-3 rounded-full transition-colors duration-300 ${
-              idx <= depositStatusStepIndex ? "bg-blue-500" : "bg-gray-700"
-            }`}
+            className={`w-3 h-3 rounded-full transition-colors duration-300 ${idx <= depositStatusStepIndex ? "bg-blue-500" : "bg-gray-700"
+              }`}
           />
         ))}
       </div>

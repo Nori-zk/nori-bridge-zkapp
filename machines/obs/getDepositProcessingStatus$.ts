@@ -193,7 +193,6 @@ export const getDepositProcessingStatus$ = (
         const delta =
           ethState.latest_finality_slot - ethState.latest_finality_block_number;
 
-        console.log("delta between bridge ethState.latest_finality_slot - ethState.latest_finality_block_number; ");
         const depositSlot = depositBlockNumber + delta;
         const rounded = Math.ceil(depositSlot / 32) * 32;
         const blocksRemaining =
@@ -206,7 +205,7 @@ export const getDepositProcessingStatus$ = (
         // lastKnownExpected = bridgeTimings.extension[stage_name]; 
         timeToWait = expected - elapsed_sec;
       }
-  
+
       const elapsed =
         status === BridgeDepositProcessingStatus.WaitingForEthFinality
           ? tick

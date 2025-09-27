@@ -35,10 +35,18 @@ type InferSchemaType<T extends SchemaEntry> = T extends { type: "string" }
 function serializeByType(value: any, type: SchemaType): string {
   switch (type) {
     case "string":
+      return String(value);
     case "number":
+      return String(value);
     case "boolean":
+      return String(value);
     case "object":
     case "array":
+      // Only stringify if it's not already a string
+      if (typeof value === 'string') {
+        // It's already stringified, return as-is
+        return value;
+      }
       return JSON.stringify(value);
     case "date":
       return (value as Date).toISOString();
@@ -49,7 +57,7 @@ function deserializeByType(raw: string | null, type: SchemaType): any {
   if (raw === null) return null;
   switch (type) {
     case "string":
-      return raw;
+      return raw; // Return as-is
     case "number":
       return Number(raw);
     case "boolean":
@@ -58,7 +66,11 @@ function deserializeByType(raw: string | null, type: SchemaType): any {
       return null;
     case "array":
     case "object":
-      return JSON.parse(raw);
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return raw;
+      }
     case "date":
       return new Date(raw);
   }
@@ -129,10 +141,10 @@ export class Store {
 //const activeDepositNumber = Store.forPair("","").activeDepositNumber;
 
 export function resetLocalStorage(ethWallet: string, minaWallet: string) {
-    const keys = ["activeDepositNumber", "computedEthProof", "depositMintTx"] as const;
-    keys.forEach((key) => {
-        Store.forPair(ethWallet, minaWallet)[key] = null;
-    });
+  const keys = ["activeDepositNumber", "computedEthProof", "depositMintTx"] as const;
+  keys.forEach((key) => {
+    Store.forPair(ethWallet, minaWallet)[key] = null;
+  });
 }
 
 export function storageIsSetupAndFinalizedForCurrentMinaKey(minaWallet: string) {
