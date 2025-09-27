@@ -8,7 +8,7 @@ const AnimatedProgressBar = () => {
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) return 100;
-        return prev + 1;
+        return prev;
       });
     }, 100);
 
@@ -48,7 +48,7 @@ const AnimatedProgressBar = () => {
               {generateNumbers(startNumber).map((num) => (
                 <span
                   key={num}
-                  className="h-4 flex items-center justify-center"
+                  className="h-4 text-md flex items-center justify-center"
                 >
                   {num}
                 </span>
@@ -56,7 +56,7 @@ const AnimatedProgressBar = () => {
               {generateNumbers(startNumber).map((num) => (
                 <span
                   key={`dup-${num}`}
-                  className="h-4 flex items-center justify-center"
+                  className="h-4 flex text-md items-center justify-center"
                 >
                   {num}
                 </span>
@@ -71,7 +71,7 @@ const AnimatedProgressBar = () => {
   NumberColumn.displayName = "NumberColumn";
 
   const numberColumns = useMemo(() => {
-    return Array.from({ length: 60 }, (_, colIndex) => {
+    return Array.from({ length: 30 }, (_, colIndex) => {
       // Create a pseudo-random but deterministic number based on column index
       const pseudoRandom = ((colIndex * 7 + 3) % 9) + 1;
 
