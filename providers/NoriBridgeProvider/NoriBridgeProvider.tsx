@@ -57,7 +57,6 @@ type NoriBridgeContextType = {
   isReady: boolean;
   isError: boolean;
   canSetupStorage: boolean;
-  canSubmitMintTx: boolean;
 
   // Current bridge stage data
   bridgeStage: string;
@@ -77,7 +76,6 @@ type NoriBridgeContextType = {
   // Helper methods
   setDepositNumber: (depositNumber: number) => void;
   setPresentation: (presentationJsonStr: string) => void;
-  submitMintTx: () => void;
   retry: () => void;
   reset: () => void;
 };
@@ -161,10 +159,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     console.log("Setting presentation:", presentationJsonStr);
   };
 
-  const submitMintTx = () => {
-    sendDepositMachine({ type: "SUBMIT_MINT_TX" });
-  };
-
   const retry = () => {
     sendDepositMachine({ type: "CHECK_STATUS" });
   };
@@ -192,7 +186,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       "computeEthProof",
       "hasComputedEthProof",
       "buildingMintTx",
-      "hasDepositMintTx",
       "submittingMintTx",
       "error",
       "missedOpportunity",
@@ -216,14 +209,12 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const isReady =
     stateCheckers.monitoringDepositStatus ||
-    stateCheckers.hasComputedEthProof ||
-    stateCheckers.hasDepositMintTx;
+    stateCheckers.hasComputedEthProof;
 
   const isError =
     stateCheckers.error || depositState.context.errorMessage !== null;
 
   const canSetupStorage = depositState.context.goToSetupStorage;
-  const canSubmitMintTx = stateCheckers.hasDepositMintTx;
 
   const bridgeStage = bridgeState.value as unknown as string;
   const bridgeStateElapsedSec = bridgeState.context.bridgeStatus?.elapsed_sec;
@@ -272,7 +263,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       isReady,
       isError,
       canSetupStorage,
-      canSubmitMintTx,
 
       // Current bridge stage data
       bridgeStage,
@@ -292,7 +282,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       // Helper methods
       setDepositNumber,
       setPresentation,
-      submitMintTx,
       retry,
       reset,
     }),
@@ -305,7 +294,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       isReady,
       isError,
       canSetupStorage,
-      canSubmitMintTx,
       bridgeStage,
       bridgeStateElapsedSec,
       bridgeStateTimeRemaining,
@@ -319,7 +307,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       depositStepTimeRemaining,
       setDepositNumber,
       setPresentation,
-      submitMintTx,
       retry,
       reset,
     ]
