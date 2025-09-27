@@ -8,7 +8,7 @@ const AnimatedProgressBar = () => {
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) return 100;
-        return prev;
+        return prev + 1;
       });
     }, 100);
 
@@ -87,7 +87,7 @@ const AnimatedProgressBar = () => {
   }, []);
 
   return (
-    <div className="p-8 flex items-center justify-center">
+    <div className="px-7 py-4 flex items-center justify-center">
       <div className="w-full max-w-2xl">
         <div className="relative w-full h-10 border border-white/20 rounded-lg overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">

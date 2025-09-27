@@ -11,7 +11,9 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
 import DepositProcessing from "./ProgressSteps/DepositProcessingProgress.tsx";
-import ProgressBar from "../ui/ProgressBar/ProgressBar.tsx";
+import ProgressBar from "@/components/ui/ProgressBar/ProgressBar.tsx";
+import LeftLine from "@/public/assets/LeftLine.svg";
+import RightLine from "@/public/assets/RightLine.svg";
 
 type BridgeControlCardProps = {
   title: string;
@@ -206,7 +208,23 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 </div>
               </div>
             </div>
-            <div className="w-3/4">{<ProgressBar />}</div>
+            <div className="w-4/5">
+              <div className="w-full">
+                <hr className="border-0 h-0.5 mx-7 bg-white/20" />
+                <div className="flex w-full justify-center text-lightGreen py-3">
+                  {"Waiting for previous Current job... "}
+                </div>
+                <hr className="border-0 h-0.5 bg-white/20 mx-7" />
+                {<ProgressBar />}
+                <div className="flex items-center w-full justify-around px-12">
+                  <div className="text-lightGreen/20">{"Previous status"}</div>
+                  <LeftLine />
+                  <div className="text-lightGreen">{"Current status"}</div>
+                  <RightLine />
+                  <div className="text-lightGreen/20">{"Next status"}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </BridgeControlCardSVG>
       </div>
