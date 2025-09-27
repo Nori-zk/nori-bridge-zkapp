@@ -157,7 +157,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 {props.content}
               </div>
             </div>
-            {displayProgressSteps && <ProgressTracker steps={progressSteps} />}
+            {/* {displayProgressSteps && <ProgressTracker steps={progressSteps} />} */}
 
             {/* Current State Display */}
             <div className="flex justify-around items-center">

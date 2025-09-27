@@ -71,7 +71,7 @@ const AnimatedProgressBar = () => {
   NumberColumn.displayName = "NumberColumn";
 
   const numberColumns = useMemo(() => {
-    return Array.from({ length: 30 }, (_, colIndex) => {
+    return Array.from({ length: 54 }, (_, colIndex) => {
       // Create a pseudo-random but deterministic number based on column index
       const pseudoRandom = ((colIndex * 7 + 3) % 9) + 1;
 
