@@ -13,7 +13,7 @@ import GreenSide from "@/public/assets/choose-side/images/GreenSide.svg";
 import { ChooseSideTypes } from "@/types/types.ts";
 
 type ChooseSideUIProps = {
-  radialBg: string;
+  radialBg: 'blue' | 'green' | 'red';
   rightBgSvg: React.ReactNode;
   leftBgSvg: React.ReactNode;
   bottomShadowSvg: React.ReactNode;
