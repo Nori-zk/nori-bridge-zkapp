@@ -11,6 +11,7 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
 import DepositProcessing from "./ProgressSteps/DepositProcessingProgress.tsx";
+import ProgressBar from "../ui/ProgressBar/ProgressBar.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -205,10 +206,10 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 </div>
               </div>
             </div>
+            <div className="w-3/4">{<ProgressBar />}</div>
           </div>
         </BridgeControlCardSVG>
       </div>
-      <div>{hasActiveDeposit && <DepositProcessing />}</div>
     </div>
   );
 };
