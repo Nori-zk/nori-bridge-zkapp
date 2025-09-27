@@ -35,8 +35,15 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     "connecting" | "open" | "closed" | "reconnecting" | "permanently-closed"
   >("connecting");
 
-  const { state, setDepositNumber, isLoading, isReady, isError, reset, hasActiveDeposit } =
-    useNoriBridge();
+  const {
+    state,
+    setDepositNumber,
+    isLoading,
+    isReady,
+    isError,
+    reset,
+    hasActiveDeposit,
+  } = useNoriBridge();
 
   const getStatusColor = () => {
     if (isError) return "text-red-600";
@@ -201,9 +208,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
           </div>
         </BridgeControlCardSVG>
       </div>
-      <div>
-        {hasActiveDeposit && <DepositProcessing />}
-      </div>
+      <div>{hasActiveDeposit && <DepositProcessing />}</div>
     </div>
   );
 };

@@ -1,21 +1,10 @@
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Vector from "@/public/assets/Vector.svg";
+import BlackVector from "@/public/assets/BlackVector.svg";
 
 const ScrollingBridge = () => {
-  const [svgContent, setSvgContent] = useState("");
-
-  useEffect(() => {
-    fetch("/assets/All-Bridge.svg")
-      .then((response) => response.text())
-      .then((text) => {
-        const modifiedSVG = text
-          .replace(/fill="black"/g, 'fill="lightGreen"')
-          .replace(/stroke="black"/g, 'stroke="lightGreen"');
-        setSvgContent(modifiedSVG);
-      });
-  }, []);
-
   return (
+    // <div className="w-1/2">
     <div
       data-testid="scrolling-bridge-container"
       className="relative w-full h-full overflow-hidden flex justify-center"
@@ -30,12 +19,13 @@ const ScrollingBridge = () => {
         animate={{ x: "25%" }}
         transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
       >
-        <div
-          className="scale-[0.4]"
-          dangerouslySetInnerHTML={{ __html: svgContent }}
-        />
+        <div className="flex items-center">
+          <Vector />
+          <BlackVector />
+        </div>
       </motion.div>
     </div>
+    // </div>
   );
 };
 
