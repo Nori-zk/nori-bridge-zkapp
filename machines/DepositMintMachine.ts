@@ -48,10 +48,10 @@ const invokeMonitoringDepositStatus = {
   id: "compressedDepositProcessingStatus",
   src: "compressedDepositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
-    ({
-      compressedDepositProcessingStatus$:
-        context.compressedDepositProcessingStatus$!,
-    } as const),
+  ({
+    compressedDepositProcessingStatus$:
+      context.compressedDepositProcessingStatus$!,
+  } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
@@ -132,12 +132,11 @@ export type DepositMintEvents =
   | { type: "ASSIGN_WORKER"; mintWorkerClient: ZkappMintWorkerClient };
 
 export const getDepositMachine = (
-  topics: {
-    ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-    bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-    bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
-  },
-  mintWorker: ZkappMintWorkerClient | null
+
+  ethStateTopic$: ReturnType<typeof getEthStateTopic$>,
+  bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>,
+  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>
+
 ) =>
   setup({
     types: {
@@ -196,9 +195,9 @@ export const getDepositMachine = (
       depositMintTx: null,
 
       // RX topics
-      ethStateTopic$: topics.ethStateTopic$,
-      bridgeStateTopic$: topics.bridgeStateTopic$,
-      bridgeTimingsTopic$: topics.bridgeTimingsTopic$,
+      ethStateTopic$,
+      bridgeStateTopic$,
+      bridgeTimingsTopic$,
       depositProcessingStatus$: null,
       compressedDepositProcessingStatus$: null,
 
@@ -210,7 +209,7 @@ export const getDepositMachine = (
       canMintStatus: null,
 
       // Mint worker
-      mintWorker: mintWorker || null, // Use passed worker or null
+      mintWorker: null,
 
       // Flags
       goToSetupStorage: false,
@@ -473,9 +472,9 @@ export const getDepositMachine = (
             onDone: {
               target: "waitForStorageSetupFinalization",
               actions: ({ context }) =>
-                (Store.forMina(
-                  context.mintWorker!.minaWalletPubKeyBase58
-                ).setupStorageInProgress = true),
+              (Store.forMina(
+                context.mintWorker!.minaWalletPubKeyBase58
+              ).setupStorageInProgress = true),
             },
             onError: {
               target: "setupStorage",
@@ -862,7 +861,6 @@ export const getDepositMachine = (
             processingStatus: null,
             canComputeStatus: null,
             canMintStatus: null,
-            mintWorker: mintWorker || null,
             needsToFundAccount: false,
             errorMessage: null,
           }),

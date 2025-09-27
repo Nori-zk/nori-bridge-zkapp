@@ -113,12 +113,10 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const depositMintMachine = useMemo(
     () =>
       getDepositMachine(
-        {
-          ethStateTopic$,
-          bridgeStateTopic$,
-          bridgeTimingsTopic$,
-        },
-        null
+        ethStateTopic$,
+        bridgeStateTopic$,
+        bridgeTimingsTopic$,
+
       ),
     [ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$]
   );
