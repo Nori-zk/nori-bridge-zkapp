@@ -35,7 +35,12 @@ import {
 } from "@/machines/actors/actions.ts";
 import _ from "@/node_modules/xstate/dist/declarations/src/guards.js"; // this is just to supress the xstate guards ref needed.
 import { type getDepositProcessingStatus$ } from "./obs/getDepositProcessingStatus$.ts";
-import { isSetupStorageInProgressForMinaKey, resetLocalStorage, storageIsSetupAndFinalizedForCurrentMinaKey, Store } from "@/helpers/localStorage2.ts";
+import {
+  isSetupStorageInProgressForMinaKey,
+  resetLocalStorage,
+  storageIsSetupAndFinalizedForCurrentMinaKey,
+  Store,
+} from "@/helpers/localStorage2.ts";
 // Commonly used invoke procedures
 
 // This invoke entry will update the machine context when the deposit status changes can be used in any node.
@@ -43,10 +48,10 @@ const invokeMonitoringDepositStatus = {
   id: "compressedDepositProcessingStatus",
   src: "compressedDepositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
-  ({
-    compressedDepositProcessingStatus$:
-      context.compressedDepositProcessingStatus$!,
-  } as const),
+    ({
+      compressedDepositProcessingStatus$:
+        context.compressedDepositProcessingStatus$!,
+    } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
@@ -259,11 +264,6 @@ export const getDepositMachine = (
         ],
         always: [
           {
-            target: "hasComputedEthProof",
-            guard: "hasComputedEthProofGuard",
-          },
-          { target: "hasDepositMintTx", guard: "hasDepositMintTxGuard" },
-          {
             target: "hasActiveDepositNumber",
             guard: "hasActiveDepositNumberGuard",
           },
@@ -312,6 +312,13 @@ export const getDepositMachine = (
           }),
         ],
         always: [
+          // If we have an deposit mint tx computed
+          { target: "hasDepositMintTx", guard: "hasDepositMintTxGuard" },
+          // If we have an eth proof ready
+          {
+            target: "hasComputedEthProof",
+            guard: "hasComputedEthProofGuard",
+          },
           // If we have historically setupStorage for this mina key and we determined that tx was succesfull then goto monitoringDepositStatus straight away
           {
             target: "monitoringDepositStatus",
@@ -424,8 +431,7 @@ export const getDepositMachine = (
                 if (!minaWalletPubKeyBase58)
                   throw new Error("MinaWalletPubKeyBase58 should exist by now");
                 // Mark setupStorageInProgress to true.
-                Store.forMina(minaWalletPubKeyBase58).setupStorageInProgress =
-                  true;
+
                 /*localStorage.setItem(
                   makeMinaLSKey(
                     "setupStorageInProgress",
@@ -466,6 +472,10 @@ export const getDepositMachine = (
             }),
             onDone: {
               target: "waitForStorageSetupFinalization",
+              actions: ({ context }) =>
+                (Store.forMina(
+                  context.mintWorker!.minaWalletPubKeyBase58
+                ).setupStorageInProgress = true),
             },
             onError: {
               target: "setupStorage",
