@@ -96,9 +96,10 @@ const AnimatedProgressBar = () => {
             </div>
           </div>
           <div
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-darkGreen to-lightGreen transition-all duration-300 ease-out rounded-lg z-10"
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-lightGreen to-lightGreen transition-all duration-300 ease-out rounded-lg z-10"
             style={{
               width: `${progress}%`,
+              boxShadow: "5px 0 10px lightGreen",
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
