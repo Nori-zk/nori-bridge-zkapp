@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { ChooseSideTypes } from "@/types/types.ts";
 import { useChooseSideProps } from "@/helpers/useChooseSideProps.tsx";
-import { getAuth, signInWithCustomToken } from "firebase/auth";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
@@ -22,9 +21,6 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
     joinButtonTextClass,
   } = useChooseSideProps(side);
 
-  const CLIENT_ID = '1421485970468901005';
-  const REDIRECT_URI = encodeURIComponent(window.location.origin);
-
   const roleMap = {
     'blue': 'role1',
     'green': 'role2',
@@ -32,73 +28,9 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
   };
   const role = roleMap[radialBg];
 
-  // Handle Discord OAuth redirect on same page
-  useEffect(() => {
-    const handleDiscordCallback = async () => {
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const firebaseToken = urlParams.get("firebaseToken");
-
-      if (!firebaseToken) return;
-
-      setLoading(true);
-      const auth = getAuth();
-
-      try {
-        await signInWithCustomToken(auth, firebaseToken);
-        alert("🎉 Successfully signed in with Discord!");
-      } catch (err) {
-        console.error("Firebase sign-in failed:", err);
-        alert("Authentication failed. Please try again.");
-      } finally {
-        setLoading(false);
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-
-      /*const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const roleType = urlParams.get('state');
-
-      // Only process if this component matches the role type from OAuth
-      if (code && roleType && roleType === role) {
-        setLoading(true);
-
-        try {
-          const response = await fetch('http://localhost:8090/auth/discord', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, roleType })
-          });
-
-          const result = await response.json();
-
-          if (result.success) {
-            alert(`🎉 ${radialBg.toUpperCase()} role granted successfully!`);
-          } else {
-            alert('Error: ' + result.error);
-          }
-        } catch (error) {
-          console.error('Authentication failed:', error);
-          alert('Authentication failed. Please try again.');
-        }
-
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-        setLoading(false);
-      }*/
-
-
-    };
-
-    handleDiscordCallback();
-  }, [role, radialBg]); // Add dependencies
-
   const handleJoinClick = () => {
-    //const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=${role}`;
-    window.location.href = `https://sliced-56cbd.firebaseapp.com/discord/start?state=${role}`;
-    // Direct redirect to Discord OAuth
-    //window.location.href = discordAuthUrl;
+    const state = Array.from(crypto.getRandomValues(new Uint32Array(20))).map(x => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[x % 62]).join("");
+    window.location.href = `https://sliced-56cbd.firebaseapp.com/discord/start?state=${state}&role=${role}`;
   };
 
   // Show loading state while processing Discord auth

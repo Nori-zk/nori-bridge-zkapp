@@ -4,15 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --no-lint && cp _headers out/_headers",
+    "build": "next build --no-lint && cp _headers out/_headers && cd functions && npm run build",
     "show-all-errors": "tsc --noEmit",
     "start": "node server.js",
     "lint": "next lint",
     "ts-watch": "tsc --noEmit --incremental --watch",
     "test": "vitest",
-    "firebase:deploy": "npx firebase deploy",
-    "firebase:set-env": "node set-firebase-config.js",
-    "firebase:get-env": "firebase functions:config:get",
+    "firebase:deploy": "npm run build && npx firebase deploy",
     "firebase:deploy:hosting": "npm run build && npx firebase deploy --only hosting"
   },
   "dependencies": {

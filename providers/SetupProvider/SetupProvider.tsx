@@ -34,6 +34,7 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
     console.log("Extracted firebaseToken:", firebaseToken);
 
     console.log('isSignedIn', isSignedIn);
+    
     if (firebaseToken && !isSignedIn) {
       console.log("Signing in with custom token...");
       signInWithCustomToken(auth, firebaseToken)

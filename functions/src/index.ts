@@ -12,17 +12,6 @@ const db = getFirestore();
 
 setGlobalOptions({ maxInstances: 1 });
 
-/*
-  defineSecret
-  const DISCORD_BOT_TOKEN = defineSecret('DISCORD_BOT_TOKEN');
-  const DISCORD_CLIENT_ID = defineSecret('DISCORD_CLIENT_ID');
-  const DISCORD_CLIENT_SECRET = defineSecret('DISCORD_CLIENT_SECRET');
-  const DISCORD_REDIRECT_URI = defineSecret('DISCORD_REDIRECT_URI');
-  const DISCORD_GUILD_ID = defineSecret('DISCORD_GUILD_ID');
-  const DISCORD_ROLE1_ID = defineSecret('DISCORD_ROLE1_ID');
-  const DISCORD_ROLE2_ID = defineSecret('DISCORD_ROLE2_ID');
-  const DISCORD_ROLE3_ID = defineSecret('DISCORD_ROLE3_ID');
-*/
 const DISCORD_BOT_TOKEN = defineString('DISCORD_BOT_TOKEN');
 const DISCORD_CLIENT_ID = defineString('DISCORD_CLIENT_ID');
 const DISCORD_CLIENT_SECRET = defineString('DISCORD_CLIENT_SECRET');
@@ -42,6 +31,11 @@ export const startDiscordOAuth = onRequest(async (req, res) => {
         res.status(400).send('Missing state parameter');
         return;
     }
+    const role = req.query.role as string;
+    if (!role) {
+        res.status(400).send('Missing role');
+        return;
+    }
 
     await db
         .collection('oauth_states')
@@ -49,6 +43,7 @@ export const startDiscordOAuth = onRequest(async (req, res) => {
         .set({
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             used: false,
+            role,
             expiresAt: admin.firestore.Timestamp.fromDate(
                 new Date(Date.now() + 15 * 60 * 1000)
             ), // 15 min TTL
@@ -99,6 +94,12 @@ export const discordCallback = onRequest(async (req, res) => {
             return;
         }
 
+        const role = stateDoc.data()?.role;
+        if (!role) {
+            res.redirect(`${frontendUrl}?error=missing_role`);
+            return;
+        }
+
         logger.log('Marking state as used');
         await stateDocRef.update({ used: true });
 
@@ -108,12 +109,17 @@ export const discordCallback = onRequest(async (req, res) => {
         const clientSecret = DISCORD_CLIENT_SECRET.value();
         const guildId = DISCORD_GUILD_ID.value();
 
-        const roles = {
+        const roles: Record<string, string> = {
             role1: DISCORD_ROLE1_ID.value(),
             role2: DISCORD_ROLE2_ID.value(),
             role3: DISCORD_ROLE3_ID.value(),
         };
         logger.log('Fetched Discord secrets and role IDs');
+        const roleId = roles[role];
+        if (!roleId) {
+            res.redirect(`${frontendUrl}?error=invalid_role`);
+            return;
+        }
 
         // Exchange code for Discord token
         logger.log('Exchanging code for access token...');
@@ -157,7 +163,7 @@ export const discordCallback = onRequest(async (req, res) => {
         const roleSuccess = await grantRole(
             user.id,
             tokens.access_token,
-            roles,
+            roleId,
             guildId,
             botToken
         );
@@ -205,7 +211,7 @@ export const discordCallback = onRequest(async (req, res) => {
 async function grantRole(
     userId: string,
     accessToken: string,
-    roles: Record<string, string>,
+    roleId: string,
     guildId: string,
     botToken: string
 ) {
@@ -217,7 +223,6 @@ async function grantRole(
         const guild = client.guilds.cache.get(guildId);
         if (!guild) throw new Error('Guild not found');
 
-        const roleId = roles['role1'];
         await guild.roles.fetch();
 
         let member;
