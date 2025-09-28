@@ -851,7 +851,6 @@ export const getDepositMachine = (
             processingStatus: null,
             canComputeStatus: null,
             canMintStatus: null,
-            mintWorker: null,
             needsToFundAccount: false,
             errorMessage: null,
           }),
