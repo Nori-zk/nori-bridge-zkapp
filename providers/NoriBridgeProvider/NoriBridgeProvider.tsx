@@ -19,9 +19,8 @@ import { useAccount } from "wagmina";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { getBridgeMachine } from "@/machines/BridgeMachine.ts";
 import envConfig from "@/helpers/env.ts";
-import { BridgeDepositProcessingStatus } from "@nori-zk/mina-token-bridge/rx/deposit";
 import { DepositStates } from "@/types/types.ts";
-import { ReplacementDepositProcessingStatus, ReplacementStageName, ReplacementStageNameValues, ReplacementDepositProcessingStatusValues } from "@/machines/actors/statuses.ts";
+import { ReplacementStageNameValues, ReplacementDepositProcessingStatusValues } from "@/machines/actors/statuses.ts";
 import getWorkerClient from "@/singletons/workerSingleton.ts";
 import { Store } from "@/helpers/localStorage2.ts";
 import { useToast } from "@/helpers/useToast.tsx";
@@ -64,18 +63,18 @@ type NoriBridgeContextType = {
 
   // Current bridge stage data
   bridgeStage: string;
-  bridgeStateElapsedSec: number;
-  bridgeStateTimeRemaining: number;
+  bridgeStateElapsedSec: number | undefined;
+  bridgeStateTimeRemaining: number | undefined;
 
   // Current deposit status
-  depositNumber: number;
+  depositNumber: number | null;
   hasActiveDeposit: boolean;
-  depositStatus: string;
+  depositStatus: string | undefined;
   depositStatusStepIndex: number;
-  depositBridgeStageName: string;
+  depositBridgeStageName: string | undefined;
   depositBridgeStageIndex: number;
-  depositStepElapsedTime: number;
-  depositStepTimeRemaining: number;
+  depositStepElapsedTime: number | undefined;
+  depositStepTimeRemaining: number | undefined;
 
   // Helper methods
   setDepositNumber: (depositNumber: number) => void;
@@ -169,6 +168,8 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [minaAddress, ethAddress, mintWorker, sendDepositMachine]);
 
+
+
   // Helper functions
   const setDepositNumber = (depositNumber: number) => {
     sendDepositMachine({ type: "SET_DEPOSIT_NUMBER", value: depositNumber });
@@ -261,7 +262,14 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     depositState.context.processingStatus?.elapsed_sec;
   const depositStepTimeRemaining =
     depositState.context.processingStatus?.time_remaining_sec; // use 0 for ... come back to this
-
+  useEffect(() => {
+    if (stateCheckers.hydrating) return; //don't show error if loading
+    toast.current({
+      type: "error",
+      title: `${depositState.context.errorMessage || "Unknown error"}`,
+      description: `${depositState.context.errorReason || "Unknown reason"}`,
+    });
+  }, [depositState.context.errorMessage, depositState.context.errorReason, depositState.context.errorTimestamp, isError]);
   // Derived state
   const contextValue = useMemo(
     () => ({
