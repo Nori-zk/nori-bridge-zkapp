@@ -21,6 +21,8 @@ import { openExternalLink } from "@/helpers/navigation.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 import { noriTokenBridgeJson } from "@nori-zk/ethereum-token-bridge";
 import envConfig from "@/helpers/env.ts";
+import { Store } from "@/helpers/localStorage2.ts";
+import getWorkerClient from "@/singletons/workerSingleton.ts";
 
 interface SignMessageResult {
   signature: string;
@@ -383,7 +385,8 @@ export const MetaMaskWalletProvider = ({
         const receipt = await tx.wait();
         console.log("Transaction Receipt:", receipt);
         console.log("Block Number:", receipt.blockNumber);
-
+        //assign eth wallet for mina wallet
+        Store.forMina(getWorkerClient().minaWalletPubKeyBase58).ethWallet = walletAddress
         toast.current({
           type: "notification",
           title: "Success",
@@ -472,11 +475,11 @@ export const MetaMaskWalletProvider = ({
       if (accounts.length === 0) {
         // All accounts disconnected
         clearWalletState();
-        toast.current({
-          type: "notification",
-          title: "Wallet Disconnected",
-          description: "All accounts have been disconnected.",
-        });
+        // toast.current({
+        //   type: "notification",
+        //   title: "Wallet Disconnected",
+        //   description: "All accounts have been disconnected.",
+        // });
       } else {
         // Account switched
         const newAddress = accounts[0];

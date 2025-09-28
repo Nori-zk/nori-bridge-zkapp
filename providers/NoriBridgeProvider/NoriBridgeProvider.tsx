@@ -3,6 +3,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useMachine } from "@xstate/react";
@@ -22,6 +23,9 @@ import { BridgeDepositProcessingStatus } from "@nori-zk/mina-token-bridge/rx/dep
 import { DepositStates } from "@/types/types.ts";
 import { ReplacementDepositProcessingStatus, ReplacementStageName, ReplacementStageNameValues, ReplacementDepositProcessingStatusValues } from "@/machines/actors/statuses.ts";
 import getWorkerClient from "@/singletons/workerSingleton.ts";
+import { Store } from "@/helpers/localStorage2.ts";
+import { useToast } from "@/helpers/useToast.tsx";
+import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 
 // Extract the machine type
 type DepositMachine = ReturnType<typeof getDepositMachine>;
@@ -97,8 +101,15 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const { ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$ } = useSetup();
-  const { walletAddress: ethAddress } = useMetaMaskWallet();
+  const { walletAddress: ethAddress, disconnect } = useMetaMaskWallet();
   const { address: minaAddress } = useAccount();
+  const rawToast = useToast({
+    type: "error",
+    title: "Error",
+    description: "Error",
+
+  });
+  const toast = useRef(rawToast);
 
   // Setup the bridgeMachine
   const bridgeMachine = useMemo(
@@ -126,26 +137,36 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (minaAddress && ethAddress) {
-      if (!mintWorker) {
-        const worker = getWorkerClient()
-        worker.setWallets({
-          minaPubKeyBase58: minaAddress,
-          ethPubKeyBase58: ethAddress,
+
+      if (Store.forMina(minaAddress).ethWallet !== null && Store.forMina(minaAddress).ethWallet !== ethAddress) {
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: `Connected ETH wallet does not match the one linked to this MINA wallet. Use ${formatDisplayAddress(Store.forMina(minaAddress).ethWallet)} or connect a different MINA wallet.`,
         });
-        worker.minaSetup(minaConfig);
-        console.log("creating worker: ", worker);
-        setMintWorker(worker);
-        sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
+        disconnect();
       } else {
-        //update existing worker
-        mintWorker.setWallets({
-          minaPubKeyBase58: minaAddress,
-          ethPubKeyBase58: ethAddress,
-        });
-        sendDepositMachine({
-          type: "ASSIGN_WORKER",
-          mintWorkerClient: mintWorker,
-        });
+        if (!mintWorker) {
+          const worker = getWorkerClient()
+          worker.setWallets({
+            minaPubKeyBase58: minaAddress,
+            ethPubKeyBase58: ethAddress,
+          });
+          worker.minaSetup(minaConfig);
+          console.log("creating worker: ", worker);
+          setMintWorker(worker);
+          sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
+        } else {
+          //update existing worker
+          mintWorker.setWallets({
+            minaPubKeyBase58: minaAddress,
+            ethPubKeyBase58: ethAddress,
+          });
+          sendDepositMachine({
+            type: "ASSIGN_WORKER",
+            mintWorkerClient: mintWorker,
+          });
+        }
       }
     }
   }, [minaAddress, ethAddress, mintWorker, sendDepositMachine]);
