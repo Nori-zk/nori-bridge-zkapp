@@ -13,7 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useAccount, useConnect, useConnectors, useDisconnect } from "wagmina";
+import { useConnect, useConnectors, useDisconnect } from "wagmina";
 
 interface AuroWalletContextType {
   walletAddress: string | null;
@@ -45,7 +45,6 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
   const lastDisconnectRef = useRef<number>(0); // Timestamp for debouncing disconnect
 
-  const { networkId, chain } = useAccount();
   const { connectAsync: wagminaConnectAsync } = useConnect();
   const { disconnectAsync: wagminaDisconnectAsync } = useDisconnect();
 
@@ -72,11 +71,12 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
   const connect = useCallback(async () => {
     try {
       if (!walletConnector || !window.mina) {
-        toast.current({});
         return;
       }
 
       console.log("Checking network before connect...");
+      //@ts-expect-error // mina provider client is bit odd
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const network = await window.mina.requestNetwork().catch((err: any) => {
         console.error("requestNetwork error:", err);
         return err;
@@ -97,6 +97,7 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
         // Optional: Auto-switch to Devnet
         try {
           console.log("Attempting to switch to Devnet...");
+          //@ts-expect-error // mina provider client is bit odd
           await window.mina.switchChain({ networkID: devnet_network_id });
           toast.current({
             type: "notification",
@@ -190,11 +191,12 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
         disconnect();
       }
     };
-
+    //@ts-expect-error // mina provider client is bit odd
     window.mina.on("chainChanged", handleChainChange);
     console.log("chainChanged listener attached");
 
     return () => {
+      //@ts-expect-error // mina provider client is bit odd
       window.mina?.removeListener?.("chainChanged", handleChainChange);
       console.log("chainChanged listener removed");
     };
@@ -206,7 +208,9 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
       if (!window.mina || !walletConnector) return;
 
       try {
+        //@ts-expect-error // mina provider client is bit odd
         const network = await window.mina.requestNetwork();
+        //@ts-expect-error // mina provider client is bit odd
         const accounts = await window.mina.getAccounts();
         console.log("Initial check - network:", network, "accounts:", accounts);
         if (
