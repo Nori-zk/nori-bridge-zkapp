@@ -490,7 +490,6 @@ export const MetaMaskWalletProvider = ({
                   newAddress
                 )}`,
               });
-              setWallets;
             });
           } else {
             // Just update the address, don't connect
