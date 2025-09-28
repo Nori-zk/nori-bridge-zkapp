@@ -161,7 +161,7 @@ export const computeMintTx = fromPromise(
 export const submitMintTx = fromPromise(
   async ({ input }: { input: { mintTx: string } }) => {
     // In a real implementation, this would submit the transaction to the Mina network
-    console.log("Submitting mint transaction:", input.mintTx);
+    console.log("Submitting mint transaction");
 
     const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
     const memo = "Submit mint tx";

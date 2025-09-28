@@ -49,7 +49,7 @@ const LockTokens = () => {
       } else {
         console.error("Invalid amount");
       }
-    } catch (error) {    
+    } catch (error) {
       // setLocking(false);
       // setWalletCheck(false);
       console.error("Error locking tokens:", error);
@@ -63,11 +63,10 @@ const LockTokens = () => {
     <>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className={`mt-6 w-full ${
-          state.context.activeDepositNumber != null
+        className={`mt-6 w-full ${state.context.activeDepositNumber != null
             ? "text-white/20"
             : "text-white"
-        } rounded-lg px-4 py-3`}
+          } rounded-lg px-4 py-3`}
       >
         <TextInput
           id="amount-input"
@@ -101,19 +100,18 @@ const LockTokens = () => {
             state.context.mintWorker?.areContractCompiled()
           }
           type="submit"
-          className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${
-            locking ||
-            !!state.context.mintWorker?.isCompilingContracts() ||
-            state.context.mintWorker?.areContractCompiled()
+          className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${locking ||
+              !!state.context.mintWorker?.isCompilingContracts() ||
+              state.context.mintWorker?.areContractCompiled()
               ? "border-none"
               : "border-white"
-          } border-[1px]`}
+            } border-[1px]`}
         >
           {walletCheck
             ? "Check your wallet"
             : locking
-            ? "Locking tokens in progress"
-            : "Lock Tokens"}
+              ? "Locking tokens in progress"
+              : "Lock Tokens"}
         </button>
       </form>
     </>
