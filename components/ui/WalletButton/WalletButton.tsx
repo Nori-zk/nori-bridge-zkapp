@@ -35,7 +35,7 @@ const WalletButton = ({
   } = useWalletButtonProps(types, content);
 
   //TODO this needs setting programmatically
-  const isComplete = true;
+  const isComplete = false;
 
   useEffect(() => {
     setIsMounted(true);

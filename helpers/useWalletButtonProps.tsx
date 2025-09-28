@@ -5,6 +5,7 @@ import Ethereum from "@/public/assets/Ethereum.svg";
 import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "./walletHelper.tsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
+import { Store } from "./localStorage2.ts";
 
 //TODO rename to return type
 type WalletButtonUIProps = {
@@ -25,8 +26,11 @@ export function useWalletButtonProps(
 ): WalletButtonUIProps {
   const eth = useMetaMaskWallet();
   const { address, isConnected } = useAccount();
-  const { isConnectingWalletOpen, connect, disconnect } = useAuroWallet();
+  const { isConnectingWalletOpen, connect, disconnect, walletAddress: minaAddress } = useAuroWallet();
   const isEthereum = type === "Ethereum";
+
+  //KAROL get is complete and txAmount here
+  const txAmount = Store.forPair(eth.walletAddress!, minaAddress!).txAmount;
 
   if (isEthereum) {
     return {
@@ -38,7 +42,7 @@ export function useWalletButtonProps(
       isConnecting: false,
       currency: "ETH",
       transactionTitle: "Locking transaction",
-      transactionAmount: 0.12,
+      transactionAmount: txAmount ? parseFloat(txAmount) : 0.0,
     };
   } else {
     return {
@@ -52,7 +56,7 @@ export function useWalletButtonProps(
       isConnecting: isConnectingWalletOpen,
       currency: "nETH",
       transactionTitle: "Claim transaction",
-      transactionAmount: 0.1,
+      transactionAmount: txAmount ? parseFloat(txAmount) : 0.0,
     };
   }
 }

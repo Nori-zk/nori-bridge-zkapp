@@ -134,6 +134,7 @@ export class Store {
       activeDepositNumber: { type: "number" as const },
       computedEthProof: { type: "string" as const },
       depositMintTx: { type: "string" as const },
+      txAmount: { type: "string" as const },
     });
   }
 }
@@ -141,7 +142,7 @@ export class Store {
 //const activeDepositNumber = Store.forPair("","").activeDepositNumber;
 
 export function resetLocalStorage(ethWallet: string, minaWallet: string) {
-  const keys = ["activeDepositNumber", "computedEthProof", "depositMintTx"] as const;
+  const keys = ["activeDepositNumber", "computedEthProof", "depositMintTx", "txAmount"] as const;
   keys.forEach((key) => {
     Store.forPair(ethWallet, minaWallet)[key] = null;
   });

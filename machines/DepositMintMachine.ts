@@ -754,16 +754,16 @@ export const getDepositMachine = (
               target: "submittingMintTx",
             },
             onError: {
-              target: "checking",
+              target: "checkingDelay",
               actions: [
                 assign({
-                  errorMessage: "Failed to build mint transaction",
+                  errorMessage: () => "Failed to build mint transaction",
+                  errorReason: ({ event }) => getErrorReason(event),
+                  errorTimestamp: () => Date.now(),
+
                 }),
                 ({ event }) => {
                   console.error("computeMintTx error:", event.error);
-                  if (event.error instanceof Error) {
-                    console.error("Stack trace:", event.error.stack);
-                  }
                 },
               ],
             },
@@ -784,17 +784,16 @@ export const getDepositMachine = (
               target: "completed",
             },
             onError: {
-              target: "checking",
+              target: "checkingDelay",
               actions: [
                 assign({
-                  errorMessage: "Failed to submit mint transaction",
+                  errorMessage: () => "Failed to submit mint transaction",
+                  errorReason: ({ event }) => getErrorReason(event),
+                  errorTimestamp: () => Date.now(),
+
                 }),
                 ({ event }) => {
-                  console.error("submitMintTx error:", event.error);
-                  // if {
-                  // "code": 1002,
-                  // "message": "User rejected the request."
-                  // }
+                  console.error("ubmitMintTx error:", event.error);
                 },
               ],
             },

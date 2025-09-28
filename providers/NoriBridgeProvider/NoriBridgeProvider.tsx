@@ -207,7 +207,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       "hasComputedEthProof",
       "buildingMintTx",
       "submittingMintTx",
-      "error",
+      "checkingDelay",
       "missedOpportunity",
       "completed",
     ];
@@ -232,7 +232,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     stateCheckers.hasComputedEthProof;
 
   const isError =
-    stateCheckers.error || depositState.context.errorMessage !== null;
+    depositState.context.errorMessage !== null;
 
   const canSetupStorage = depositState.context.goToSetupStorage;
 
@@ -270,6 +270,26 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       description: `${depositState.context.errorReason || "Unknown reason"}`,
     });
   }, [depositState.context.errorMessage, depositState.context.errorReason, depositState.context.errorTimestamp, isError]);
+
+  useEffect(() => {
+    if (stateCheckers.hasComputedEthProof) {
+      toast.current({
+        type: "notification",
+        title: `You computed your deposit proof!`,
+        description: `Await mint transaction...`,
+      });
+    }
+    if (stateCheckers.submittingMintTx) {
+      toast.current({
+        type: "notification",
+        title: `Submitting mint transaction...`,
+        description: `Please wait a few moments.`,
+      });
+    }
+
+  }, [stateCheckers.hasComputedEthProof, stateCheckers.submittingMintTx]);
+
+
   // Derived state
   const contextValue = useMemo(
     () => ({

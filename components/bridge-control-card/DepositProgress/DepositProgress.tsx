@@ -34,10 +34,10 @@ const DepositProgress = () => {
   const showTimingOnly = depositStatus === ReplacementDepositProcessingStatus.WaitingForEthFinality;
 
 
-  useEffect(() => {
-    console.log('deposit stage:', { total: stageTotal, elapsed: depositStepElapsedTime, remaining: depositStepTimeRemaining, progress: stageProgress });
+  // useEffect(() => {
+  //   console.log('deposit stage:', { total: stageTotal, elapsed: depositStepElapsedTime, remaining: depositStepTimeRemaining, progress: stageProgress });
 
-  }, [stageProgress]);
+  // }, [stageProgress]);
   // Stage progress logic
   const renderStageProgress = () => {
     if (!depositBridgeStageName || !showBridgeStage) {
