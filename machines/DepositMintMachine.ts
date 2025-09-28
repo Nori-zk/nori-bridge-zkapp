@@ -286,7 +286,7 @@ export const getDepositMachine = (
       // Add new intermediate state
       checkingDelay: {
         after: {
-          5000: { target: "checking" } // Wait 5 seconds, then go to checking
+          8000: { target: "checking" } // Wait 8 seconds, then go to checking
         }
       },
 

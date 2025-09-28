@@ -56,8 +56,7 @@ export function useBridgeControlCardProps(
     case "noActiveDepositNumber":
       return {
         title: "Start locking your ETH",
-        // component: <LockTokens />,
-        component: <Completed />,
+        component: <LockTokens />,
       };
     case "setupStorageOnChainCheck":
       return {

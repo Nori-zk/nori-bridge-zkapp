@@ -15,6 +15,7 @@ import ProgressBar from "@/components/ui/ProgressBar/ProgressBar.tsx";
 import LeftLine from "@/public/assets/LeftLine.svg";
 import RightLine from "@/public/assets/RightLine.svg";
 import Swap from "@/public/assets/Swap.svg";
+import DepositProgress from "./DepositProgress/DepositProgress.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -211,24 +212,9 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               </div>
             </div> */}
 
-            {/* Progress */}
-            {/* <div className="w-4/5">
-              <div className="w-full">
-                <hr className="border-0 h-0.5 mx-7 bg-white/20" />
-                <div className="flex w-full justify-center text-lightGreen py-3">
-                  {"Waiting for previous Current job... "}
-                </div>
-                <hr className="border-0 h-0.5 bg-white/20 mx-7" />
-                {<ProgressBar />}
-                <div className="flex items-center w-full justify-around px-12">
-                  <div className="text-lightGreen/20">{"Previous status"}</div>
-                  <LeftLine />
-                  <div className="text-lightGreen">{"Current status"}</div>
-                  <RightLine />
-                  <div className="text-lightGreen/20">{"Next status"}</div>
-                </div>
-              </div>
-            </div> */}
+            {
+              <DepositProgress />
+            }
           </div>
         </BridgeControlCardSVG>
       </div>

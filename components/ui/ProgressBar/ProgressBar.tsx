@@ -1,19 +1,22 @@
 import React, { useState, useEffect, useMemo } from "react";
 
-const AnimatedProgressBar = () => {
-  const [progress, setProgress] = useState(0);
+type AnimatedProgressBarProps = {
+  progress: number; // 0 to 100
+}
+const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
+  // const [progress, setProgress] = useState(0);
 
-  // Simulate progress loading
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) return 100;
-        return prev + 1;
-      });
-    }, 100);
+  // // Simulate progress loading
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setProgress((prev) => {
+  //       if (prev >= 100) return 100;
+  //       return prev + 1;
+  //     });
+  //   }, 100);
 
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   const generateNumbers = (startOffset = 0) => {
     return Array.from({ length: 10 }, (_, i) => (i + startOffset) % 10);
@@ -39,11 +42,10 @@ const AnimatedProgressBar = () => {
             </div>
 
             <div
-              className={`flex flex-col ${
-                direction === "up"
+              className={`flex flex-col ${direction === "up"
                   ? "animate-[scrollUp_20s_linear_infinite]"
                   : "animate-[scrollDown_20s_linear_infinite]"
-              }`}
+                }`}
             >
               {generateNumbers(startNumber).map((num) => (
                 <span

@@ -69,9 +69,9 @@ type NoriBridgeContextType = {
   // Current deposit status
   depositNumber: number | null;
   hasActiveDeposit: boolean;
-  depositStatus: string | undefined;
+  depositStatus: ReplacementDepositProcessingStatus;
   depositStatusStepIndex: number;
-  depositBridgeStageName: string | undefined;
+  depositBridgeStageName: ReplacementStageName;
   depositBridgeStageIndex: number;
   depositStepElapsedTime: number | undefined;
   depositStepTimeRemaining: number | undefined;

@@ -5,7 +5,6 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { getContractCompileLabel } from "@/helpers/useBridgeControlCardProps.tsx";
 import { Store } from "@/helpers/localStorage2.ts";
 
 type FormValues = {
@@ -64,8 +63,8 @@ const LockTokens = () => {
       <form
         onSubmit={handleSubmit(onSubmit)}
         className={`mt-6 w-full ${state.context.activeDepositNumber != null
-            ? "text-white/20"
-            : "text-white"
+          ? "text-white/20"
+          : "text-white"
           } rounded-lg px-4 py-3`}
       >
         <TextInput
@@ -101,10 +100,10 @@ const LockTokens = () => {
           }
           type="submit"
           className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${locking ||
-              !!state.context.mintWorker?.isCompilingContracts() ||
-              state.context.mintWorker?.areContractCompiled()
-              ? "border-none"
-              : "border-white"
+            !!state.context.mintWorker?.isCompilingContracts() ||
+            state.context.mintWorker?.areContractCompiled()
+            ? "border-none"
+            : "border-white"
             } border-[1px]`}
         >
           {walletCheck
