@@ -29,7 +29,13 @@ const WalletButton = ({
     logo,
     onClick: hookOnClick,
     isConnecting,
+    currency,
+    transactionAmount,
+    transactionTitle,
   } = useWalletButtonProps(types, content);
+
+  //TODO this needs setting programmatically
+  const isComplete = true;
 
   useEffect(() => {
     setIsMounted(true);
@@ -76,8 +82,27 @@ const WalletButton = ({
         isConnecting && "opacity-50 cursor-not-allowed"
       )}
     >
-      <div className="m-1">{logo}</div>
-      <div className="m-3 text-lg">{displayAddress}</div>
+      {isComplete ? (
+        <>
+          <div className="flex w-full flex-col">
+            <div className="flex justify-start text-xs text-white/50">
+              {transactionTitle}
+            </div>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center justify-between">
+                <div className="scale-[0.95]">{logo}</div>
+                <div className="m-1 text-sm">{displayAddress}</div>
+              </div>
+              <div className="text-sm">{`${transactionAmount} ${currency}`}</div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="m-1">{logo}</div>
+          <div className="m-3 text-lg">{displayAddress}</div>
+        </>
+      )}
     </button>
   );
 };

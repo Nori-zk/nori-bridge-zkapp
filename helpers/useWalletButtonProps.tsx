@@ -6,7 +6,7 @@ import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "./walletHelper.tsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 
-//TODO change to return type
+//TODO rename to return type
 type WalletButtonUIProps = {
   bgClass: string;
   textClass: string;
@@ -14,7 +14,9 @@ type WalletButtonUIProps = {
   logo: React.ReactNode;
   onClick: () => void;
   isConnecting?: boolean;
-  complete?: boolean;
+  currency?: string;
+  transactionTitle?: string;
+  transactionAmount?: number;
 };
 
 export function useWalletButtonProps(
@@ -34,7 +36,9 @@ export function useWalletButtonProps(
       logo: <Ethereum title="Ethereum logo" className="scale-[0.65]" />,
       onClick: () => (eth.isConnected ? eth.disconnect() : eth.connect()),
       isConnecting: false,
-      // complete,
+      currency: "ETH",
+      transactionTitle: "Locking transaction",
+      transactionAmount: 0.12,
     };
   } else {
     return {
@@ -46,6 +50,9 @@ export function useWalletButtonProps(
       logo: <Mina title="Mina logo" className="scale-[0.65]" />,
       onClick: () => (isConnected ? disconnect() : connect()),
       isConnecting: isConnectingWalletOpen,
+      currency: "nETH",
+      transactionTitle: "Claim transaction",
+      transactionAmount: 0.1,
     };
   }
 }
