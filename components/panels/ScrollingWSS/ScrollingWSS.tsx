@@ -102,7 +102,7 @@ const ScrollingWSS = () => {
           "linear-gradient(to right, transparent 5%, white 30%, white 100%)",
         transform: "perspective(400px) rotateY(10deg)",
         transformStyle: "preserve-3d",
-        color: "--var(lightGreen)",
+        color: "var(--lightGreen)",
       }}
     >
       {messageLines.map((line, idx) => (
