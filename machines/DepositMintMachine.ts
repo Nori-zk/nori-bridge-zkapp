@@ -132,12 +132,9 @@ export type DepositMintEvents =
   | { type: "ASSIGN_WORKER"; mintWorkerClient: ZkappMintWorkerClient };
 
 export const getDepositMachine = (
-  topics: {
-    ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
-    bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>;
-    bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>;
-  },
-  mintWorker: ZkappMintWorkerClient | null
+  ethStateTopic$: ReturnType<typeof getEthStateTopic$>,
+  bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>,
+  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>
 ) =>
   setup({
     types: {
@@ -196,9 +193,9 @@ export const getDepositMachine = (
       depositMintTx: null,
 
       // RX topics
-      ethStateTopic$: topics.ethStateTopic$,
-      bridgeStateTopic$: topics.bridgeStateTopic$,
-      bridgeTimingsTopic$: topics.bridgeTimingsTopic$,
+      ethStateTopic$: ethStateTopic$,
+      bridgeStateTopic$: bridgeStateTopic$,
+      bridgeTimingsTopic$: bridgeTimingsTopic$,
       depositProcessingStatus$: null,
       compressedDepositProcessingStatus$: null,
 
@@ -210,7 +207,7 @@ export const getDepositMachine = (
       canMintStatus: null,
 
       // Mint worker
-      mintWorker: mintWorker || null, // Use passed worker or null
+      mintWorker: null, // Use passed worker or null
 
       // Flags
       goToSetupStorage: false,
@@ -744,7 +741,6 @@ export const getDepositMachine = (
         ],
       }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
-
       submittingMintTx: {
         invoke: [
           invokeMonitoringDepositStatus,
@@ -855,7 +851,7 @@ export const getDepositMachine = (
             processingStatus: null,
             canComputeStatus: null,
             canMintStatus: null,
-            mintWorker: mintWorker || null,
+            mintWorker: null,
             needsToFundAccount: false,
             errorMessage: null,
           }),
