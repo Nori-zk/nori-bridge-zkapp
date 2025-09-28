@@ -107,7 +107,6 @@ app.post("/auth/discord", async (req, res) => {
 		res.status(500).json({ error: "Authentication failed" });
 	}
 });
-
 // Function to grant roles
 async function grantRole(userId, accessToken, roleType) {
 	const roleMapping = {
@@ -133,51 +132,84 @@ async function grantRole(userId, accessToken, roleType) {
 		// Force fetch roles if cache is empty
 		await guild.roles.fetch();
 
-		// Debug: List all roles in the guild
+		// Debug: List all roles in guild
 		console.log("📋 All roles in guild:");
 		guild.roles.cache.forEach((role) => {
 			console.log(`  - ${role.name}: ${role.id}`);
 		});
 
-		// Try different ways to find the role
 		const role = guild.roles.cache.get(roleId);
-		const roleByFind = guild.roles.cache.find((r) => r.id === roleId);
-
-		console.log("Role found by get():", !!role);
-		console.log("Role found by find():", !!roleByFind);
 
 		if (!role) {
 			console.error("❌ Role not found!");
-			console.log("Checking if role ID has extra characters...");
-
-			// Try trimming whitespace
-			const trimmedRoleId = roleId?.trim();
-			const roleWithTrim = guild.roles.cache.get(trimmedRoleId);
-			console.log("Role found after trim:", !!roleWithTrim);
-
 			await client.destroy();
 			return false;
 		}
 
 		console.log("✅ Role found:", role.name);
 
-		// Rest of your role assignment logic...
+		let member;
+
+		// First, check if user is already a member of the guild
 		try {
-			const member = await guild.members.add(userId, {
-				accessToken: accessToken,
-				roles: [roleId],
-			});
-			console.log("✅ User added with role");
-		} catch (addError) {
-			console.error("Error adding user to guild:", addError);
-			console.log("Adding role to existing member...");
-			const member = await guild.members.fetch(userId);
+			member = await guild.members.fetch(userId);
+			console.log("👤 User is already a member of the guild");
+
+			// Check if user already has the role
+			if (member.roles.cache.has(roleId)) {
+				console.log("ℹ️ User already has this role");
+				await client.destroy();
+				return true;
+			}
+
+			// Add role to existing member
 			await member.roles.add(roleId);
-			console.log("✅ Role granted");
+			console.log("✅ Role granted to existing member");
+		} catch (fetchError) {
+			// User is not in the guild, try to add them
+			console.log("👤 User not in guild, attempting to add...");
+
+			try {
+				member = await guild.members.add(userId, {
+					accessToken: accessToken,
+				});
+				console.log("✅ User added to guild");
+
+				// Now add the role to the newly added member
+				await member.roles.add(roleId);
+				console.log("✅ Role granted to new member");
+			} catch (addError) {
+				console.error("❌ Failed to add user to guild:", addError);
+
+				// Sometimes members.add fails even if user exists, try fetching again
+				try {
+					member = await guild.members.fetch(userId);
+					await member.roles.add(roleId);
+					console.log("✅ Role granted after retry");
+				} catch (retryError) {
+					console.error("❌ Final attempt failed:", retryError);
+					await client.destroy();
+					return false;
+				}
+			}
 		}
 
-		await client.destroy();
-		return true;
+		// Verify the role was actually assigned
+		try {
+			await member.fetch(true); // Force refresh member data
+			const hasRole = member.roles.cache.has(roleId);
+			console.log(
+				"🔍 Role verification:",
+				hasRole ? "✅ Role confirmed" : "❌ Role not found on member"
+			);
+
+			await client.destroy();
+			return hasRole;
+		} catch (verifyError) {
+			console.error("❌ Failed to verify role assignment:", verifyError);
+			await client.destroy();
+			return false;
+		}
 	} catch (error) {
 		console.error("❌ Role grant error:", error);
 		return false;
