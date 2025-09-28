@@ -10,6 +10,7 @@ import ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { useToast } from "@/helpers/useToast.tsx";
 import Ping from "@/components/ui/Ping/Ping.tsx";
+import Completed from "@/components/bridge-control-card/ProgressSteps/Completed.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -56,7 +57,8 @@ export function useBridgeControlCardProps(
     case "noActiveDepositNumber":
       return {
         title: "Start locking your ETH",
-        component: <LockTokens />,
+        // component: <LockTokens />,
+        component: <Completed />,
       };
     case "setupStorageOnChainCheck":
       return {

@@ -6,6 +6,7 @@ import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "./walletHelper.tsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 
+//TODO change to return type
 type WalletButtonUIProps = {
   bgClass: string;
   textClass: string;
@@ -13,6 +14,7 @@ type WalletButtonUIProps = {
   logo: React.ReactNode;
   onClick: () => void;
   isConnecting?: boolean;
+  complete?: boolean;
 };
 
 export function useWalletButtonProps(
@@ -32,6 +34,7 @@ export function useWalletButtonProps(
       logo: <Ethereum title="Ethereum logo" className="scale-[0.65]" />,
       onClick: () => (eth.isConnected ? eth.disconnect() : eth.connect()),
       isConnecting: false,
+      // complete,
     };
   } else {
     return {

@@ -6,7 +6,6 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { getContractCompileLabel } from "@/helpers/useBridgeControlCardProps.tsx";
 
 type FormValues = {
   amount: string;
