@@ -118,6 +118,7 @@ export class Store {
   static global() {
     return createStorageObjectFromSchema(undefined, {
       // todo later multiple deposits
+      firebaseToken: { type: "string" as const }
     });
   }
 

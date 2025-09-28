@@ -6,6 +6,7 @@ import { defineString } from 'firebase-functions/params';
 import { setGlobalOptions } from 'firebase-functions';
 import * as logger from 'firebase-functions/logger';
 import { FirebaseAuthError } from 'firebase-admin/auth';
+import { onDocumentUpdated } from 'firebase-functions/firestore';
 
 admin.initializeApp();
 const db = getFirestore();
@@ -20,6 +21,7 @@ const DISCORD_GUILD_ID = defineString('DISCORD_GUILD_ID');
 const DISCORD_ROLE1_ID = defineString('DISCORD_ROLE1_ID');
 const DISCORD_ROLE2_ID = defineString('DISCORD_ROLE2_ID');
 const DISCORD_ROLE3_ID = defineString('DISCORD_ROLE3_ID');
+
 const FRONTEND_URL = defineString('FRONTEND_URL');
 
 export const startDiscordOAuth = onRequest(async (req, res) => {
@@ -198,6 +200,21 @@ export const discordCallback = onRequest(async (req, res) => {
         const firebaseToken = await admin.auth().createCustomToken(uid);
         logger.log('Generated Firebase custom token:', firebaseToken);
 
+        // Persist single user role in Firestore
+        try {
+            await db.collection('users').doc(uid).set(
+                {
+                    role,
+                    lastRoleUpdate:
+                        admin.firestore.FieldValue.serverTimestamp(),
+                },
+                { merge: true } // merge in case other fields exist
+            );
+            logger.log('Saved single user role in Firestore for', uid);
+        } catch (err) {
+            logger.error('Failed to save user role in Firestore:', err);
+        }
+
         logger.log('Redirecting user back to frontend...');
         res.redirect(`${frontendUrl}?firebaseToken=${firebaseToken}`);
     } catch (err) {
@@ -242,3 +259,58 @@ async function grantRole(
         return false;
     }
 }
+
+export const onUserRoleChange = onDocumentUpdated(
+    'users/{uid}',
+    async (event) => {
+        const before = event.data?.before.data();
+        const after = event.data?.after.data();
+        const uid = event.params.uid;
+
+        if (!before || !after) return;
+
+        if (before.role === after.role) return; // No role change
+
+        const roles: Record<string, string> = {
+            role1: DISCORD_ROLE1_ID.value(),
+            role2: DISCORD_ROLE2_ID.value(),
+            role3: DISCORD_ROLE3_ID.value(),
+        };
+
+        const newRoleId = roles[after.role];
+        if (!newRoleId) {
+            logger.error('Invalid role:', after.role);
+            return;
+        }
+
+        const client = new Client({
+            intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+        });
+
+        try {
+            await client.login(DISCORD_BOT_TOKEN.value());
+            const guild = await client.guilds.fetch(DISCORD_GUILD_ID.value());
+            const member = await guild.members.fetch(
+                uid.replace('discord:', '')
+            );
+
+            // Remove all other roles from this set
+            for (const roleId of Object.values(roles)) {
+                if (member.roles.cache.has(roleId) && roleId !== newRoleId) {
+                    await member.roles.remove(roleId);
+                }
+            }
+
+            // Add the new role if not already present
+            if (!member.roles.cache.has(newRoleId)) {
+                await member.roles.add(newRoleId);
+            }
+
+            logger.log(`Updated Discord role for ${uid} to ${after.role}`);
+            await client.destroy();
+        } catch (err) {
+            logger.error('Discord role update error:', err);
+            await client.destroy();
+        }
+    }
+);

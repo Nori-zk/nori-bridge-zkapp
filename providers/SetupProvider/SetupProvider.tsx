@@ -18,6 +18,7 @@ type SetupContextType = {
 };
 import { signInWithCustomToken } from "firebase/auth";
 import { auth, db } from "@/config/firebaseConfig.ts";
+import { Store } from "@/helpers/localStorage2.ts";
 
 const SetupContext = createContext<SetupContextType | null>(null);
 
@@ -28,13 +29,25 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     console.log("Setup useEffect running...");
+    let firebaseToken: string | null = Store.global().firebaseToken || null;
     const urlParams = new URLSearchParams(window.location.search);
-    const firebaseToken = urlParams.get("firebaseToken");
-    console.log("URL params:", window.location.search);
-    console.log("Extracted firebaseToken:", firebaseToken);
+    const urlToken = urlParams.get("firebaseToken");
 
-    console.log('isSignedIn', isSignedIn);
-    
+    console.log("URL params:", window.location.search);
+    console.log("LocalStorage token:", firebaseToken);
+    console.log("URL token:", urlToken);
+
+    // Prefer URL param if present
+    if (urlToken) {
+      firebaseToken = urlToken;
+      Store.global().firebaseToken = urlToken;
+      console.log("Saved token to localStorage:", urlToken);
+
+      // Strip token from URL without refresh
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+
     if (firebaseToken && !isSignedIn) {
       console.log("Signing in with custom token...");
       signInWithCustomToken(auth, firebaseToken)
@@ -46,15 +59,15 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
           console.error("Firebase sign-in failed:", err);
         });
     } else {
-      console.log("No token or already signed in, skipping sign-in");
+      console.log("No token found or already signed in, skipping sign-in");
     }
   }, []);
 
   const contextValue = useMemo<SetupContextType>(
     () => ({
       ...getBridgeSocketSingleton(),
-      auth,
-      db,
+      //auth,
+      //db,
     }),
     []
   );

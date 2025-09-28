@@ -1,10 +1,35 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChooseSideTypes } from "@/types/types.ts";
 import { useChooseSideProps } from "@/helpers/useChooseSideProps.tsx";
+import { Store } from "@/helpers/localStorage2.ts";
+import { db, auth } from "@/config/firebaseConfig.ts";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
+};
+
+const updateUserRole = async (role: string) => {
+  const user = auth.currentUser;
+  if (!user) {
+    console.error("No logged-in user");
+    return;
+  }
+
+  try {
+    await setDoc(
+      doc(db, "users", user.uid),
+      {
+        role,
+        lastRoleUpdate: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    console.log("User role updated in Firestore:", role);
+  } catch (err) {
+    console.error("Failed to update role:", err);
+  }
 };
 
 const ChooseSide = ({ side }: ChooseSideProps) => {
@@ -22,15 +47,33 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
   } = useChooseSideProps(side);
 
   const roleMap = {
-    'blue': 'role1',
-    'green': 'role2',
-    'red': 'role3'
+    blue: "role1",
+    green: "role2",
+    red: "role3",
   };
   const role = roleMap[radialBg];
 
-  const handleJoinClick = () => {
-    const state = Array.from(crypto.getRandomValues(new Uint32Array(20))).map(x => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[x % 62]).join("");
-    window.location.href = `https://sliced-56cbd.firebaseapp.com/discord/start?state=${state}&role=${role}`;
+  const handleJoinClick = async () => {
+    // If the user is logged in
+    if (Store.global().firebaseToken) {
+      // We can just swap the role straight away
+      try {
+        await updateUserRole(role);
+        console.log("Role updated successfully");
+      } catch (err) {
+        console.error("Failed to update role:", err);
+      }
+    } else {
+      const state = Array.from(crypto.getRandomValues(new Uint32Array(20)))
+        .map(
+          (x) =>
+            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[
+              x % 62
+            ]
+        )
+        .join("");
+      window.location.href = `https://sliced-56cbd.firebaseapp.com/discord/start?state=${state}&role=${role}`;
+    }
   };
 
   // Show loading state while processing Discord auth
@@ -40,7 +83,9 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
         <div className="text-center text-white">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-xl">Granting Discord role...</p>
-          <p className="text-gray-400 mt-2">Please wait while we process your request</p>
+          <p className="text-gray-400 mt-2">
+            Please wait while we process your request
+          </p>
         </div>
       </div>
     );
