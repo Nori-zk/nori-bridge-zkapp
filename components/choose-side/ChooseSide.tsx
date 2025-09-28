@@ -96,7 +96,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
 
   const handleJoinClick = () => {
     //const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=${role}`;
-    window.location.href = "https://sliced-56cbd.firebaseapp.com/discord/start";
+    window.location.href = `https://sliced-56cbd.firebaseapp.com/discord/start?state=${role}`;
     // Direct redirect to Discord OAuth
     //window.location.href = discordAuthUrl;
   };

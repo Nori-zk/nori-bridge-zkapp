@@ -28,5 +28,6 @@ module.exports = {
     "object-curly-spacing": "off",
     indent: "off",
     "require-jsdoc": "off",
+    "no-trailing-spaces": "off"
   },
 };

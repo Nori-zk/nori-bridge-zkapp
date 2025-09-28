@@ -1,7 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as admin from 'firebase-admin';
-import crypto from 'crypto';
 import { Client, GatewayIntentBits } from 'discord.js';
 import { defineString } from 'firebase-functions/params';
 import { setGlobalOptions } from 'firebase-functions';
@@ -32,12 +31,17 @@ const DISCORD_GUILD_ID = defineString('DISCORD_GUILD_ID');
 const DISCORD_ROLE1_ID = defineString('DISCORD_ROLE1_ID');
 const DISCORD_ROLE2_ID = defineString('DISCORD_ROLE2_ID');
 const DISCORD_ROLE3_ID = defineString('DISCORD_ROLE3_ID');
+const FRONTEND_URL = defineString('FRONTEND_URL');
 
 export const startDiscordOAuth = onRequest(async (req, res) => {
     const clientId = DISCORD_CLIENT_ID.value();
     const redirectUri = DISCORD_REDIRECT_URI.value();
 
-    const state = crypto.randomBytes(16).toString('hex');
+    const state = req.query.state as string;
+    if (!state) {
+        res.status(400).send('Missing state parameter');
+        return;
+    }
 
     await db
         .collection('oauth_states')
@@ -60,121 +64,143 @@ export const startDiscordOAuth = onRequest(async (req, res) => {
     res.redirect(url.toString());
 });
 
-export const discordCallback = onRequest(
-    {
-        /*
-        secrets: [
-            DISCORD_BOT_TOKEN,
-            DISCORD_CLIENT_ID,
-            DISCORD_CLIENT_SECRET,
-            DISCORD_REDIRECT_URI,
-            DISCORD_GUILD_ID,
-            DISCORD_ROLE1_ID,
-            DISCORD_ROLE2_ID,
-            DISCORD_ROLE3_ID,
-        ],
-        */
-    },
-    async (req, res) => {
-        try {
-            const { code, state } = req.query;
+export const discordCallback = onRequest(async (req, res) => {
+    const redirectUri = DISCORD_REDIRECT_URI.value();
+    const frontendUrl = FRONTEND_URL.value();
 
-            // Validate state
-            const stateDoc = await db
-                .collection('oauth_states')
-                .doc(state as string)
-                .get();
-            if (
-                !stateDoc.exists ||
-                stateDoc.data()?.used ||
-                stateDoc.data()?.expiresAt.toDate() < new Date()
-            ) {
-                res.redirect(
-                    `${DISCORD_REDIRECT_URI.value()}?error=invalid_state`
-                );
-                return;
-            }
-            await db
-                .collection('oauth_states')
-                .doc(state as string)
-                .update({ used: true });
+    try {
+        logger.log('--- Discord callback triggered ---');
+        logger.log('Query parameters:', req.query);
 
-            // Fetch secrets
-            const botToken = DISCORD_BOT_TOKEN.value();
-            const clientId = DISCORD_CLIENT_ID.value();
-            const clientSecret = DISCORD_CLIENT_SECRET.value();
-            const redirectUri = DISCORD_REDIRECT_URI.value();
-            const guildId = DISCORD_GUILD_ID.value();
-            const roles = {
-                role1: DISCORD_ROLE1_ID.value(),
-                role2: DISCORD_ROLE2_ID.value(),
-                role3: DISCORD_ROLE3_ID.value(),
-            };
+        const { code, state } = req.query;
 
-            // Exchange code for Discord token
-            const tokenRes = await fetch(
-                'https://discord.com/api/oauth2/token',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        client_id: clientId,
-                        client_secret: clientSecret,
-                        code: code as string,
-                        grant_type: 'authorization_code',
-                        redirect_uri: redirectUri,
-                        scope: 'identify guilds.join',
-                    }),
-                }
-            );
-            const tokens = await tokenRes.json();
-
-            // Get user info
-            const userRes = await fetch('https://discord.com/api/users/@me', {
-                headers: { Authorization: `Bearer ${tokens.access_token}` },
-            });
-            const user = await userRes.json();
-
-            // Grant Discord role
-            const roleSuccess = await grantRole(
-                user.id,
-                tokens.access_token,
-                roles,
-                guildId,
-                botToken
-            );
-            if (!roleSuccess) {
-                res.redirect(`${redirectUri}?error=role_failed`);
-                return;
-            }
-
-            // --- Firebase Custom Token ---
-            const uid = `discord:${user.id}`;
-            await admin
-                .auth()
-                .updateUser(uid, { displayName: user.username })
-                .catch(async (err: FirebaseAuthError) => {
-                    if (err.code === 'auth/user-not-found') {
-                        await admin
-                            .auth()
-                            .createUser({ uid, displayName: user.username });
-                    } else {
-                        throw err;
-                    }
-                });
-            const firebaseToken = await admin.auth().createCustomToken(uid);
-
-            // Redirect user to frontend with custom token
-            res.redirect(`${redirectUri}?firebaseToken=${firebaseToken}`);
-        } catch (err) {
-            logger.error('Discord OAuth error:', err);
-            const redirectUri = DISCORD_REDIRECT_URI.value();
-            res.redirect(`${redirectUri}?error=internal`);
+        // Validate state
+        if (!state || typeof state !== 'string') {
+            logger.error('Invalid state parameter:', state);
+            res.redirect(`${frontendUrl}?error=invalid_state`);
+            return;
         }
+        logger.log('State is valid:', state);
+
+        const stateDocRef = db.collection('oauth_states').doc(state);
+        const stateDoc = await stateDocRef.get();
+        logger.log('Fetched state document:', stateDoc.exists);
+
+        if (
+            !stateDoc.exists ||
+            stateDoc.data()?.used ||
+            stateDoc.data()?.expiresAt.toDate() < new Date()
+        ) {
+            logger.error(
+                'State document invalid, used, or expired:',
+                stateDoc.data()
+            );
+            res.redirect(`${frontendUrl}?error=invalid_state`);
+            return;
+        }
+
+        logger.log('Marking state as used');
+        await stateDocRef.update({ used: true });
+
+        // Fetch secrets
+        const botToken = DISCORD_BOT_TOKEN.value();
+        const clientId = DISCORD_CLIENT_ID.value();
+        const clientSecret = DISCORD_CLIENT_SECRET.value();
+        const guildId = DISCORD_GUILD_ID.value();
+
+        const roles = {
+            role1: DISCORD_ROLE1_ID.value(),
+            role2: DISCORD_ROLE2_ID.value(),
+            role3: DISCORD_ROLE3_ID.value(),
+        };
+        logger.log('Fetched Discord secrets and role IDs');
+
+        // Exchange code for Discord token
+        logger.log('Exchanging code for access token...');
+        const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: clientId,
+                client_secret: clientSecret,
+                code: code as string,
+                grant_type: 'authorization_code',
+                redirect_uri: redirectUri,
+                scope: 'identify guilds.join',
+            }),
+        });
+        const tokens = await tokenRes.json();
+        logger.log('Received Discord tokens:', tokens);
+
+        if (!tokens.access_token) {
+            logger.error('Failed to get access token from Discord', tokens);
+            res.redirect(`${frontendUrl}?error=token_failed`);
+            return;
+        }
+
+        // Get user info
+        logger.log('Fetching Discord user info...');
+        const userRes = await fetch('https://discord.com/api/users/@me', {
+            headers: { Authorization: `Bearer ${tokens.access_token}` },
+        });
+        const user = await userRes.json();
+        logger.log('Discord user info:', user);
+
+        if (!user.id) {
+            logger.error('Invalid user data from Discord:', user);
+            res.redirect(`${frontendUrl}?error=user_failed`);
+            return;
+        }
+
+        // Grant Discord role
+        logger.log('Granting Discord role...');
+        const roleSuccess = await grantRole(
+            user.id,
+            tokens.access_token,
+            roles,
+            guildId,
+            botToken
+        );
+        logger.log('Role grant success:', roleSuccess);
+
+        if (!roleSuccess) {
+            res.redirect(`${frontendUrl}?error=role_failed`);
+            return;
+        }
+
+        // --- Firebase Custom Token ---
+        const uid = `discord:${user.id}`;
+        logger.log('Creating/updating Firebase user:', uid);
+
+        await admin
+            .auth()
+            .updateUser(uid, { displayName: user.username })
+            .catch(async (err: FirebaseAuthError) => {
+                logger.log('Firebase updateUser error:', err.code);
+                if (err.code === 'auth/user-not-found') {
+                    logger.log('User not found, creating...');
+                    const userRecord = await admin
+                        .auth()
+                        .createUser({ uid, displayName: user.username });
+                    logger.log('Created new user record', userRecord.uid, uid);
+                } else {
+                    throw err;
+                }
+            });
+
+        logger.log('Generating firebase custom token for user.', uid);
+        const firebaseToken = await admin.auth().createCustomToken(uid);
+        logger.log('Generated Firebase custom token:', firebaseToken);
+
+        logger.log('Redirecting user back to frontend...');
+        res.redirect(`${frontendUrl}?firebaseToken=${firebaseToken}`);
+    } catch (err) {
+        logger.error('Discord OAuth error:', err);
+        res.redirect(
+            `${frontendUrl}?error=${encodeURIComponent(JSON.stringify(err))}`
+        );
     }
-);
+});
 
 async function grantRole(
     userId: string,
@@ -207,7 +233,7 @@ async function grantRole(
         await client.destroy();
         return member.roles.cache.has(roleId);
     } catch (err) {
-        console.error('Role grant error:', err);
+        logger.error('Role grant error:', err);
         return false;
     }
 }
