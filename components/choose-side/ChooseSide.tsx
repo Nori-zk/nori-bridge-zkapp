@@ -45,7 +45,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
           )}
         </div>
         <div className="flex flex-col row-span-3 items-center justify-center">
-          {mainImage}
+          <div className="w-3/4">{mainImage}</div>
           <div>{bottomShadowSvg}</div>
         </div>
         <div className="flex flex-col items-center justify-center gap-4">
