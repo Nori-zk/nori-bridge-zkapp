@@ -1,11 +1,12 @@
 "use client";
 import TextInput from "@/components/ui/TextInput.tsx";
-import { makeKeyPairLSKey } from "@/helpers/localStorage.ts";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { getContractCompileLabel } from "@/helpers/useBridgeControlCardProps.tsx";
+import { Store } from "@/helpers/localStorage2.ts";
 
 type FormValues = {
   amount: string;
@@ -13,6 +14,7 @@ type FormValues = {
 
 const LockTokens = () => {
   const [locking, setLocking] = useState(false);
+  const [walletCheck, setWalletCheck] = useState(false);
   const { lockTokens, signMessage } = useMetaMaskWallet();
   const { dispatch } = useProgress();
   const { state, setDepositNumber } = useNoriBridge();
@@ -24,38 +26,36 @@ const LockTokens = () => {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      setLocking(true);
       const amount = parseFloat(data.amount);
+      setWalletCheck(true);
       if (!isNaN(amount) && amount >= 0.00000001) {
         // THIS IS BUGGY worker might not have spawned before the submit button is clicked
         const worker = state.context.mintWorker;
         if (!worker)
           throw new Error("Worker not ready but called submit anyway");
+        await worker.ready();
         const signatureFromUser = await signMessage(
           worker!.fixedValueOrSecret!
         );
-        await worker.ready();
         const codeVerify = await worker.getCodeVerifyFromEthSignature(
           signatureFromUser.signature
         );
-        window.localStorage.setItem(
-          makeKeyPairLSKey(
-            "codeVerifier",
-            worker.ethWalletPubKeyBase58,
-            worker.minaWalletPubKeyBase58
-          ),
-          codeVerify
-        );
+        Store.forEth(worker.ethWalletPubKeyBase58).codeVerifier = codeVerify;
         const codeChallange = await worker.createCodeChallenge(codeVerify);
+        setLocking(true);
+        setWalletCheck(false);
         const blockNubmer = await lockTokens(codeChallange, amount);
         setDepositNumber(blockNubmer);
       } else {
         console.error("Invalid amount");
       }
     } catch (error) {
+      // setLocking(false);
+      // setWalletCheck(false);
       console.error("Error locking tokens:", error);
     } finally {
       setLocking(false);
+      setWalletCheck(false);
     }
   };
 
@@ -63,15 +63,14 @@ const LockTokens = () => {
     <>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className={`mt-6 w-full ${
-          state.context.activeDepositNumber != null
+        className={`mt-6 w-full ${state.context.activeDepositNumber != null
             ? "text-white/20"
             : "text-white"
-        } rounded-lg px-4 py-3`}
+          } rounded-lg px-4 py-3`}
       >
         <TextInput
           id="amount-input"
-          disabled={state.context.activeDepositNumber != null}
+          disabled={state.context.activeDepositNumber != null || locking}
           {...register("amount", {
             required: "Amount is required",
             pattern: {
@@ -101,15 +100,18 @@ const LockTokens = () => {
             state.context.mintWorker?.areContractCompiled()
           }
           type="submit"
-          className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${
-            locking ||
-            !!state.context.mintWorker?.isCompilingContracts() ||
-            state.context.mintWorker?.areContractCompiled()
+          className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${locking ||
+              !!state.context.mintWorker?.isCompilingContracts() ||
+              state.context.mintWorker?.areContractCompiled()
               ? "border-none"
               : "border-white"
-          } border-[1px]`}
+            } border-[1px]`}
         >
-          {"Lock Tokens"}
+          {walletCheck
+            ? "Check your wallet"
+            : locking
+              ? "Locking tokens in progress"
+              : "Lock Tokens"}
         </button>
       </form>
     </>

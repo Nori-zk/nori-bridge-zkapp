@@ -19,14 +19,12 @@ export const DepositMintTestUI: React.FC = () => {
     setPresentation,
     // initWorker,
     // setupStorage,
-    submitMintTx,
     retry,
     reset,
     isLoading,
     isReady,
     isError,
     canSetupStorage,
-    canSubmitMintTx,
   } = useNoriBridge();
 
   const minaButtonContent = isMounted
@@ -197,13 +195,13 @@ export const DepositMintTestUI: React.FC = () => {
             💾 Setup Storage
           </button> */}
 
-          <button
+          {/*<button
             onClick={submitMintTx}
             disabled={!canSubmitMintTx || isLoading}
             className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             🚀 Submit Mint Tx
-          </button>
+          </button>*/}
 
           <button
             onClick={retry}
@@ -271,7 +269,7 @@ export const DepositMintTestUI: React.FC = () => {
           <div>
             <h3 className="font-medium mb-2">Action States</h3>
             <div>Can Setup Storage: {canSetupStorage ? "✅" : "❌"}</div>
-            <div>Can Submit Mint: {canSubmitMintTx ? "✅" : "❌"}</div>
+            {/*<div>Can Submit Mint: {canSubmitMintTx ? "✅" : "❌"}</div>*/}
             <div>Is Loading: {isLoading ? "⏳" : "✅"}</div>
           </div>
         </div>
