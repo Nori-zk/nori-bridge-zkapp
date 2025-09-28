@@ -12,8 +12,8 @@ type FormValues = {
 };
 
 const LockTokens = () => {
-  const [locking, setLocking] = useState(false);
-  const [walletCheck, setWalletCheck] = useState(false);
+  const [locking, setLocking] = useState<boolean>(false);
+  const [walletCheck, setWalletCheck] = useState<boolean>(false);
   const { lockTokens, signMessage } = useMetaMaskWallet();
   const { dispatch } = useProgress();
   const { state, setDepositNumber } = useNoriBridge();
@@ -95,13 +95,11 @@ const LockTokens = () => {
           // if the contract is compiled
           disabled={
             locking ||
-            !!state.context.mintWorker?.isCompilingContracts() ||
-            state.context.mintWorker?.areContractCompiled()
+            !!state.context.mintWorker?.isCompilingContracts()
           }
           type="submit"
           className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${locking ||
-            !!state.context.mintWorker?.isCompilingContracts() ||
-            state.context.mintWorker?.areContractCompiled()
+            !!state.context.mintWorker?.isCompilingContracts()
             ? "border-none"
             : "border-white"
             } border-[1px]`}
