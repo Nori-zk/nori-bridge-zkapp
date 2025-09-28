@@ -24,7 +24,7 @@ const SetupContext = createContext<SetupContextType | null>(null);
 export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState<boolean>(false);
 
   useEffect(() => {
     console.log("Setup useEffect running...");
@@ -33,6 +33,7 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
     console.log("URL params:", window.location.search);
     console.log("Extracted firebaseToken:", firebaseToken);
 
+    console.log('isSignedIn', isSignedIn);
     if (firebaseToken && !isSignedIn) {
       console.log("Signing in with custom token...");
       signInWithCustomToken(auth, firebaseToken)
@@ -46,7 +47,7 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
     } else {
       console.log("No token or already signed in, skipping sign-in");
     }
-  }, [isSignedIn]);
+  }, []);
 
   const contextValue = useMemo<SetupContextType>(
     () => ({
