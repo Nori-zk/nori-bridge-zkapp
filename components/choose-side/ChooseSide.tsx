@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { ChooseSideTypes } from "@/types/types.ts";
 import { useChooseSideProps } from "@/helpers/useChooseSideProps.tsx";
+import { getAuth, signInWithCustomToken } from "firebase/auth";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
@@ -34,7 +35,28 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
   // Handle Discord OAuth redirect on same page
   useEffect(() => {
     const handleDiscordCallback = async () => {
+
       const urlParams = new URLSearchParams(window.location.search);
+      const firebaseToken = urlParams.get("firebaseToken");
+
+      if (!firebaseToken) return;
+
+      setLoading(true);
+      const auth = getAuth();
+
+      try {
+        await signInWithCustomToken(auth, firebaseToken);
+        alert("🎉 Successfully signed in with Discord!");
+      } catch (err) {
+        console.error("Firebase sign-in failed:", err);
+        alert("Authentication failed. Please try again.");
+      } finally {
+        setLoading(false);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      /*const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const roleType = urlParams.get('state');
 
@@ -64,17 +86,19 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
         setLoading(false);
-      }
+      }*/
+
+
     };
 
     handleDiscordCallback();
   }, [role, radialBg]); // Add dependencies
 
   const handleJoinClick = () => {
-    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=${role}`;
-
+    //const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=${role}`;
+    window.location.href = "https://sliced-56cbd.firebaseapp.com/discord/start";
     // Direct redirect to Discord OAuth
-    window.location.href = discordAuthUrl;
+    //window.location.href = discordAuthUrl;
   };
 
   // Show loading state while processing Discord auth
