@@ -140,6 +140,11 @@ export function useBridgeControlCardProps(
         component:
           <DepositStatus />
       }
+    case "checkingDelay":
+      return {
+        title: "Retrying...",
+        component: <> </>
+      }
 
     default:
       return {

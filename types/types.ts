@@ -34,6 +34,6 @@ export type DepositStates =
   | "hasComputedEthProof"
   | "buildingMintTx"
   | "submittingMintTx"
-  | "error"
+  | "checkingDelay"
   | "missedOpportunity"
   | "completed";
