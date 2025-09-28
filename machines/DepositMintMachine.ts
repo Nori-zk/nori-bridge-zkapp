@@ -312,7 +312,7 @@ export const getDepositMachine = (
         ],
         always: [
           // If we have an deposit mint tx computed
-          { target: "hasDepositMintTx", guard: "hasDepositMintTxGuard" },
+          { target: "submittingMintTx", guard: "hasDepositMintTxGuard" },
           // If we have an eth proof ready
           {
             target: "hasComputedEthProof",
@@ -743,13 +743,6 @@ export const getDepositMachine = (
         ],
       }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
-      hasDepositMintTx: {
-        on: {
-          SUBMIT_MINT_TX: {
-            target: "submittingMintTx",
-          },
-        },
-      },
 
       submittingMintTx: {
         invoke: [
