@@ -20,7 +20,7 @@ import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { getBridgeMachine } from "@/machines/BridgeMachine.ts";
 import envConfig from "@/helpers/env.ts";
 import { DepositStates } from "@/types/types.ts";
-import { ReplacementStageNameValues, ReplacementDepositProcessingStatusValues } from "@/machines/actors/statuses.ts";
+import { ReplacementStageNameValues, ReplacementDepositProcessingStatusValues, ReplacementDepositProcessingStatus, ReplacementStageName } from "@/machines/actors/statuses.ts";
 import getWorkerClient from "@/singletons/workerSingleton.ts";
 import { Store } from "@/helpers/localStorage2.ts";
 import { useToast } from "@/helpers/useToast.tsx";
@@ -47,7 +47,6 @@ type NoriBridgeContextType = {
     context: DepositMintContext;
     fullState: DepositState; // Full XState state object
   };
-  send: (event: DepositMintEvents) => void;
 
   // Type-safe state checkers (replaces matches)
   is: StateCheckers;
@@ -69,9 +68,9 @@ type NoriBridgeContextType = {
   // Current deposit status
   depositNumber: number | null;
   hasActiveDeposit: boolean;
-  depositStatus: ReplacementDepositProcessingStatus;
+  depositStatus: ReplacementDepositProcessingStatus | undefined;
   depositStatusStepIndex: number;
-  depositBridgeStageName: ReplacementStageName;
+  depositBridgeStageName: ReplacementStageName | undefined;
   depositBridgeStageIndex: number;
   depositStepElapsedTime: number | undefined;
   depositStepTimeRemaining: number | undefined;
@@ -271,25 +270,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, [depositState.context.errorMessage, depositState.context.errorReason, depositState.context.errorTimestamp, isError]);
 
-  useEffect(() => {
-    if (stateCheckers.hasComputedEthProof) {
-      toast.current({
-        type: "notification",
-        title: `You computed your deposit proof!`,
-        description: `Await mint transaction...`,
-      });
-    }
-    if (stateCheckers.submittingMintTx) {
-      toast.current({
-        type: "notification",
-        title: `Submitting mint transaction...`,
-        description: `Please wait a few moments.`,
-      });
-    }
-
-  }, [stateCheckers.hasComputedEthProof, stateCheckers.submittingMintTx]);
-
-
   // Derived state
   const contextValue = useMemo(
     () => ({
@@ -299,7 +279,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
         context: depositState.context,
         fullState: depositState,
       },
-      send: sendDepositMachine,
 
       // Type-safe state checkers
       is: stateCheckers,
@@ -334,7 +313,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     }),
     [
       depositState,
-      sendDepositMachine,
       stateCheckers,
       currentState,
       isLoading,

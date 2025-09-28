@@ -1,3 +1,4 @@
+'use client'
 type PrimitiveType = "string" | "number" | "boolean";
 type ComplexType = "date" | "object" | "array";
 type SchemaType = PrimitiveType | ComplexType;
@@ -86,12 +87,18 @@ function createStorageObjectFromSchema<T extends Schema>(
     const entry = schema[key];
     Object.defineProperty(obj, key, {
       get() {
+        if (typeof window === 'undefined') {
+          return
+        }
         const storageKey = suffix ? `${key}:${suffix}` : key;
         const raw = localStorage.getItem(storageKey);
         const deserialized = deserializeByType(raw, entry.type);
         return deserialized;
       },
       set(value) {
+        if (typeof window === 'undefined') {
+          return
+        }
         const storageKey = suffix ? `${key}:${suffix}` : key;
         if (value === null) {
           localStorage.removeItem(storageKey);

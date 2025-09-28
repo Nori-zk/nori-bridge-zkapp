@@ -29,8 +29,6 @@ export function useWalletButtonProps(
   const { isConnectingWalletOpen, connect, disconnect, walletAddress: minaAddress } = useAuroWallet();
   const isEthereum = type === "Ethereum";
 
-  //KAROL get is complete and txAmount here
-  const txAmount = Store.forPair(eth.walletAddress!, minaAddress!).txAmount;
 
   if (isEthereum) {
     return {
@@ -42,7 +40,7 @@ export function useWalletButtonProps(
       isConnecting: false,
       currency: "ETH",
       transactionTitle: "Locking transaction",
-      transactionAmount: txAmount ? parseFloat(txAmount) : 0.0,
+      transactionAmount: 0.0,
     };
   } else {
     return {
@@ -56,7 +54,7 @@ export function useWalletButtonProps(
       isConnecting: isConnectingWalletOpen,
       currency: "nETH",
       transactionTitle: "Claim transaction",
-      transactionAmount: txAmount ? parseFloat(txAmount) : 0.0,
+      transactionAmount: 0.0,
     };
   }
 }

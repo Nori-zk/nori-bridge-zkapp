@@ -146,6 +146,11 @@ export function useBridgeControlCardProps(
         title: "Retrying...",
         component: <> </>
       }
+    case "completed":
+      return {
+        title: "Deposit complete",
+        component: <Completed />,
+      };
 
     default:
       return {
@@ -199,6 +204,9 @@ export const getContractCompileLabel = (
   mintWorker: ZkappMintWorkerClient | null | undefined
 ): ReactNode => {
   if (!mintWorker) return <div>{"Loading"}</div>;
-  if (mintWorker.isCompilingContracts())
-    return <Ping content="Compiling Contracts" />;
+  if (mintWorker.isCompilingContracts()) {
+    return (<div className="py-4"> <Ping content="Compiling Contracts" /></div>)
+  } else {
+    return (<div className="py-2"></div>)
+  }
 };

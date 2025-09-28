@@ -28,10 +28,7 @@ const DepositProgress = () => {
 
   // Determine what to show
   const showBridgeStage =
-    depositStatus === ReplacementDepositProcessingStatus.WaitingForCurrentJobCompletion ||
-    depositStatus === ReplacementDepositProcessingStatus.WaitingForPreviousJobCompletion;
-
-  const showTimingOnly = depositStatus === ReplacementDepositProcessingStatus.WaitingForEthFinality;
+    depositStatus !== ReplacementDepositProcessingStatus.WaitingForEthFinality
 
 
   // useEffect(() => {
@@ -110,7 +107,9 @@ const DepositProgress = () => {
         <div className="flex w-full justify-center text-lightGreen py-3">
           {depositStatus}
         </div>
-        <hr className="border-0 h-0.5 bg-white/20 mx-7" />
+        {depositStatus &&
+          <hr className="border-0 h-0.5 bg-white/20 mx-7" />
+        }
         <ProgressBar progress={stageProgress} />
         {renderStageProgress()}
       </div>

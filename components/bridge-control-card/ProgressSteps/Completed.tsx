@@ -1,6 +1,15 @@
+import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { FaXTwitter } from "react-icons/fa6";
 
 const Completed = () => {
+  const { reset } = useNoriBridge();
+
+  const handleExit = () => {
+    // Logic to handle exit action
+    console.log("Exit button clicked");
+    reset();
+  };
+
   return (
     <div className="flex flex-col justify-center w-full py-2">
       <button className="flex items-center justify-center gap-2 px-4 my-3 py-3 w-full text-white rounded-lg border border-white">
@@ -11,6 +20,12 @@ const Completed = () => {
       </button>
       <button className="flex items-center justify-center gap-2 px-4 my-3 py-3 w-full text-xl text-white rounded-lg border border-white">
         {"Pick Your Side"}
+      </button>
+      <button
+        onClick={handleExit}
+        className="flex items-center justify-center gap-2 px-4 my-3 py-3 w-full text-xl text-lightGreen"
+      >
+        {"Exit"}
       </button>
     </div>
   );

@@ -828,12 +828,16 @@ export const getDepositMachine = (
         // should probably toast
         entry: [
           log("Deposit completed successfully"),
-          ({ context }) =>
-            resetLocalStorage(
-              context.mintWorker!.ethWalletPubKeyBase58,
-              context.mintWorker!.minaWalletPubKeyBase58
-            ),
-          raise({ type: "RESET" }), // <- sends RESET to this machine (NOTE: actually it send it to the top machine which if we have a parent might not be this machine)
+          ({ context }) => {
+            //infrom the frotnend we are done and wait for it to send reset
+
+
+            // resetLocalStorage(
+            //   context.mintWorker!.ethWalletPubKeyBase58,
+            //   context.mintWorker!.minaWalletPubKeyBase58
+            // )
+          },
+          // raise({ type: "RESET" }), // <- sends RESET to this machine (NOTE: actually it send it to the top machine which if we have a parent might not be this machine)
           // TODO: think we need to double check the relative node path stuff for the whole machine
         ],
       },

@@ -33,7 +33,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
-
+  const { currentState } = useNoriBridge();
   const { bridgeSocketConnectionState$ } = useSetup();
 
   const [status, setStatus] = useState<
@@ -212,8 +212,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
               </div>
             </div> */}
 
-            {
-              <DepositProgress />
+            {currentState !== 'completed' ?
+              <DepositProgress /> : <></>
             }
           </div>
         </BridgeControlCardSVG>

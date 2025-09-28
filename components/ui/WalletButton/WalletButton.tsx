@@ -1,5 +1,9 @@
 "use client";
+import { Store } from "@/helpers/localStorage2.ts";
 import { useWalletButtonProps } from "@/helpers/useWalletButtonProps.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
+import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
+import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { WalletButtonTypes } from "@/types/types.ts";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
@@ -30,12 +34,17 @@ const WalletButton = ({
     onClick: hookOnClick,
     isConnecting,
     currency,
-    transactionAmount,
+    // transactionAmount,
     transactionTitle,
   } = useWalletButtonProps(types, content);
+  const { walletAddress: ethAddress } = useMetaMaskWallet();
+  const { walletAddress: minaAddress } = useAuroWallet();
+  const { currentState } = useNoriBridge()
 
   //TODO this needs setting programmatically
-  const isComplete = false;
+  const isComplete = currentState.match("completed");
+  const txAmount = Store.forPair(ethAddress!, minaAddress!).txAmount ?? 0.0;
+
 
   useEffect(() => {
     setIsMounted(true);
@@ -93,7 +102,7 @@ const WalletButton = ({
                 <div className="scale-[0.95]">{logo}</div>
                 <div className="m-1 text-sm">{displayAddress}</div>
               </div>
-              <div className="text-sm">{`${transactionAmount} ${currency}`}</div>
+              <div className="text-sm">{`${txAmount} ${currency}`}</div>
             </div>
           </div>
         </>
