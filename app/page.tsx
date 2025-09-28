@@ -45,7 +45,7 @@ export default function Home() {
       ) : (
         <div className="flex h-full w-full flex-col relative bg-custom-svg bg-no-repeat bg-cover bg-center">
           <div className="absolute w-full justify-center my-5 flex">
-            <Nori className="scale-[0.75]" />
+            <Nori className="scale-[1]" />
           </div>
 
           <button
