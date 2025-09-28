@@ -1,5 +1,5 @@
 "use client"; // The server cannot use this machine! Should build a seperate machine for other purposes
-import { assign, setup, log, raise } from "xstate";
+import { assign, setup, log, raise, ErrorActorEvent } from "xstate";
 // Import actual bridge deposit observables
 import {
   getBridgeStateTopic$,
@@ -33,7 +33,8 @@ import {
   submitMintTx,
   submitSetupStorage,
 } from "@/machines/actors/actions.ts";
-import _ from "@/node_modules/xstate/dist/declarations/src/guards.js"; // this is just to supress the xstate guards ref needed.
+// eslint-disable-next-line 
+import _ from "@/node_modules/xstate/dist/declarations/src/guards.js";// this is just to supress the xstate guards ref needed.
 import { type getDepositProcessingStatus$ } from "./obs/getDepositProcessingStatus$.ts";
 import {
   isSetupStorageInProgressForMinaKey,
@@ -70,11 +71,19 @@ const invokeMonitoringDepositStatus = {
     }),
   } as const,
   onError: {
+    //@ts-expect-error as any
     actions: ({ event }) => {
       console.error("compressedDepositProcessingStatus error:", event.error);
     },
   },
 };
+
+function getErrorReason(event: ErrorActorEvent<unknown, string>) {
+  if (typeof event.error === "object" && event.error !== null && 'message' in event.error && typeof event.error.message === 'string') {
+    return event.error.message
+  }
+  return 'Unknown reason...'
+}
 
 // Machine types -----------------------------------------------------------------------
 
@@ -120,6 +129,8 @@ export interface DepositMintContext {
 
   // Error handling
   errorMessage: string | null;
+  errorReason?: string | null;
+  errorTimestamp?: number;
 }
 
 export type DepositMintEvents =
@@ -152,7 +163,7 @@ export const getDepositMachine = (
       canComputeEthProof: ({ context }) =>
         context.canComputeStatus === "CanCompute",
       canMint: ({ context }) => context.canMintStatus === "ReadyToMint",
-      isMissedOpportunity: ({ context }) => false,
+      isMissedOpportunity: ({ }) => false,
       /*context.canComputeStatus === "MissedMintingOpportunity" ||
       context.canMintStatus === "MissedMintingOpportunity" ||
       context.processingStatus?.deposit_processing_status ==
@@ -220,6 +231,8 @@ export const getDepositMachine = (
 
       // Error context
       errorMessage: null,
+      errorReason: null,
+      errorTimestamp: Date.now(),
     },
     states: {
       // Initial hydration state
@@ -268,6 +281,13 @@ export const getDepositMachine = (
           },
           { target: "noActiveDepositNumber" },
         ],
+      },
+
+      // Add new intermediate state
+      checkingDelay: {
+        after: {
+          5000: { target: "checking" } // Wait 5 seconds, then go to checking
+        }
       },
 
       // User needs to configure deposit number
@@ -386,15 +406,15 @@ export const getDepositMachine = (
               },
             },
             onError: {
-              target: "error",
-              actions: [
-                assign({
-                  errorMessage: "Failed to setup storage",
-                }),
-                ({ event }) => {
-                  console.error("checkStorageSetupOnChain error:", event.error);
-                },
-              ],
+              target: "checking",
+              actions: [assign({
+                errorMessage: () => "Failed to check storage setup",
+                errorReason: ({ event }) => getErrorReason(event),
+                errorTimestamp: () => Date.now(),
+              }),
+              ({ event }) => {
+                console.error("checkStorageSetupOnChain error:", event.error);
+              },]
             },
           },
         ],
@@ -422,7 +442,7 @@ export const getDepositMachine = (
             onDone: {
               target: "submitSetupStorageTx", // Goto submitSetupStorageTx after we have built our setupStorageTx
               actions: ({ event, context }) => {
-                console.log(`onDone storage setup. Tx hash '${event.output}'`);
+                console.log(`onDone storage setup`);
                 if (event.output)
                   context.setupStorageTransaction = event.output;
                 const minaWalletPubKeyBase58 =
@@ -443,10 +463,13 @@ export const getDepositMachine = (
               },
             },
             onError: {
-              target: "error",
+              target: "checkingDelay",
               actions: [
                 assign({
-                  errorMessage: "Failed to setup storage",
+                  errorMessage: () => "Failed to setup storage",
+                  errorReason: ({ event }) => getErrorReason(event),
+                  errorTimestamp: () => Date.now(),
+
                 }),
                 ({ event }) => {
                   console.error("setupStorage error:", event.error);
@@ -478,9 +501,14 @@ export const getDepositMachine = (
             },
             onError: {
               target: "setupStorage",
-              actions: assign({
-                errorMessage: "Failed to submit storage",
+              actions: [assign({
+                errorMessage: () => "Failed to submit storage, trying again.",
+                errorReason: ({ event }) => getErrorReason(event),
+                errorTimestamp: () => Date.now(),
               }),
+              ({ event }) => {
+                console.error("setupStorage error:", event.error);
+              },]
             },
           },
         ],
@@ -530,16 +558,16 @@ export const getDepositMachine = (
               },
             },
             onError: {
-              target: "error",
+              target: "checkingDelay",
               actions: [
                 assign({
-                  errorMessage: "Failed to wait for storage setup",
+                  errorMessage: () => "Failed to wait for storage setup",
+                  errorReason: ({ event }) => getErrorReason(event),
+                  errorTimestamp: () => Date.now(),
+
                 }),
                 ({ event }) => {
-                  console.error(
-                    "storageIsSetupWithDelayActor error:",
-                    event.error
-                  );
+                  console.error("storageIsSetupWithDelayActor error:", event.error);
                 },
               ],
             },
@@ -640,16 +668,16 @@ export const getDepositMachine = (
               target: "hasComputedEthProof",
             },
             onError: {
-              target: "error",
+              target: "checkingDelay",
               actions: [
                 assign({
-                  errorMessage: "Failed to compute ETH proof",
+                  errorMessage: () => "Failed to compute ETH proof",
+                  errorReason: ({ event }) => getErrorReason(event),
+                  errorTimestamp: () => Date.now(),
+
                 }),
                 ({ event }) => {
                   console.error("computeEthProof error:", event.error);
-                  if (event.error instanceof Error) {
-                    console.error("Stack trace:", event.error.stack);
-                  }
                 },
               ],
             },
@@ -726,7 +754,7 @@ export const getDepositMachine = (
               target: "submittingMintTx",
             },
             onError: {
-              target: "error",
+              target: "checking",
               actions: [
                 assign({
                   errorMessage: "Failed to build mint transaction",
@@ -756,7 +784,7 @@ export const getDepositMachine = (
               target: "completed",
             },
             onError: {
-              target: "error",
+              target: "checking",
               actions: [
                 assign({
                   errorMessage: "Failed to submit mint transaction",
@@ -775,13 +803,13 @@ export const getDepositMachine = (
       }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
 
       // Error state for handling failures
-      error: {
-        on: {
-          RESET: {
-            target: "checking",
-          },
-        },
-      },
+      // error: {
+      //   on: {
+      //     RESET: {
+      //       target: "checking",
+      //     },
+      //   },
+      // },
 
       missedOpportunity: {
         // type: "final",
