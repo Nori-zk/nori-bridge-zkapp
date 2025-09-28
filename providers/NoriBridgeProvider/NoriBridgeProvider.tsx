@@ -3,6 +3,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useMachine } from "@xstate/react";
@@ -18,9 +19,12 @@ import { useAccount } from "wagmina";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { getBridgeMachine } from "@/machines/BridgeMachine.ts";
 import envConfig from "@/helpers/env.ts";
-import { BridgeDepositProcessingStatus } from "@nori-zk/mina-token-bridge/rx/deposit";
-import { KeyTransitionStageMessageTypes } from "@nori-zk/pts-types";
 import { DepositStates } from "@/types/types.ts";
+import { ReplacementStageNameValues, ReplacementDepositProcessingStatusValues, ReplacementDepositProcessingStatus, ReplacementStageName } from "@/machines/actors/statuses.ts";
+import getWorkerClient from "@/singletons/workerSingleton.ts";
+import { Store } from "@/helpers/localStorage2.ts";
+import { useToast } from "@/helpers/useToast.tsx";
+import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 
 // Extract the machine type
 type DepositMachine = ReturnType<typeof getDepositMachine>;
@@ -43,7 +47,6 @@ type NoriBridgeContextType = {
     context: DepositMintContext;
     fullState: DepositState; // Full XState state object
   };
-  send: (event: DepositMintEvents) => void;
 
   // Type-safe state checkers (replaces matches)
   is: StateCheckers;
@@ -56,27 +59,25 @@ type NoriBridgeContextType = {
   isReady: boolean;
   isError: boolean;
   canSetupStorage: boolean;
-  canSubmitMintTx: boolean;
 
   // Current bridge stage data
   bridgeStage: string;
-  bridgeStateElapsedSec: number;
-  bridgeStateTimeRemaining: number;
+  bridgeStateElapsedSec: number | undefined;
+  bridgeStateTimeRemaining: number | undefined;
 
   // Current deposit status
-  depositNumber: number;
+  depositNumber: number | null;
   hasActiveDeposit: boolean;
-  depositStatus: string;
+  depositStatus: ReplacementDepositProcessingStatus | undefined;
   depositStatusStepIndex: number;
-  depositBridgeStageName: string;
+  depositBridgeStageName: ReplacementStageName | undefined;
   depositBridgeStageIndex: number;
-  depositStepElapsedTime: number;
-  depositStepTimeRemaining: number;
+  depositStepElapsedTime: number | undefined;
+  depositStepTimeRemaining: number | undefined;
 
   // Helper methods
   setDepositNumber: (depositNumber: number) => void;
   setPresentation: (presentationJsonStr: string) => void;
-  submitMintTx: () => void;
   retry: () => void;
   reset: () => void;
 };
@@ -88,13 +89,6 @@ const minaConfig = {
 
 const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
 
-const depositStatusSteps = [
-  BridgeDepositProcessingStatus.WaitingForEthFinality,
-  BridgeDepositProcessingStatus.WaitingForPreviousJobCompletion,
-  BridgeDepositProcessingStatus.WaitingForCurrentJobCompletion,
-  BridgeDepositProcessingStatus.ReadyToMint,
-];
-
 export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -103,8 +97,15 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const { ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$ } = useSetup();
-  const { walletAddress: ethAddress } = useMetaMaskWallet();
+  const { walletAddress: ethAddress, disconnect } = useMetaMaskWallet();
   const { address: minaAddress } = useAccount();
+  const rawToast = useToast({
+    type: "error",
+    title: "Error",
+    description: "Error",
+
+  });
+  const toast = useRef(rawToast);
 
   // Setup the bridgeMachine
   const bridgeMachine = useMemo(
@@ -119,12 +120,10 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   const depositMintMachine = useMemo(
     () =>
       getDepositMachine(
-        {
-          ethStateTopic$,
-          bridgeStateTopic$,
-          bridgeTimingsTopic$,
-        },
-        null
+        ethStateTopic$,
+        bridgeStateTopic$,
+        bridgeTimingsTopic$,
+
       ),
     [ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$]
   );
@@ -134,25 +133,41 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (minaAddress && ethAddress) {
-      if (!mintWorker) {
-        const worker = new ZkappMintWorkerClient(minaAddress, ethAddress);
-        worker.minaSetup(minaConfig);
-        console.log("creating worker: ", worker);
-        setMintWorker(worker);
-        sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
+
+      if (Store.forMina(minaAddress).ethWallet !== null && Store.forMina(minaAddress).ethWallet !== ethAddress) {
+        toast.current({
+          type: "error",
+          title: "Error",
+          description: `Connected ETH wallet does not match the one linked to this MINA wallet. Use ${formatDisplayAddress(Store.forMina(minaAddress).ethWallet)} or connect a different MINA wallet.`,
+        });
+        disconnect();
       } else {
-        //update existing worker
-        mintWorker.setWallets({
-          minaPubKeyBase58: minaAddress,
-          ethPubKeyBase58: ethAddress,
-        });
-        sendDepositMachine({
-          type: "ASSIGN_WORKER",
-          mintWorkerClient: mintWorker,
-        });
+        if (!mintWorker) {
+          const worker = getWorkerClient()
+          worker.setWallets({
+            minaPubKeyBase58: minaAddress,
+            ethPubKeyBase58: ethAddress,
+          });
+          worker.minaSetup(minaConfig);
+          console.log("creating worker: ", worker);
+          setMintWorker(worker);
+          sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
+        } else {
+          //update existing worker
+          mintWorker.setWallets({
+            minaPubKeyBase58: minaAddress,
+            ethPubKeyBase58: ethAddress,
+          });
+          sendDepositMachine({
+            type: "ASSIGN_WORKER",
+            mintWorkerClient: mintWorker,
+          });
+        }
       }
     }
   }, [minaAddress, ethAddress, mintWorker, sendDepositMachine]);
+
+
 
   // Helper functions
   const setDepositNumber = (depositNumber: number) => {
@@ -161,10 +176,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setPresentation = (presentationJsonStr: string) => {
     console.log("Setting presentation:", presentationJsonStr);
-  };
-
-  const submitMintTx = () => {
-    sendDepositMachine({ type: "SUBMIT_MINT_TX" });
   };
 
   const retry = () => {
@@ -194,9 +205,8 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       "computeEthProof",
       "hasComputedEthProof",
       "buildingMintTx",
-      "hasDepositMintTx",
       "submittingMintTx",
-      "error",
+      "checkingDelay",
       "missedOpportunity",
       "completed",
     ];
@@ -218,16 +228,14 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const isReady =
     stateCheckers.monitoringDepositStatus ||
-    stateCheckers.hasComputedEthProof ||
-    stateCheckers.hasDepositMintTx;
+    stateCheckers.hasComputedEthProof;
 
   const isError =
-    stateCheckers.error || depositState.context.errorMessage !== null;
+    depositState.context.errorMessage !== null;
 
   const canSetupStorage = depositState.context.goToSetupStorage;
-  const canSubmitMintTx = stateCheckers.hasDepositMintTx;
 
-  const bridgeStage = bridgeState.value as string;
+  const bridgeStage = bridgeState.value as unknown as string;
   const bridgeStateElapsedSec = bridgeState.context.bridgeStatus?.elapsed_sec;
   const bridgeStateTimeRemaining =
     bridgeState.context.bridgeStatus?.time_remaining_sec;
@@ -239,18 +247,28 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     depositState.context.processingStatus?.deposit_processing_status;
   const depositStatusStepIndex =
     depositStatus !== undefined
-      ? depositStatusSteps.indexOf(depositStatus)
+      ? ReplacementDepositProcessingStatusValues.indexOf(depositStatus)
       : -1;
   const depositBridgeStageName =
     depositState.context.processingStatus?.stage_name;
   const depositBridgeStageIndex =
     depositBridgeStageName !== undefined
-      ? KeyTransitionStageMessageTypes.indexOf(depositBridgeStageName)
+      ? ReplacementStageNameValues.indexOf(depositBridgeStageName)
       : -1;
+
+  // react state for the last tick of this callback
   const depositStepElapsedTime =
     depositState.context.processingStatus?.elapsed_sec;
   const depositStepTimeRemaining =
-    depositState.context.processingStatus?.time_remaining_sec;
+    depositState.context.processingStatus?.time_remaining_sec; // use 0 for ... come back to this
+  useEffect(() => {
+    if (stateCheckers.hydrating) return; //don't show error if loading
+    toast.current({
+      type: "error",
+      title: `${depositState.context.errorMessage || "Unknown error"}`,
+      description: `${depositState.context.errorReason || "Unknown reason"}`,
+    });
+  }, [depositState.context.errorMessage, depositState.context.errorReason, depositState.context.errorTimestamp, isError]);
 
   // Derived state
   const contextValue = useMemo(
@@ -261,7 +279,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
         context: depositState.context,
         fullState: depositState,
       },
-      send: sendDepositMachine,
 
       // Type-safe state checkers
       is: stateCheckers,
@@ -272,7 +289,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       isReady,
       isError,
       canSetupStorage,
-      canSubmitMintTx,
 
       // Current bridge stage data
       bridgeStage,
@@ -292,20 +308,17 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       // Helper methods
       setDepositNumber,
       setPresentation,
-      submitMintTx,
       retry,
       reset,
     }),
     [
       depositState,
-      sendDepositMachine,
       stateCheckers,
       currentState,
       isLoading,
       isReady,
       isError,
       canSetupStorage,
-      canSubmitMintTx,
       bridgeStage,
       bridgeStateElapsedSec,
       bridgeStateTimeRemaining,
@@ -319,7 +332,6 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       depositStepTimeRemaining,
       setDepositNumber,
       setPresentation,
-      submitMintTx,
       retry,
       reset,
     ]

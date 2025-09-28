@@ -7,9 +7,6 @@ import RedBottomShadow from "@/public/assets/choose-side/backgrounds/RedBottomSh
 import GreenBackgroundLightRight from "@/public/assets/choose-side/backgrounds/GreenBackgroundLightRight.svg";
 import GreenBackgroundLightLeft from "@/public/assets/choose-side/backgrounds/GreenBackgroundLightLeft.svg";
 import GreenBottomShadow from "@/public/assets/choose-side/backgrounds/GreenBottomShadow.svg";
-import RedSide from "@/public/assets/choose-side/images/RedSide.svg";
-import BlueSide from "@/public/assets/choose-side/images/BlueSide.svg";
-import GreenSide from "@/public/assets/choose-side/images/GreenSide.svg";
 import { ChooseSideTypes } from "@/types/types.ts";
 
 type ChooseSideUIProps = {
@@ -22,6 +19,11 @@ type ChooseSideUIProps = {
   joinButtonBgClass: string;
   joinButtonTextClass: string;
 };
+
+//TODO this should be fixed by moving assets into src
+const NoriRed = "/assets/choose-side/images/NoriRed.png";
+const NoriBlue = "/assets/choose-side/images/NoriBlue.png";
+const NoriGreen = "/assets/choose-side/images/NoriGreen.png";
 
 export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
   if (side === "red") {
@@ -36,9 +38,14 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
       bottomShadowSvg: <RedBottomShadow className="bottom-0 w-full" />,
       mainImage: (
         //using inline styles to control size as svg import not responding to tailwind width/height classes
-        <div style={{ width: "60%", height: "80%" }}>
-          <RedSide />
-        </div>
+        // <div style={{ width: "60%", height: "80%" }}>
+        //   <Image src />
+        // </div>
+        <img
+          src={NoriRed}
+          alt="Nori-Red-img"
+          className="w-full h-auto rounded-lg shadow-md object-cover"
+        />
       ),
       textValue: "370 Members",
       joinButtonBgClass: "red",
@@ -53,9 +60,11 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
       leftBgSvg: <GreenBackgroundLightLeft className="left-0 top-0 h-full" />,
       bottomShadowSvg: <GreenBottomShadow className="bottom-0 w-full" />,
       mainImage: (
-        <div style={{ width: "60%", height: "80%" }}>
-          <GreenSide />
-        </div>
+        <img
+          src={NoriGreen}
+          alt="Nori-Green-img"
+          className="w-full h-auto rounded-lg shadow-md object-cover"
+        />
       ),
       textValue: "210 Members",
       joinButtonBgClass: "green",
@@ -72,9 +81,11 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
       ),
       bottomShadowSvg: <BlueBottomShadow className=" bottom-0 w-full" />,
       mainImage: (
-        <div style={{ width: "60%", height: "80%" }}>
-          <BlueSide />
-        </div>
+        <img
+          src={NoriBlue}
+          alt="Nori-Bue-img"
+          className="w-full h-auto rounded-lg shadow-md object-cover"
+        />
       ),
       textValue: "160 Members",
       joinButtonBgClass: "blue",

@@ -49,9 +49,16 @@ const nextConfig = {
       ];
     }
 
+    // Handle SVG files as React components
     config.module.rules.push({
       test: /\.svg$/,
       use: ["@svgr/webpack"],
+    });
+
+    // Handle PNG, JPG, JPEG, GIF files as assets
+    config.module.rules.push({
+      test: /\.(png|jpe?g|gif)$/i,
+      type: "asset/resource",
     });
 
     config.experiments = { ...config.experiments, topLevelAwait: true };

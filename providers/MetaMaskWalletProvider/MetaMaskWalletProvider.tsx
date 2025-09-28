@@ -21,6 +21,8 @@ import { openExternalLink } from "@/helpers/navigation.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 import { noriTokenBridgeJson } from "@nori-zk/ethereum-token-bridge";
 import envConfig from "@/helpers/env.ts";
+import { Store } from "@/helpers/localStorage2.ts";
+import getWorkerClient from "@/singletons/workerSingleton.ts";
 
 interface SignMessageResult {
   signature: string;
@@ -64,7 +66,8 @@ export const useMetaMaskWallet = (): MetaMaskWalletContextType => {
   return context;
 };
 
-const holesky_network_id = "0x4268";
+// const holesky_network_id = "0x4268";
+const SEPOLIA_NETWORK_ID = "0xaa36a7"; // 11155111 in hex
 
 export const MetaMaskWalletProvider = ({
   children,
@@ -92,11 +95,12 @@ export const MetaMaskWalletProvider = ({
 
   // Helper to check if we're on the correct network
   const isOnCorrectNetwork = useMemo(() => {
-    return chainId === holesky_network_id;
+    return chainId === SEPOLIA_NETWORK_ID;
   }, [chainId]);
 
   const initializeContract = useCallback(async (signer: Signer) => {
     const contractAddress = envConfig.NORI_TOKEN_BRIDGE_ADDRESS;
+    console.log("Initializing contract at:", contractAddress);
     return new Contract(contractAddress, noriTokenBridgeJson.abi, signer);
   }, []);
 
@@ -174,7 +178,7 @@ export const MetaMaskWalletProvider = ({
         isConnected
       );
 
-      if (chainId !== holesky_network_id) {
+      if (chainId !== SEPOLIA_NETWORK_ID) {
         // User switched to wrong network
         if (isConnected) {
           toast.current({
@@ -196,7 +200,7 @@ export const MetaMaskWalletProvider = ({
 
             await window.ethereum.request({
               method: "wallet_switchEthereumChain",
-              params: [{ chainId: holesky_network_id }],
+              params: [{ chainId: SEPOLIA_NETWORK_ID }],
             });
           } catch (error) {
             console.warn("Failed to revoke permissions:", error);
@@ -212,7 +216,7 @@ export const MetaMaskWalletProvider = ({
               toast.current({
                 type: "notification",
                 title: "Network Connected",
-                description: "Reconnected to Holesky network successfully!",
+                description: "Reconnected to Sepolia network successfully!",
               });
             }
           });
@@ -242,12 +246,12 @@ export const MetaMaskWalletProvider = ({
           type: "error",
           title: "Wrong Network",
           description:
-            "Please switch to Holesky network before connecting your wallet.",
+            "Please switch to Sepolia network before connecting your wallet.",
         });
 
         await window.ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: holesky_network_id }],
+          params: [{ chainId: SEPOLIA_NETWORK_ID }],
         });
 
         return;
@@ -303,7 +307,7 @@ export const MetaMaskWalletProvider = ({
         toast.current({
           type: "error",
           title: "Error",
-          description: "Please connect wallet on Holesky network first.",
+          description: "Please connect wallet on Sepolia network first.",
         });
         throw new Error("Wallet not connected or on wrong network");
       }
@@ -331,7 +335,7 @@ export const MetaMaskWalletProvider = ({
       toast.current({
         type: "error",
         title: "Error",
-        description: "Please connect wallet on Holesky network first.",
+        description: "Please connect wallet on Sepolia network first.",
       });
       return;
     }
@@ -358,7 +362,7 @@ export const MetaMaskWalletProvider = ({
         toast.current({
           type: "error",
           title: "Error",
-          description: "Please connect wallet on Holesky network first.",
+          description: "Please connect wallet on Sepolia network first.",
         });
         throw Error("contract not connected or wrong network");
       }
@@ -382,7 +386,10 @@ export const MetaMaskWalletProvider = ({
         const receipt = await tx.wait();
         console.log("Transaction Receipt:", receipt);
         console.log("Block Number:", receipt.blockNumber);
-
+        //assign eth wallet for mina wallet
+        const minaWalletPubKey = getWorkerClient().minaWalletPubKeyBase58;
+        Store.forMina(minaWalletPubKey).ethWallet = walletAddress
+        Store.forPair(minaWalletPubKey, walletAddress!).txAmount = amount.toString();
         toast.current({
           type: "notification",
           title: "Success",
@@ -407,7 +414,7 @@ export const MetaMaskWalletProvider = ({
       toast.current({
         type: "error",
         title: "Error",
-        description: "Please connect wallet on Holesky network first.",
+        description: "Please connect wallet on Sepolia network first.",
       });
       return;
     }
@@ -471,11 +478,11 @@ export const MetaMaskWalletProvider = ({
       if (accounts.length === 0) {
         // All accounts disconnected
         clearWalletState();
-        toast.current({
-          type: "notification",
-          title: "Wallet Disconnected",
-          description: "All accounts have been disconnected.",
-        });
+        // toast.current({
+        //   type: "notification",
+        //   title: "Wallet Disconnected",
+        //   description: "All accounts have been disconnected.",
+        // });
       } else {
         // Account switched
         const newAddress = accounts[0];
@@ -490,7 +497,6 @@ export const MetaMaskWalletProvider = ({
                   newAddress
                 )}`,
               });
-              setWallets;
             });
           } else {
             // Just update the address, don't connect
@@ -500,7 +506,7 @@ export const MetaMaskWalletProvider = ({
               title: "Account Changed",
               description: `Account switched to: ${formatDisplayAddress(
                 newAddress
-              )}. Please switch to Holesky network to connect.`,
+              )}. Please switch to Sepolia network to connect.`,
             });
           }
         }

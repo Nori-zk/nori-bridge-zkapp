@@ -1,5 +1,9 @@
 "use client";
+import { Store } from "@/helpers/localStorage2.ts";
 import { useWalletButtonProps } from "@/helpers/useWalletButtonProps.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
+import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
+import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { WalletButtonTypes } from "@/types/types.ts";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
@@ -29,7 +33,18 @@ const WalletButton = ({
     logo,
     onClick: hookOnClick,
     isConnecting,
+    currency,
+    // transactionAmount,
+    transactionTitle,
   } = useWalletButtonProps(types, content);
+  const { walletAddress: ethAddress } = useMetaMaskWallet();
+  const { walletAddress: minaAddress } = useAuroWallet();
+  const { currentState } = useNoriBridge()
+
+  //TODO this needs setting programmatically
+  const isComplete = currentState.match("completed");
+  const txAmount = Store.forPair(ethAddress!, minaAddress!).txAmount ?? 0.0;
+
 
   useEffect(() => {
     setIsMounted(true);
@@ -76,8 +91,27 @@ const WalletButton = ({
         isConnecting && "opacity-50 cursor-not-allowed"
       )}
     >
-      <div className="m-1">{logo}</div>
-      <div className="m-3 text-lg">{displayAddress}</div>
+      {isComplete ? (
+        <>
+          <div className="flex w-full flex-col">
+            <div className="flex justify-start text-xs text-white/50">
+              {transactionTitle}
+            </div>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center justify-between">
+                <div className="scale-[0.95]">{logo}</div>
+                <div className="m-1 text-sm">{displayAddress}</div>
+              </div>
+              <div className="text-sm">{`${txAmount} ${currency}`}</div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="m-1">{logo}</div>
+          <div className="m-3 text-lg">{displayAddress}</div>
+        </>
+      )}
     </button>
   );
 };

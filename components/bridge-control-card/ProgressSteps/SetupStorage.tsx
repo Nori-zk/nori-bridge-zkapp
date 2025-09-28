@@ -6,8 +6,11 @@ type SetupStorageProps = {
 
 const SetupStorage = ({ subtitle }: SetupStorageProps) => {
   return (
-    //TODO add retry button when user rejects setup transaction
-    <Ping content={subtitle} />
+    //TOD button when user rejects setup transaction
+    <div className="my-4">
+      <Ping content={subtitle} />
+
+    </div>
   );
 };
 

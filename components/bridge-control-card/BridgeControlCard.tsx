@@ -11,7 +11,11 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
 import DepositProcessing from "./ProgressSteps/DepositProcessingProgress.tsx";
-import ProgressBar from "../ui/ProgressBar/ProgressBar.tsx";
+import ProgressBar from "@/components/ui/ProgressBar/ProgressBar.tsx";
+import LeftLine from "@/public/assets/LeftLine.svg";
+import RightLine from "@/public/assets/RightLine.svg";
+import Swap from "@/public/assets/Swap.svg";
+import DepositProgress from "./DepositProgress/DepositProgress.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -29,7 +33,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
-
+  const { currentState } = useNoriBridge();
   const { bridgeSocketConnectionState$ } = useSetup();
 
   const [status, setStatus] = useState<
@@ -123,9 +127,10 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                     ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
                   }
                 />
-                <div className="flex items-center justify-center w-7 h-7 text-black bg-white rounded-full mx-2">
-                  <FaArrowRight />
+                <div className="flex items-center justify-center w-7 h-7 mx-2">
+                  <Swap />
                 </div>
+
                 <WalletButton
                   id="mina-btn"
                   types={"Mina"}
@@ -155,10 +160,10 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 {props.content}
               </div>
             </div>
-            {displayProgressSteps && <ProgressTracker steps={progressSteps} />}
+            {/* {displayProgressSteps && <ProgressTracker steps={progressSteps} />} */}
 
             {/* Current State Display */}
-            <div className="flex justify-around items-center">
+            {/* <div className="flex justify-around items-center">
               <div className="p-4">
                 <div className={`font-mono text-sm ${getStatusColor()}`}>
                   State: <span className="font-bold">{getStateDisplay()}</span>
@@ -178,7 +183,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                   {/* <label className="block text-sm font-medium mb-1">
                   Deposit Block Number
                 </label> */}
-                  {/* <div className="flex flex-row gap-2">
+            {/* <div className="flex flex-row gap-2">
                   {/* <input
                     type="text"
                     value={depositNumber}
@@ -186,13 +191,13 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                     className="flex-1 px-3 py-2 border rounded-md"
                     placeholder="e.g., 12345"
                   /> */}
-                  {/* <button
+            {/* <button
                     onClick={handleSetDepositNumber}
                     className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                   >
                     Set
                   </button> 
-                </div> */}
+                </div>
                   <div className="text-xs text-gray-500 mt-1">
                     Current: {state.context.activeDepositNumber || "Not set"}
                   </div>
@@ -205,8 +210,11 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                   </button>
                 </div>
               </div>
-            </div>
-            <div className="w-3/4">{<ProgressBar />}</div>
+            </div> */}
+
+            {currentState !== 'completed' ?
+              <DepositProgress /> : <></>
+            }
           </div>
         </BridgeControlCardSVG>
       </div>

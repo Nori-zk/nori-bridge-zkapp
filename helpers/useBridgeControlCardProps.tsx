@@ -6,10 +6,10 @@ import LockTokens from "@/components/bridge-control-card/ProgressSteps/LockToken
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
 import DepositStatus from "@/components/bridge-control-card/ProgressSteps/DepositStatus.tsx";
-import ZkappWorkerClient from "@/workers/zkappWorkerClient.ts";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { useToast } from "@/helpers/useToast.tsx";
 import Ping from "@/components/ui/Ping/Ping.tsx";
+import Completed from "@/components/bridge-control-card/ProgressSteps/Completed.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -116,6 +116,42 @@ export function useBridgeControlCardProps(
         component: <DepositStatus />,
       };
 
+    case "computeEthProof":
+      return {
+        title: "Computing deposit proof",
+        component:
+          <DepositStatus />
+      };
+    case "hasComputedEthProof":
+      return {
+        title: "Awaiting smart contract readiness",
+        component:
+          <DepositStatus />
+      };
+    case "buildingMintTx":
+      return {
+        title: "Building mint transaction",
+        component:
+          <DepositStatus />
+      }
+
+    case "submittingMintTx":
+      return {
+        title: "Submitting mint transaction",
+        component:
+          <DepositStatus />
+      }
+    case "checkingDelay":
+      return {
+        title: "Retrying...",
+        component: <> </>
+      }
+    case "completed":
+      return {
+        title: "Deposit complete",
+        component: <Completed />,
+      };
+
     default:
       return {
         title: "Loading",
@@ -168,6 +204,9 @@ export const getContractCompileLabel = (
   mintWorker: ZkappMintWorkerClient | null | undefined
 ): ReactNode => {
   if (!mintWorker) return <div>{"Loading"}</div>;
-  if (mintWorker.isCompilingContracts())
-    return <Ping content="Compiling Contracts" />;
+  if (mintWorker.isCompilingContracts()) {
+    return (<div className="py-4"> <Ping content="Compiling Contracts" /></div>)
+  } else {
+    return (<div className="py-2"></div>)
+  }
 };
