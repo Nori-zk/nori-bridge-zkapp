@@ -8,9 +8,12 @@ import GreenBackgroundLightRight from "@/public/assets/choose-side/backgrounds/G
 import GreenBackgroundLightLeft from "@/public/assets/choose-side/backgrounds/GreenBackgroundLightLeft.svg";
 import GreenBottomShadow from "@/public/assets/choose-side/backgrounds/GreenBottomShadow.svg";
 import { ChooseSideTypes } from "@/types/types.ts";
+import { useEffect, useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/config/firebaseConfig.ts";
 
 type ChooseSideUIProps = {
-  radialBg: 'blue' | 'green' | 'red';
+  radialBg: "blue" | "green" | "red";
   rightBgSvg: React.ReactNode;
   leftBgSvg: React.ReactNode;
   bottomShadowSvg: React.ReactNode;
@@ -25,7 +28,33 @@ const NoriRed = "/assets/choose-side/images/NoriRed.png";
 const NoriBlue = "/assets/choose-side/images/NoriBlue.png";
 const NoriGreen = "/assets/choose-side/images/NoriGreen.png";
 
+function useClanMemberCount(clanRole: "role1" | "role2" | "role3") {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "clans", clanRole), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setCount(data.memberCount ?? 0);
+      } else {
+        setCount(0);
+      }
+    });
+    return () => unsub();
+  }, [clanRole]);
+
+  return count;
+}
+
 export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
+  const roleMap = {
+    red: "role3" as const,
+    green: "role2" as const,
+    blue: "role1" as const,
+  };
+  const clanRole = roleMap[side];
+  const memberCount = useClanMemberCount(clanRole) ?? 0;
+
   if (side === "red") {
     return {
       radialBg: "red",
@@ -47,7 +76,7 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
           className="w-full h-auto rounded-lg shadow-md object-cover"
         />
       ),
-      textValue: "370 Members",
+      textValue: `${memberCount} Members`,
       joinButtonBgClass: "red",
       joinButtonTextClass: "neonRed",
     };
@@ -66,7 +95,7 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
           className="w-full h-auto rounded-lg shadow-md object-cover"
         />
       ),
-      textValue: "210 Members",
+      textValue: `${memberCount} Members`,
       joinButtonBgClass: "green",
       joinButtonTextClass: "neonGreen",
     };
@@ -87,7 +116,7 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
           className="w-full h-auto rounded-lg shadow-md object-cover"
         />
       ),
-      textValue: "160 Members",
+      textValue: `${memberCount} Members`,
       joinButtonBgClass: "blue",
       joinButtonTextClass: "neonBlue",
     };

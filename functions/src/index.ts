@@ -6,7 +6,7 @@ import { defineString } from 'firebase-functions/params';
 import { setGlobalOptions } from 'firebase-functions';
 import * as logger from 'firebase-functions/logger';
 import { FirebaseAuthError } from 'firebase-admin/auth';
-import { onDocumentUpdated } from 'firebase-functions/firestore';
+import { onDocumentWritten } from 'firebase-functions/firestore';
 
 /*
 
@@ -30,6 +30,79 @@ const DISCORD_ROLE1_ID = defineString('DISCORD_ROLE1_ID');
 const DISCORD_ROLE2_ID = defineString('DISCORD_ROLE2_ID');
 const DISCORD_ROLE3_ID = defineString('DISCORD_ROLE3_ID');
 const FRONTEND_URL = defineString('FRONTEND_URL');
+
+// Clan operations ==========================================================================
+const ClanNames = [
+    'The Yokai',
+    'The Kayeyama Syndicate',
+    'The Cypher-Punks',
+] as const;
+type ClanNames = (typeof ClanNames)[number];
+const Roles = ['role1', 'role2', 'role3'] as const;
+type Roles = (typeof Roles)[number];
+
+const roleToFriendlyClanName: Record<Roles, ClanNames> = {
+    role3: 'The Yokai',
+    role2: 'The Cypher-Punks',
+    role1: 'The Kayeyama Syndicate',
+};
+
+async function joinNoriWorldClan(
+    uid: string,
+    displayName: string,
+    roleId: Roles
+) {
+    const clansCollection = db.collection('clans');
+
+    // Fetch all clans
+    const allClansSnap = await clansCollection.get();
+
+    // Remove from old clans (atomic)
+    for (const clanDoc of allClansSnap.docs) {
+        if (clanDoc.id === roleId) continue; // skip new clan
+
+        const data = clanDoc.data();
+        if (data.members?.includes(uid)) {
+            await clanDoc.ref.update({
+                members: admin.firestore.FieldValue.arrayRemove(uid),
+                membersDisplayName:
+                    admin.firestore.FieldValue.arrayRemove(displayName),
+                memberCount: admin.firestore.FieldValue.increment(-1),
+            });
+            logger.log(`Removed ${uid} from old clan ${clanDoc.id}`);
+        }
+    }
+
+    const newClanRef = clansCollection.doc(roleId);
+    const newClanDoc = await newClanRef.get();
+
+    const friendlyClanName = roleToFriendlyClanName[roleId];
+
+    if (!newClanDoc.exists) {
+        // Create clan if it doesn't exist
+        await newClanRef.set({
+            clanName: friendlyClanName,
+            members: [uid],
+            membersDisplayName: [displayName],
+            memberCount: 1,
+        });
+        logger.log(
+            `Created new clan ${roleId} (${friendlyClanName}) and added ${uid}`
+        );
+    } else {
+        // Add to existing clan atomically
+        await newClanRef.update({
+            clanName: friendlyClanName, // optional: ensures friendly name stays synced
+            members: admin.firestore.FieldValue.arrayUnion(uid),
+            membersDisplayName:
+                admin.firestore.FieldValue.arrayUnion(displayName),
+            memberCount: admin.firestore.FieldValue.increment(1),
+        });
+        logger.log(
+            `Added ${uid} to existing clan ${roleId} (${friendlyClanName})`
+        );
+    }
+}
 
 // Discord ===============================================================================================
 
@@ -323,11 +396,14 @@ export const discordCallback = onRequest(async (req, res) => {
             }
 
             // Fetch guild display name (nickname or username)
-            displayName = (await getGuildMemberDisplayName(
-                discordClient,
-                guildId,
-                user.id
-            )) || user.username || 'User unknown';
+            displayName =
+                (await getGuildMemberDisplayName(
+                    discordClient,
+                    guildId,
+                    user.id
+                )) ||
+                user.username ||
+                'User unknown';
             logger.log('Fetched guild display name:', displayName);
         } catch (err) {
             logger.error('Error granting Discord role:', err);
@@ -430,60 +506,66 @@ export const discordCallback = onRequest(async (req, res) => {
 
 // Database change events ==========================================================================
 
-export const onUserRoleChange = onDocumentUpdated(
-    'users/{uid}',
-    async (event) => {
-        const before = event.data?.before.data();
-        const after = event.data?.after.data();
-        const uid = event.params.uid;
+export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
+    const uid = event.params.uid;
+    const before = event.data?.before.exists ? event.data?.before.data() : null;
+    const after = event.data?.after.exists ? event.data?.after.data() : null;
 
-        if (!before || !after) return;
+    if (!after) return; // document deleted
 
-        if (before.role === after.role) return; // No role change
+    // Determine if role changed OR document is newly created
+    const roleChanged = !before || before.role !== after.role;
 
-        const roles: Record<string, string> = {
-            role1: DISCORD_ROLE1_ID.value(),
-            role2: DISCORD_ROLE2_ID.value(),
-            role3: DISCORD_ROLE3_ID.value(),
-        };
+    if (!roleChanged) return;
 
-        const newRoleId = roles[after.role];
-        if (!newRoleId) {
-            logger.error('Invalid role:', after.role);
-            return;
+    const roles: Record<string, string> = {
+        role1: DISCORD_ROLE1_ID.value(),
+        role2: DISCORD_ROLE2_ID.value(),
+        role3: DISCORD_ROLE3_ID.value(),
+    };
+
+    const newRoleId = roles[after.role];
+    if (!newRoleId) {
+        logger.error('Invalid role:', after.role);
+        return;
+    }
+
+    let client: Client | undefined;
+    try {
+        client = await getDiscordClient();
+        const guild = await client.guilds.fetch(DISCORD_GUILD_ID.value());
+        const member = await guild.members.fetch(uid.replace('discord:', ''));
+
+        // Remove all other roles from this set
+        for (const roleId of Object.values(roles)) {
+            if (member.roles.cache.has(roleId) && roleId !== newRoleId) {
+                await member.roles.remove(roleId);
+            }
         }
 
-        let client: Client | undefined;
-        try {
-            client = await getDiscordClient();
-            const guild = await client.guilds.fetch(DISCORD_GUILD_ID.value());
-            const member = await guild.members.fetch(
-                uid.replace('discord:', '')
-            );
+        // Add the new role if not already present
+        if (!member.roles.cache.has(newRoleId)) {
+            await member.roles.add(newRoleId);
+        }
 
-            // Remove all other roles from this set
-            for (const roleId of Object.values(roles)) {
-                if (member.roles.cache.has(roleId) && roleId !== newRoleId) {
-                    await member.roles.remove(roleId);
-                }
-            }
-
-            // Add the new role if not already present
-            if (!member.roles.cache.has(newRoleId)) {
-                await member.roles.add(newRoleId);
-            }
-
-            logger.log(`Updated Discord role for ${uid} to ${after.role}`);
-        } catch (err) {
-            logger.error('Discord role update error:', err);
-        } finally {
-            if (client) {
-                try {
-                    await client.destroy();
-                } catch (e) {
-                    logger.error('Failed to destroy Discord client:', e);
-                }
+        logger.log(`Updated Discord role for ${uid} to ${after.role}`);
+    } catch (err) {
+        logger.error('Discord role update error:', err);
+    } finally {
+        if (client) {
+            try {
+                await client.destroy();
+            } catch (e) {
+                logger.error('Failed to destroy Discord client:', e);
             }
         }
     }
-);
+
+    // Update clan membership
+    try {
+        await joinNoriWorldClan(uid, after.displayName, after.role as Roles);
+        logger.log(`Updated clan membership for ${uid} to ${after.role}`);
+    } catch (err) {
+        logger.error('Error updating clan membership:', err);
+    }
+});

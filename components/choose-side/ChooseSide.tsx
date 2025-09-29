@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChooseSideTypes } from "@/types/types.ts";
 import { useChooseSideProps } from "@/helpers/useChooseSideProps.tsx";
 import { Store } from "@/helpers/localStorage2.ts";
 import { db, auth } from "@/config/firebaseConfig.ts";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
@@ -35,6 +35,8 @@ const updateUserRole = async (role: string) => {
 const ChooseSide = ({ side }: ChooseSideProps) => {
   const [hovered, setHovered] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentClanRole, setCurrentClanRole] = useState<string | null>(null);
+
   const {
     radialBg,
     rightBgSvg,
@@ -52,6 +54,22 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
     red: "role3",
   };
   const role = roleMap[radialBg];
+
+  // Subscribe to user role updates in Firestore
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      const data = snap.data();
+      setCurrentClanRole(data?.role || null);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const buttonText = currentClanRole === role ? "Claim" : "Join";
+  const isDimmed = currentClanRole !== null && currentClanRole !== role;
 
   const handleJoinClick = async () => {
     // If the user is logged in
@@ -93,7 +111,9 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
 
   return (
     <div
-      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all`}
+      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all ${
+        isDimmed ? "opacity-60" : ""
+      }`} // CHANGE MADE
       onMouseEnter={() => {
         setHovered(true);
       }}
@@ -129,7 +149,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
             onClick={handleJoinClick}
             className={`bg-button-choose-side-${joinButtonBgClass} w-1/3 max-w-xs rounded-lg py-3 text-${joinButtonTextClass} text-glow-neon-${joinButtonBgClass} font-normal hover:scale-105 transition-transform text-xl`}
           >
-            Join
+            {buttonText}
           </button>
         </div>
       </div>
