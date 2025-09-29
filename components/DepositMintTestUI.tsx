@@ -227,10 +227,10 @@ export const DepositMintTestUI: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <h3 className="font-medium mb-2">Worker Status</h3>
-            <div>Ready: {state.context.isWorkerReady ? "✅" : "❌"}</div>
+            {/* <div>Ready: {state.context.isWorkerReady ? "✅" : "❌"}</div>
             <div>
               Storage Setup: {state.context.isStorageSetup ? "✅" : "❌"}
-            </div>
+            </div> */}
             <div>
               Needs Funding:{" "}
               {state.context.needsToFundAccount ? "⚠️ Yes" : "✅ No"}

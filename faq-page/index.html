@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="icon" type="image/x-icon" href="favicon.png" />
+		<title>Nori Plankton Event FAQ</title>
+		<style>
+			@font-face {
+				font-family: "Clash Display";
+				font-style: normal;
+				font-weight: 300;
+				src: url("https://api.fontshare.com/v2/css?f[]=clash-display@300&display=swap");
+			}
+
+			@font-face {
+				font-family: "Clash Display";
+				font-style: normal;
+				font-weight: 500;
+				src: url("https://api.fontshare.com/v2/css?f[]=clash-display@500&display=swap");
+			}
+
+			@font-face {
+				font-family: "Clash Display";
+				font-style: normal;
+				font-weight: 600;
+				src: url("https://api.fontshare.com/v2/css?f[]=clash-display@600&display=swap");
+			}
+
+			@font-face {
+				font-family: "Clash Display";
+				font-style: normal;
+				font-weight: 700;
+				src: url("https://api.fontshare.com/v2/css?f[]=clash-display@700&display=swap");
+			}
+
+			:root {
+				--darkGreen: #062817;
+				--veryDarkGreen: #060a08;
+				--connectedGreen: #1f3029;
+				--lightGreen: #64e18e;
+				--veryDarkRed: #3f1717;
+				--darkRed: #950606;
+				--lightRed: #ff0000;
+			}
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family: "Clash Display", -apple-system, BlinkMacSystemFont,
+					"Segoe UI", sans-serif;
+				line-height: 1.6;
+				color: #e8e8e8;
+				background-color: #000000;
+				min-height: 100vh;
+				padding: 20px;
+			}
+
+			.container {
+				max-width: 1100px;
+				margin: 0 auto;
+				background: var(--veryDarkGreen);
+				border-radius: 12px;
+				border: 2px solid var(--connectedGreen);
+				overflow: hidden;
+			}
+
+			.header {
+				background: var(--darkGreen);
+				color: var(--lightGreen);
+				padding: 40px 30px;
+				text-align: center;
+				border-bottom: 2px solid var(--lightGreen);
+			}
+
+			.header h1 {
+				font-size: 2.5em;
+				margin-bottom: 10px;
+				font-weight: 700;
+			}
+
+			.content {
+				padding: 40px 30px;
+			}
+
+			.section {
+				margin-bottom: 40px;
+			}
+
+			.section h2 {
+				font-size: 1.8em;
+				color: var(--lightGreen);
+				margin-bottom: 20px;
+				padding-bottom: 10px;
+				border-bottom: 3px solid var(--connectedGreen);
+				font-weight: 600;
+			}
+
+			.checklist {
+				background: var(--connectedGreen);
+				border-left: 4px solid var(--lightGreen);
+				padding: 20px;
+				border-radius: 8px;
+				margin-bottom: 20px;
+			}
+
+			.checklist ol {
+				margin-left: 20px;
+				color: #e8e8e8;
+			}
+
+			.checklist li {
+				margin-bottom: 10px;
+			}
+
+			.faq-item {
+				margin-bottom: 25px;
+			}
+
+			.faq-question {
+				font-weight: 600;
+				font-size: 1.1em;
+				color: var(--lightGreen);
+				margin-bottom: 8px;
+			}
+
+			.faq-answer {
+				color: #e8e8e8;
+				margin-left: 15px;
+				line-height: 1.7;
+			}
+
+			.status-box {
+				background: var(--connectedGreen);
+				border-left: 4px solid var(--lightGreen);
+				padding: 15px;
+				margin-bottom: 15px;
+				border-radius: 4px;
+				color: #e8e8e8;
+			}
+
+			.status-box strong {
+				color: var(--lightGreen);
+				display: block;
+				margin-bottom: 5px;
+				font-weight: 600;
+			}
+
+			.info-box {
+				background: var(--connectedGreen);
+				border-left: 4px solid var(--lightGreen);
+				padding: 15px;
+				margin: 20px 0;
+				border-radius: 4px;
+				color: #e8e8e8;
+			}
+
+			a {
+				color: var(--lightGreen);
+				text-decoration: none;
+				font-weight: 500;
+				transition: opacity 0.2s;
+			}
+
+			a:hover {
+				opacity: 0.8;
+				text-decoration: underline;
+			}
+
+			code {
+				background: var(--connectedGreen);
+				color: var(--lightGreen);
+				padding: 2px 8px;
+				border-radius: 4px;
+				font-family: "Courier New", monospace;
+				font-size: 0.9em;
+				border: 1px solid rgba(100, 225, 142, 0.3);
+			}
+
+			blockquote {
+				border-left: 4px solid var(--connectedGreen);
+				padding-left: 15px;
+				margin: 15px 0;
+				color: #b8b8b8;
+				font-style: italic;
+			}
+
+			.footer {
+				background: var(--darkGreen);
+				padding: 30px;
+				text-align: center;
+				color: #b8b8b8;
+				border-top: 2px solid var(--connectedGreen);
+			}
+
+			strong {
+				color: var(--lightGreen);
+				font-weight: 600;
+			}
+
+			ul {
+				margin-left: 20px;
+				margin-top: 10px;
+				color: #e8e8e8;
+			}
+
+			li {
+				margin-bottom: 8px;
+			}
+
+			p {
+				color: #e8e8e8;
+				margin-bottom: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>🦠 Nori Plankton Event FAQ</h1>
+			</div>
+
+			<div class="content">
+				<div class="section">
+					<h2>✅ Quick Start Checklist</h2>
+					<div class="checklist">
+						<ol>
+							<li>
+								Install an EVM-compatible wallet (e.g. MetaMask) and
+								<a href="https://www.aurowallet.com/" target="_blank"
+									>Auro Wallet</a
+								>
+								for Mina.
+							</li>
+							<li>
+								Get testnet tokens:
+								<ul>
+									<li>
+										<a href="https://faucet.minaprotocol.com/" target="_blank"
+											>Mina devnet faucet</a
+										>
+									</li>
+									<li>
+										<a
+											href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia"
+											target="_blank"
+											>Ethereum Sepolia faucet</a
+										>
+										(or another trusted faucet)
+									</li>
+								</ul>
+							</li>
+							<li>
+								Use <strong>desktop only</strong> (mobile is not supported).
+							</li>
+							<li>
+								Stick to <strong>one browser/device</strong> for the whole
+								process.
+							</li>
+							<li>
+								Lock ETH → after ~35 minutes → mint <strong>nETH</strong>.
+							</li>
+						</ol>
+					</div>
+				</div>
+
+				<div class="section">
+					<h2>🚀 Getting Started</h2>
+
+					<div class="faq-item">
+						<div class="faq-question">What do I need before I start?</div>
+						<div class="faq-answer">
+							You'll need MetaMask (or another EVM wallet), Auro Wallet for
+							Mina, and testnet ETH/MINA from the faucets above.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">How do I get the free test tokens?</div>
+						<div class="faq-answer">Use the links above.</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">Do I need to install anything?</div>
+						<div class="faq-answer">
+							Yes, browser wallet extensions for both Ethereum and Mina.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">Should I use my main wallet?</div>
+						<div class="faq-answer">
+							We recommend using a fresh wallet for testing, but it's not
+							required.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">Is there a minimum ETH required?</div>
+						<div class="faq-answer">
+							Yes, at least <strong>0.0001 ETH</strong>.
+						</div>
+					</div>
+				</div>
+
+				<div class="section">
+					<h2>🌍 The Big Picture</h2>
+
+					<div class="faq-item">
+						<div class="faq-question">What's the goal of this testnet?</div>
+						<div class="faq-answer">
+							The Plankton event is designed to collect user feedback,
+							especially around:
+							<ul>
+								<li>Smart contract performance in browsers</li>
+								<li>Compute-related errors</li>
+								<li>UI/UX issues</li>
+								<li>Compilation times (shown in the bottom-right corner)</li>
+								<li>Your hardware and browser setup</li>
+							</ul>
+							After each successful mint, please use the
+							<strong>"Share on X"</strong> button to spread the word and show
+							support for Nori!
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">Is the bridge open-source?</div>
+						<div class="faq-answer">
+							Yes. All code is open-source and available here:
+							<a
+								href="https://github.com/orgs/Nori-zk/repositories"
+								target="_blank"
+								>https://github.com/orgs/Nori-zk/repositories</a
+							>
+						</div>
+					</div>
+				</div>
+
+				<div class="section">
+					<h2>🌌 Nori Worlds</h2>
+					<p>
+						For those who enjoy a bit of lore, check out
+						<strong>Nori Worlds</strong> on
+						<a
+							href="https://www.worldanvil.com/w/nori-worlds-athor333"
+							target="_blank"
+							>World Anvil</a
+						>.
+					</p>
+
+					<p style="margin-top: 15px">
+						After a successful mint, you'll be invited to
+						<strong>pick your faction</strong>. There are three factions to
+						choose from. Selecting one will:
+					</p>
+					<ul>
+						<li>Log you in with Discord</li>
+						<li>Add you to our Discord with a special faction role</li>
+						<li>Contribute points to your faction's leaderboard</li>
+					</ul>
+
+					<p style="margin-top: 15px">
+						The more ETH you bridge, the more points your faction earns. Let's
+						see which side wins!
+					</p>
+				</div>
+
+				<div class="section">
+					<h2>🌉 Using the Bridge</h2>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							How does the bridge work (in simple terms)?
+						</div>
+						<div class="faq-answer">
+							Nori verifies Ethereum's finalised state every epoch (~14 minutes)
+							and settles that state to Mina. When you lock tokens, your deposit
+							is proven as part of this process.
+							<blockquote>
+								Current testnet supports only one-way bridging (Ethereum →
+								Mina). Bi-directional support is being integrated (<code
+									>mina_bridge</code
+								>
+								via Aligned Layer).
+							</blockquote>
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">Can I use this on mobile?</div>
+						<div class="faq-answer">No. It's desktop-only.</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">What if there's a delay or error?</div>
+						<div class="faq-answer">
+							The frontend will show the error and let you retry.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							How can I check my transaction status?
+						</div>
+						<div class="faq-answer">
+							In Auro Wallet, open your Mina balance →
+							<strong>Tokens tab</strong> → click a transaction →
+							<strong>Query details</strong> → view on
+							<a href="https://minascan.io/" target="_blank">minascan.io</a>.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							Can I cancel or withdraw my deposit before minting?
+						</div>
+						<div class="faq-answer">
+							No. Once you lock tokens on Ethereum, you cannot withdraw them.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							What happens if my transaction gets stuck?
+						</div>
+						<div class="faq-answer">
+							Mina transactions should not get stuck. If your local state resets
+							or you switch browsers, simply make another full deposit. You will
+							always be able to mint the correct amount corresponding to your
+							locked ETH.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							Why does minting require heavy computation on my device?
+						</div>
+						<div class="faq-answer">
+							Minting uses <strong>o1js</strong>, a framework for client-side
+							proving zk circuits. This means your browser must perform the
+							proof computation locally before sending it to the network.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							What browsers are supported/recommended?
+						</div>
+						<div class="faq-answer">
+							We recommend Chrome-based browsers. Other browsers that support
+							Auro Wallet may work, but if you run into issues, please report
+							them on Discord.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							Can I run multiple deposits in parallel?
+						</div>
+						<div class="faq-answer">
+							You can use multiple deposits if you use different Ethereum/Mina
+							account pairs. Each ETH–Mina pair supports one deposit process at
+							a time.
+						</div>
+					</div>
+				</div>
+
+				<div class="section">
+					<h2>🔑 Wallet & Device Rules</h2>
+					<ul>
+						<li>
+							<strong>One Ethereum wallet per Mina wallet</strong> – Once
+							paired, you must keep using the same Ethereum wallet with that
+							Mina wallet.
+						</li>
+						<li>
+							<strong>One Ethereum wallet → many Mina wallets</strong> – A
+							single Ethereum wallet can lock tokens to multiple Mina wallets.
+						</li>
+						<li>
+							<strong>Stay on the same browser/device</strong> – For the
+							smoothest experience, complete the process without switching
+							browsers or devices.
+						</li>
+						<li>
+							<strong>Keep the tab open</strong> – We recommend not closing the
+							bridge tab until the flow finishes. If you refresh or close it,
+							you should still be able to resume your deposit.
+						</li>
+					</ul>
+				</div>
+
+				<div class="section">
+					<h2>⚡ Device Performance & Local Computation</h2>
+					<ul>
+						<li>
+							<strong>Contract compilation</strong> – Compiles locally; takes
+							<strong>1–10 minutes</strong> depending on your device. Refreshing
+							restarts it.
+						</li>
+						<li>
+							<strong>Storage setup (once per Mina wallet)</strong> – Required
+							only on your first ETH lock to a Mina wallet. Creates, proves, and
+							sends a setup transaction. Not needed for later deposits.
+						</li>
+						<li>
+							<strong>Minting nETH</strong> – Your device must compute a
+							<strong>deposit proof</strong>, then create, prove, and send the
+							mint transaction. All steps are displayed in the UI.
+						</li>
+					</ul>
+				</div>
+
+				<div class="section">
+					<h2>⏱️ Expected Timelines</h2>
+
+					<div class="faq-item">
+						<div class="faq-question">Deposit → Minting</div>
+						<div class="faq-answer">
+							On average, the full process takes <strong>~35 minutes</strong>.
+						</div>
+					</div>
+				</div>
+
+				<div class="section">
+					<h2>💰 Deposit Statuses</h2>
+
+					<div class="faq-item">
+						<div class="faq-question">Waiting for Ethereum finality</div>
+						<div class="faq-answer">
+							For your deposit to be locked in permanently, the Ethereum
+							consensus layer requires two epochs (~14 minutes). During this
+							time, validators attest to and justify the blocks. Once finalised,
+							the block containing your deposit cannot be reverted.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">Processing previous deposit</div>
+						<div class="faq-answer">
+							Nori's infrastructure is still proving the last Ethereum state
+							transition with a batch of deposits. Your deposit has not yet been
+							included in that batch.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">Processing your deposit</div>
+						<div class="faq-answer">
+							Nori's infrastructure is actively proving the state transition for
+							the batch of deposits that includes yours.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">Ready to mint</div>
+						<div class="faq-answer">
+							Nori has finished processing. Your deposit is proven and you can
+							now start minting <strong>nETH</strong>!
+						</div>
+					</div>
+				</div>
+
+				<div class="section">
+					<h2>⚙️ Nori Infrastructure Stages</h2>
+					<ul>
+						<li>
+							<strong>Proving light client inside zkVM</strong> – Nori proves
+							the detected state transition from its Helios light client inside
+							the SP1 zkVM. This requires the Succinct Prover Network to
+							generate and return a proof. On average, this step takes
+							<strong>under 3 minutes</strong>.
+						</li>
+						<li>
+							<strong>Verifying zkVM proof in o1js</strong> – The zkVM proof is
+							verified using an o1js verification circuit through Nori's
+							Proof-Conversion service. This compute-intensive step typically
+							takes <strong>under 5.5 minutes</strong>.
+						</li>
+						<li>
+							<strong>Settling proof on Mina</strong> – Nori creates and proves
+							a Mina transaction containing the o1js proof of the Ethereum state
+							transition. This step usually takes
+							<strong>under 1.5 minutes</strong>.
+						</li>
+						<li>
+							<strong>Waiting for Mina confirmation</strong> – The Mina
+							transaction has been submitted. Depending on block times,
+							confirmation may take anywhere from
+							<strong>~3 minutes up to ~25 minutes</strong>. Recently, ~85% of
+							transactions have confirmed within <strong>9 minutes</strong>.
+						</li>
+					</ul>
+				</div>
+
+				<div class="section">
+					<h2>🛠️ Troubleshooting & Support</h2>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							Where can I report bugs or give feedback?
+						</div>
+						<div class="faq-answer">
+							Join
+							<a href="https://discord.gg/yzxbnCKaVN" target="_blank">Discord</a
+							>, channel: <code>#plankton-event</code>.
+						</div>
+					</div>
+
+					<div class="faq-item">
+						<div class="faq-question">
+							Where can I ask questions and get help?
+						</div>
+						<div class="faq-answer">Same Discord channel.</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="footer">
+				<p>
+					Nori Plankton Event • Bridging Ethereum to Mina with Zero-Knowledge
+					Proofs
+				</p>
+			</div>
+		</div>
+	</body>
+</html>

@@ -43,7 +43,7 @@ const WalletButton = ({
 
   //TODO this needs setting programmatically
   const isComplete = currentState.match("completed");
-  const txAmount = Store.forPair(ethAddress!, minaAddress!).txAmount ?? 0.0;
+  const txAmount = Store.forPair(ethAddress!, minaAddress!).txAmount;
 
 
   useEffect(() => {
@@ -99,7 +99,7 @@ const WalletButton = ({
             </div>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center justify-between">
-                <div className="scale-[0.95]">{logo}</div>
+                {/* <div className="scale-[0.95]">{logo}</div> */}
                 <div className="m-1 text-sm">{displayAddress}</div>
               </div>
               <div className="text-sm">{`${txAmount} ${currency}`}</div>

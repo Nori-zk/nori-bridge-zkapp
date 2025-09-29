@@ -9,6 +9,7 @@ import { firebaseMintFunction } from "@/helpers/firebaseMint.ts";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
+  text: string
 };
 
 const updateUserRole = async (role: string) => {
@@ -133,8 +134,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
         <div className="flex h-full">
           {hovered && (
             <div className="flex h-full w-full px-10 items-end text-white">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              {text}
             </div>
           )}
         </div>

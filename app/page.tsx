@@ -9,23 +9,12 @@ import { useAccount } from "wagmina";
 // import Notification from "@/components/ui/Notification/Notification.tsx";
 // import Flip from "@/public/assets/Flip.svg";
 import Notification from "@/components/ui/Notification/Notification.tsx";
-import Flip from "@/public/assets/Flip.svg";
-import { DepositMintTestUI } from "@/components/DepositMintTestUI.tsx";
 import { useState } from "react";
 import ChooseSides from "@/components/choose-side/ChooseSides.tsx";
 import { useBridgeControlCardProps } from "@/helpers/useBridgeControlCardProps.tsx";
-import LockTokens from "@/components/bridge-control-card/ProgressSteps/LockTokens.tsx";
-import GetLockedTokens from "@/components/bridge-control-card/ProgressSteps/GetLockedTokens.tsx";
-// import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
-import { ProgressStep } from "@/types/types.ts";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 
-const stepComponents: Record<ProgressStep, React.ComponentType> = {
-  lock_tokens: LockTokens,
-  // setup_storage: SetupStorage,
-  get_locked_tokens: GetLockedTokens,
-};
 
 export default function Home() {
   const [showChooseSide, setShowChooseSide] = useState<boolean>(false);
