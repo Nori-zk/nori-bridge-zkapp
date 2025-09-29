@@ -43,81 +43,130 @@ export default function Home() {
       {showChooseSide ? (
         <ChooseSides />
       ) : (
-        <div className="flex h-full w-full flex-col relative bg-custom-svg bg-no-repeat bg-cover bg-center">
-          <div className="absolute w-full justify-center my-5 flex">
-            <Nori className="scale-[1]" />
-          </div>
+        // <div className="flex h-full w-full flex-col relative bg-custom-svg bg-no-repeat bg-cover bg-center">
+        //   <div className="absolute w-full justify-center my-5 flex">
+        //     <Nori className="scale-[1]" />
+        //   </div>
 
-          <button
-            className="text-white"
-            onClick={() => setShowChooseSide(true)}
-          >
-            Show choose side
-          </button>
-          <div className="flex flex-grow w-full justify-center items-center h-full">
-            <div className="w-1/4 h-[450px]">
-              {ethConnected && minaConnected && <ScrollingWSS />}
-            </div>
-            {/* <DepositMintTestUI /> */}
-            <div className="relative inline-block">
-              <BridgeControlCard
-                title={
-                  ethConnected && minaConnected
-                    ? title
-                    : "First connect wallets"
-                }
-                width={"780"}
-                height={"450"}
-                content={ethConnected && minaConnected ? component : null}
-              />
-              {/* <button
-                onClick={() => console.log("Flip pressed")}
-                className="absolute -top-1 -right-11 z-20 transition-all duration-300 ease-in-out hover:scale-110 hover:rotate-6"
-              >
-                <Flip
-                  width={65}
-                  height={65}
-                  className="scale-[0.82] fill-red-100 transition-colors duration-300 ease-in-out group-hover:fill-red-300"
-                />
-              </button> */}
-            </div>
-            <div className="w-1/4 h-[450px]">
-              {ethConnected && minaConnected && <ScrollingBridge />}
-            </div>
-          </div>
-          <div>
-            <Notification
-              content={"Wallet Linking Is Required For The First Time"}
-              show={!ethConnected || !minaConnected}
-            />
-          </div>
-          {/* <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
-            Powered by{" "}
-            <a
-              href="https://www.coingecko.com/en/api"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="z-10 mx-1 hover:underline"
-            >
-              CoinGecko API
-            </a>
-          </div> */}
+        //   <button
+        //     className="text-white"
+        //     onClick={() => setShowChooseSide(true)}
+        //   >
+        //     Show choose side
+        //   </button>
+        //   <div className="flex flex-grow w-full justify-center items-center h-full">
+        //     <div className="w-1/4 h-[450px]">
+        //       {ethConnected && minaConnected && <ScrollingWSS />}
+        //     </div>
+        //     {/* <DepositMintTestUI /> */}
+        //     <div className="relative inline-block">
+        //       <BridgeControlCard
+        //         title={
+        //           ethConnected && minaConnected
+        //             ? title
+        //             : "First connect wallets"
+        //         }
+        //         width={"780"}
+        //         height={"450"}
+        //         content={ethConnected && minaConnected ? component : null}
+        //       />
+        //       {/* <button
+        //         onClick={() => console.log("Flip pressed")}
+        //         className="absolute -top-1 -right-11 z-20 transition-all duration-300 ease-in-out hover:scale-110 hover:rotate-6"
+        //       >
+        //         <Flip
+        //           width={65}
+        //           height={65}
+        //           className="scale-[0.82] fill-red-100 transition-colors duration-300 ease-in-out group-hover:fill-red-300"
+        //         />
+        //       </button> */}
+        //     </div>
+        //     <div className="w-full h-[450px]">
+        //       {ethConnected && minaConnected && <ScrollingBridge />}
+        //     </div>
+        //   </div>
+        //   <div>
+        //     <Notification
+        //       content={"Wallet Linking Is Required For The First Time"}
+        //       show={!ethConnected || !minaConnected}
+        //     />
+        //   </div>
+        //   {/* <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
+        //     Powered by{" "}
+        //     <a
+        //       href="https://www.coingecko.com/en/api"
+        //       target="_blank"
+        //       rel="noopener noreferrer"
+        //       onClick={(e) => e.stopPropagation()}
+        //       className="z-10 mx-1 hover:underline"
+        //     >
+        //       CoinGecko API
+        //     </a>
+        //   </div> */}
 
-          {bridgeState.context.mintWorker?.areContractCompiled() && (
-            <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
-              {`Contracts compiled in: ${bridgeState.context.mintWorker?.getLastCompileTimeSeconds()}s`}
-            </div>
-          )}
+        //   {bridgeState.context.mintWorker?.areContractCompiled() && (
+        //     <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
+        //       {`Contracts compiled in: ${bridgeState.context.mintWorker?.getLastCompileTimeSeconds()}s`}
+        //     </div>
+        //   )}
 
-          <div className="flex w-full justify-center relative">
-            <BottomShadows
-              className="absolute bottom-[-100px] scale-[0.9]"
-              title="BottomShadows"
-            />
-          </div>
-        </div>
+        //   <div className="flex w-full justify-center relative">
+        //     <BottomShadows
+        //       className="absolute bottom-[-100px] scale-[0.9]"
+        //       title="BottomShadows"
+        //     />
+        //   </div>
+        // </div>
+        <InfiniteBridge />
       )}
+    </div>
+  );
+}
+
+export function InfiniteBridge() {
+  const Bridge = "/assets/Bridge.png";
+
+  return (
+    <div className="w-full h-64 overflow-hidden relative bg-sky-100">
+      <div className="absolute inset-0 flex">
+        {/* First set of bridges */}
+        <div className="flex animate-scroll-seamless">
+          {[...Array(3)].map((_, i) => (
+            <img
+              key={`set1-${i}`}
+              src={Bridge}
+              alt="Bridge"
+              className="h-full w-auto flex-shrink-0 block"
+            />
+          ))}
+        </div>
+        {/* Second set for seamless continuation */}
+        <div className="flex animate-scroll-seamless">
+          {[...Array(3)].map((_, i) => (
+            <img
+              key={`set2-${i}`}
+              src={Bridge}
+              alt="Bridge"
+              className="h-full w-auto flex-shrink-0 block"
+            />
+          ))}
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes scroll-seamless {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-100%);
+          }
+        }
+
+        .animate-scroll-seamless {
+          animation: scroll-seamless 45s linear infinite;
+        }
+      `}</style>
     </div>
   );
 }

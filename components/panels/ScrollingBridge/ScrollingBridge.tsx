@@ -1,31 +1,38 @@
-import { motion } from "framer-motion";
-import Vector from "@/public/assets/Vector.svg";
-import BlackVector from "@/public/assets/BlackVector.svg";
+// components/ScrollingBridge.js
+import Image from "next/image";
 
 const ScrollingBridge = () => {
   return (
-    // <div className="w-1/2">
-    <div
-      data-testid="scrolling-bridge-container"
-      className="relative w-full h-full overflow-hidden flex justify-center"
-      style={{
-        maskImage:
-          "linear-gradient(to left, transparent 5%, white 30%, white 100%)",
-      }}
-    >
-      <motion.div
-        className="left-0 text-2xl whitespace-nowrap flex items-center"
-        initial={{ x: "-25%" }}
-        animate={{ x: "25%" }}
-        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-      >
-        <div className="flex items-center">
-          <Vector />
-          <BlackVector />
+    <div className="w-full">
+      <div className="relative overflow-hidden w-full h-[2937px]">
+        <div className="absolute animate-scroll">
+          <img
+            src="/assets/Bridge.png"
+            alt="Bridge"
+            // className="inline-block w-[12218px] h-[2937px] object-cover"
+          />
+          {/* <img
+            src="/assets/Bridge.png"
+            alt="Bridge"
+            // className="inline-block w-[12218px] h-[2937px] object-cover"
+          /> */}
         </div>
-      </motion.div>
+      </div>
+
+      <style>{`
+  .animate-scroll {
+    animation: scroll 20s linear infinite;
+  }
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+`}</style>
     </div>
-    // </div>
   );
 };
 
