@@ -33,7 +33,7 @@ export default function Home() {
           </div>
           <div className="flex flex-grow w-full justify-center items-center h-full">
             <div className="w-1/4 h-[450px]">
-              {ethConnected && minaConnected && <ScrollingWSS />}
+              {/* {ethConnected && minaConnected && <ScrollingWSS />} */}
             </div>
             {/* <DepositMintTestUI /> */}
             <div className="relative inline-block">
@@ -59,7 +59,7 @@ export default function Home() {
               </button> */}
             </div>
             <div className="w-1/4 h-[450px]">
-              {ethConnected && minaConnected && <ScrollingBridge />}
+              {/* {ethConnected && minaConnected && <ScrollingBridge />} */}
             </div>
           </div>
           <div>

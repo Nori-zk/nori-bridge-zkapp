@@ -166,7 +166,7 @@ const DepositProgress = () => {
   return (
     <div className="w-4/5">
       <div className="w-full">
-        <hr className="border-0 h-0.5 mx-7 bg-white/20" />
+        <hr className="border-0 h-0.5 mx-7 bg-white/20 mt-8" />
         <div className="flex w-full justify-center items-center text-lightGreen py-3 relative">
           <span>{depositStatus}</span>
 

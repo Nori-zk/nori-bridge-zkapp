@@ -109,6 +109,7 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
     } else {
       //leaving to do discord oauth
       setLoading(true);
+      setIsDisabled(true);
       const state = Array.from(crypto.getRandomValues(new Uint32Array(20)))
         .map(
           (x) =>
