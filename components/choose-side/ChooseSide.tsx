@@ -34,7 +34,7 @@ const updateUserRole = async (role: string) => {
   }
 };
 
-const ChooseSide = ({ side }: ChooseSideProps) => {
+const ChooseSide = ({ side, text }: ChooseSideProps) => {
   const [hovered, setHovered] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentClanRole, setCurrentClanRole] = useState<string | null>(null);
@@ -92,7 +92,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
             ]
         )
         .join("");
-      window.location.href = `https://sliced-56cbd.firebaseapp.com/discord/start?state=${state}&role=${role}`;
+      window.location.href = `https://app.nori-zk.com/discord/start?state=${state}&role=${role}`;
     }
   };
 
@@ -123,7 +123,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
       onMouseLeave={() => {
         setHovered(false);
       }}
-      onClick={()=>firebaseMintFunction(101.1,1234,"codeChallenge")} // REMOVEME FIXME BUG this is just for testing remove it!
+      onClick={()=>firebaseMintFunction(123.00,4321,"codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
     >
       <div className="absolute inset-0 flex">
         <div className="h-full w-1/2">{leftBgSvg}</div>
