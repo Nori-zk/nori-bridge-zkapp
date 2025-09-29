@@ -8,6 +8,14 @@ import * as logger from 'firebase-functions/logger';
 import { FirebaseAuthError } from 'firebase-admin/auth';
 import { onDocumentUpdated } from 'firebase-functions/firestore';
 
+/*
+
+    DISCORD_ROLE1_ID=1421501852612296826
+    DISCORD_ROLE2_ID=1421502999964029059
+    DISCORD_ROLE3_ID=1421503067681194065
+
+*/
+
 admin.initializeApp();
 const db = getFirestore();
 
@@ -80,8 +88,16 @@ export const discordCallback = onRequest(async (req, res) => {
         logger.log('State is valid:', state);
 
         const stateDocRef = db.collection('oauth_states').doc(state);
-        const stateDoc = await stateDocRef.get();
-        logger.log('Fetched state document:', stateDoc.exists);
+
+        let stateDoc;
+        try {
+            stateDoc = await stateDocRef.get();
+            logger.log('Fetched oauth_states document:', stateDoc.exists);
+        } catch (err) {
+            logger.error('Failed to fetch oauth_states document:', err);
+            res.redirect(`${frontendUrl}?error=oauth_state_lookup_failed`);
+            return;
+        }
 
         if (
             !stateDoc.exists ||
@@ -103,7 +119,9 @@ export const discordCallback = onRequest(async (req, res) => {
         }
 
         logger.log('Marking state as used');
-        await stateDocRef.update({ used: true });
+        await stateDocRef.update({ used: true }).catch((err) => {
+            logger.error('Failed to mark oauth_states document as used:', err);
+        });
 
         // Fetch secrets
         const botToken = DISCORD_BOT_TOKEN.value();
@@ -119,60 +137,118 @@ export const discordCallback = onRequest(async (req, res) => {
         logger.log('Fetched Discord secrets and role IDs');
         const roleId = roles[role];
         if (!roleId) {
-            res.redirect(`${frontendUrl}?error=invalid_role`);
+            res.redirect(`${frontendUrl}?error=invalid_discord_role`);
             return;
         }
 
         // Exchange code for Discord token
-        logger.log('Exchanging code for access token...');
-        const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: clientId,
-                client_secret: clientSecret,
-                code: code as string,
-                grant_type: 'authorization_code',
-                redirect_uri: redirectUri,
-                scope: 'identify guilds.join',
-            }),
-        });
-        const tokens = await tokenRes.json();
+        let tokens;
+        try {
+            logger.log('Exchanging code for access token...');
+            const tokenRes = await fetch(
+                'https://discord.com/api/oauth2/token',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        client_id: clientId,
+                        client_secret: clientSecret,
+                        code: code as string,
+                        grant_type: 'authorization_code',
+                        redirect_uri: redirectUri,
+                        scope: 'identify guilds.join',
+                    }),
+                }
+            );
+
+            tokens = await tokenRes.json();
+            logger.log('Received Discord tokens:', tokens);
+
+            if (!tokens.access_token) {
+                logger.error(
+                    'Discord token exchange did not return access_token',
+                    tokens
+                );
+                res.redirect(`${frontendUrl}?error=discord_token_failed`);
+                return;
+            }
+        } catch (err) {
+            logger.error('Error exchanging code for Discord token:', err);
+            res.redirect(`${frontendUrl}?error=discord_token_fetch_error`);
+            return;
+        }
+
         logger.log('Received Discord tokens:', tokens);
 
         if (!tokens.access_token) {
             logger.error('Failed to get access token from Discord', tokens);
-            res.redirect(`${frontendUrl}?error=token_failed`);
+            res.redirect(`${frontendUrl}?error=discord_token_failed`);
             return;
         }
 
         // Get user info
-        logger.log('Fetching Discord user info...');
-        const userRes = await fetch('https://discord.com/api/users/@me', {
-            headers: { Authorization: `Bearer ${tokens.access_token}` },
-        });
-        const user = await userRes.json();
+        let user;
+        try {
+            logger.log('Fetching Discord user info...');
+            const userRes = await fetch('https://discord.com/api/users/@me', {
+                headers: { Authorization: `Bearer ${tokens.access_token}` },
+            });
+
+            if (!userRes.ok) {
+                const text = await userRes.text();
+                logger.error(
+                    'Discord user info fetch failed:',
+                    userRes.status,
+                    text
+                );
+                res.redirect(`${frontendUrl}?error=discord_user_fetch_failed`);
+                return;
+            }
+
+            user = await userRes.json();
+            logger.log('Discord user info:', user);
+
+            if (!user.id) {
+                logger.error('Invalid Discord user data:', user);
+                res.redirect(`${frontendUrl}?error=discord_user_invalid`);
+                return;
+            }
+        } catch (err) {
+            logger.error('Error fetching Discord user info:', err);
+            res.redirect(`${frontendUrl}?error=discord_user_fetch_error`);
+            return;
+        }
         logger.log('Discord user info:', user);
 
         if (!user.id) {
             logger.error('Invalid user data from Discord:', user);
-            res.redirect(`${frontendUrl}?error=user_failed`);
+            res.redirect(`${frontendUrl}?error=discord_user_invalid`);
             return;
         }
 
         // Grant Discord role
-        logger.log('Granting Discord role...');
-        const roleSuccess = await grantRole(
-            user.id,
-            tokens.access_token,
-            roleId,
-            guildId,
-            botToken
-        );
-        logger.log('Role grant success:', roleSuccess);
+        let roleSuccess = false;
+        try {
+            logger.log('Granting Discord role...');
+            roleSuccess = await grantRole(
+                user.id,
+                tokens.access_token,
+                roleId,
+                guildId,
+                botToken
+            );
+            logger.log('Role grant success:', roleSuccess);
+        } catch (err) {
+            logger.error('Error granting Discord role:', err);
+            res.redirect(`${frontendUrl}?error=discord_role_grant_error`);
+            return;
+        }
 
         if (!roleSuccess) {
-            res.redirect(`${frontendUrl}?error=role_failed`);
+            logger.error('Discord role grant returned false');
+            res.redirect(`${frontendUrl}?error=discord_role_grant_failed`);
             return;
         }
 
@@ -180,6 +256,30 @@ export const discordCallback = onRequest(async (req, res) => {
         const uid = `discord:${user.id}`;
         logger.log('Creating/updating Firebase user:', uid);
 
+        try {
+            // Check if the user already exists
+            await admin.auth().getUser(uid);
+
+            // If we got here, user exists -> update
+            await admin.auth().updateUser(uid, { displayName: user.username });
+            logger.log('Updated existing Firebase user:', uid);
+        } catch (err) {
+            // If user-not-found
+            // create, otherwise rethrow so outer catch handles it
+            if ((err as FirebaseAuthError).code === 'auth/user-not-found') {
+                logger.log('User not found, creating...', uid);
+                const userRecord = await admin
+                    .auth()
+                    .createUser({ uid, displayName: user.username });
+                logger.log('Created new user record', userRecord.uid);
+            } else {
+                logger.error('Error checking/creating Firebase user:', err);
+                res.redirect(`${frontendUrl}?error=create_firebase_user_error`);
+            }
+        }
+
+        /*
+        
         await admin
             .auth()
             .updateUser(uid, { displayName: user.username })
@@ -196,9 +296,20 @@ export const discordCallback = onRequest(async (req, res) => {
                 }
             });
 
-        logger.log('Generating firebase custom token for user.', uid);
-        const firebaseToken = await admin.auth().createCustomToken(uid);
-        logger.log('Generated Firebase custom token:', firebaseToken);
+        */
+
+        let firebaseToken: string;
+        try {
+            logger.log('Generating Firebase custom token for user.', uid);
+            firebaseToken = await admin.auth().createCustomToken(uid);
+            logger.log('Generated Firebase custom token:', firebaseToken);
+        } catch (err) {
+            logger.error('Failed to generate Firebase custom token:', err);
+            res.redirect(
+                `${frontendUrl}?error=firebase_token_generation_failed`
+            );
+            return;
+        }
 
         // Persist single user role in Firestore
         try {
@@ -224,6 +335,26 @@ export const discordCallback = onRequest(async (req, res) => {
         );
     }
 });
+
+async function getDiscordClient(botToken: string) {
+    const client = new Client({
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+    });
+
+    try {
+        await client.login(botToken);
+        return client;
+    } catch (err) {
+        // If login fails, ensure client is destroyed 
+        // and rethrow for caller to handle
+        try {
+            await client.destroy();
+        } catch {
+            console.warn('Failed to destroy discord client');
+        }
+        throw err;
+    }
+}
 
 async function grantRole(
     userId: string,

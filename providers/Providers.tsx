@@ -8,6 +8,7 @@ import { NoriBridgeProvider } from "@/providers/NoriBridgeProvider/NoriBridgePro
 import { SetupProvider } from "./SetupProvider/SetupProvider.tsx";
 import { ProgressProvider } from "./ProgressProvider/ProgressProvider.tsx";
 import { AuroWalletProvider } from "./AuroWalletProvider/AuroWalletProvider.tsx";
+import { AuthProvider } from "./AuthProvider/AuthProvider.tsx";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -18,17 +19,19 @@ const queryClient = new QueryClient();
 const Providers = ({ children }: AppProvidersProps) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <SetupProvider>
-        <MetaMaskWalletProvider>
-          <WagminaProvider config={config}>
-            <AuroWalletProvider>
-              <NoriBridgeProvider>
-                <ProgressProvider>{children}</ProgressProvider>
-              </NoriBridgeProvider>
-            </AuroWalletProvider>
-          </WagminaProvider>
-        </MetaMaskWalletProvider>
-      </SetupProvider>
+      <AuthProvider>
+        <SetupProvider>
+          <MetaMaskWalletProvider>
+            <WagminaProvider config={config}>
+              <AuroWalletProvider>
+                <NoriBridgeProvider>
+                  <ProgressProvider>{children}</ProgressProvider>
+                </NoriBridgeProvider>
+              </AuroWalletProvider>
+            </WagminaProvider>
+          </MetaMaskWalletProvider>
+        </SetupProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

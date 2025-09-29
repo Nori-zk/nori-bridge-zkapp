@@ -27,7 +27,7 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [isSignedIn, setIsSignedIn] = useState<boolean>(false);
 
-  useEffect(() => {
+  /*useEffect(() => {
     console.log("Setup useEffect running...");
     let firebaseToken: string | null = Store.global().firebaseToken || null;
     const urlParams = new URLSearchParams(window.location.search);
@@ -61,13 +61,76 @@ export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
     } else {
       console.log("No token found or already signed in, skipping sign-in");
     }
-  }, []);
+  }, []);*/
+
+  /*useEffect(() => {
+    if (isSignedIn) return; // Already signed in, skip
+
+    console.log("Setup useEffect running...");
+
+    let firebaseToken: string | null = Store.global().firebaseToken || null;
+    const refreshToken: string | null =
+      Store.global().firebaseRefreshToken || null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get("firebaseToken");
+
+    if (urlToken) {
+      firebaseToken = urlToken;
+      Store.global().firebaseToken = urlToken;
+      console.log("Saved token to localStorage:", urlToken);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const signInWithToken = async (token: string) => {
+      try {
+        await signInWithCustomToken(auth, token);
+        setIsSignedIn(true);
+        console.log("Firebase sign-in successful");
+        return true;
+      } catch (err) {
+        console.error("Firebase sign-in failed:", err);
+        return false;
+      }
+    };
+
+    const refreshAndSignIn = async () => {
+      if (!refreshToken) return false;
+      try {
+        const res = await fetch(`/api/refresh-firebase-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) throw new Error("Failed to refresh token");
+        const data = await res.json();
+        if (!data.firebaseToken) throw new Error("No token returned");
+        Store.global().firebaseToken = data.firebaseToken;
+        return signInWithToken(data.firebaseToken);
+      } catch (err) {
+        console.error("Firebase token refresh failed:", err);
+        return false;
+      }
+    };
+
+    (async () => {
+      let success = false;
+      if (firebaseToken) {
+        success = await signInWithToken(firebaseToken);
+      }
+      if (!success) {
+        success = await refreshAndSignIn();
+      }
+      if (!success) {
+        Store.global().firebaseToken = null;
+        Store.global().firebaseRefreshToken = null;
+        console.log("Cleared invalid tokens from localStorage");
+      }
+    })();
+  }, [isSignedIn]);*/
 
   const contextValue = useMemo<SetupContextType>(
     () => ({
       ...getBridgeSocketSingleton(),
-      //auth,
-      //db,
     }),
     []
   );
