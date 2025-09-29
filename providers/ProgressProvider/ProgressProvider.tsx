@@ -1,14 +1,8 @@
 "use client";
-import { createContext, useContext, useReducer } from "react";
-import {
-  progressReducer,
-  initialState,
-} from "@/providers/reducers/ProgressReducer.tsx";
-import { ProgressState, ProgressAction } from "@/types/types.ts";
-
+import { createContext, useContext, useMemo, useState } from "react";
 interface ProgressContextType {
-  state: ProgressState;
-  dispatch: React.Dispatch<ProgressAction>;
+  showChooseSide: boolean;
+  setShowChooseSide: (show: boolean) => void;
 }
 
 const ProgressContext = createContext<ProgressContextType | undefined>(
@@ -28,9 +22,19 @@ export const ProgressProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [state, dispatch] = useReducer(progressReducer, initialState);
+  const [showChooseSide, setShowChooseSide] = useState<boolean>(false);
+
+  const value = useMemo(
+    () => ({
+      showChooseSide, setShowChooseSide
+    }),
+    [
+      showChooseSide, setShowChooseSide
+    ]
+  );
+
   return (
-    <ProgressContext.Provider value={{ state, dispatch }}>
+    <ProgressContext.Provider value={value}>
       {children}
     </ProgressContext.Provider>
   );

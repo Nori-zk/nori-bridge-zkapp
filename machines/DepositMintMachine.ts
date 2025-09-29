@@ -304,7 +304,6 @@ export const getDepositMachine = (
                   context.mintWorker!.ethWalletPubKeyBase58!,
                   context.mintWorker!.minaWalletPubKeyBase58!
                 ).activeDepositNumber = event.value; //.toString();
-                Store.global().test_activeDepositNumber = event.value;
                 return event.value;
               },
             }),

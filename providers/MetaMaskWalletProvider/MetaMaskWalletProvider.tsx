@@ -390,7 +390,7 @@ export const MetaMaskWalletProvider = ({
         const minaWalletPubKey = getWorkerClient().minaWalletPubKeyBase58;
         Store.forMina(minaWalletPubKey).ethWallet = walletAddress
         Store.forPair(walletAddress!, minaWalletPubKey).txAmount = amount.toString();
-        Store.global().test_txAmount = amount.toString();
+
         toast.current({
           type: "notification",
           title: "Success",

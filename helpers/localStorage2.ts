@@ -153,7 +153,7 @@ export class Store {
 
 
 export function resetLocalStorage(ethWallet: string, minaWallet: string) {
-  const globalTestKeys = ["test_txAmount", "test_codeChallange", "test_activeDepositNumber"] as const;
+  const globalTestKeys = ["test_txAmount", "test_codeChallange", "test_activeDepositNumber", "showFactionClaim"] as const;
   globalTestKeys.forEach((key) => {
     Store.global()[key] = null;
   });

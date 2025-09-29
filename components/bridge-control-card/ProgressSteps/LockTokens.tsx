@@ -42,7 +42,6 @@ const LockTokens = () => {
         setLocking(true);
         setWalletCheck(false);
         const blockNubmer = await lockTokens(codeChallange, amount);
-        Store.global().test_codeChallange = codeChallange;
         setDepositNumber(blockNubmer);
       } else {
         console.error("Invalid amount");
