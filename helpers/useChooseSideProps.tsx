@@ -1,8 +1,4 @@
-import BlueBackgroundLightLeft from "@/public/assets/choose-side/backgrounds/BlueBackgroundLightLeft.svg";
-import BlueBackgroundLightRight from "@/public/assets/choose-side/backgrounds/BlueBackgroundLightRight.svg";
 import BlueBottomShadow from "@/public/assets/choose-side/backgrounds/BlueBottomShadow.svg";
-import RedBackgroundLightLeft from "@/public/assets/choose-side/backgrounds/RedBackgroundLightLeft.svg";
-import RedBackgroundLightRight from "@/public/assets/choose-side/backgrounds/RedBackgroundLightRight.svg";
 import RedBottomShadow from "@/public/assets/choose-side/backgrounds/RedBottomShadow.svg";
 import GreenBackgroundLightRight from "@/public/assets/choose-side/backgrounds/GreenBackgroundLightRight.svg";
 import GreenBackgroundLightLeft from "@/public/assets/choose-side/backgrounds/GreenBackgroundLightLeft.svg";
@@ -25,16 +21,26 @@ type ChooseSideUIProps = {
 const NoriRed = "/assets/choose-side/images/NoriRed.png";
 const NoriBlue = "/assets/choose-side/images/NoriBlue.png";
 const NoriGreen = "/assets/choose-side/images/NoriGreen.png";
+const BlueLeftLight = "/assets/choose-side/backgrounds/BlueLeftLight.png";
+const BlueRightLight = "/assets/choose-side/backgrounds/BlueRightLight.png";
+const RedRightLight = "/assets/choose-side/backgrounds/RedRightLight.png";
+const RedLeftLight = "/assets/choose-side/backgrounds/RedLeftLight.png";
 
 export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
   if (side === "red") {
     return {
       radialBg: "red",
       rightBgSvg: (
-        <RedBackgroundLightRight className="absolute right-0 top-0 h-full w-1/2" />
+        <img
+          src={RedRightLight}
+          className="absolute right-0 top-0 h-full w-1/2"
+        />
       ),
       leftBgSvg: (
-        <RedBackgroundLightLeft className="absolute left-0 top-0 h-full w-1/2" />
+        <img
+          src={RedLeftLight}
+          className="absolute left-0 top-0 h-full w-1/2"
+        />
       ),
       bottomShadowSvg: <RedBottomShadow className="bottom-0 w-full" />,
       mainImage: (
@@ -75,10 +81,16 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
     return {
       radialBg: "blue",
       rightBgSvg: (
-        <BlueBackgroundLightRight className="absolute right-0 top-0 h-full w-1/2" />
+        <img
+          src={BlueRightLight}
+          className="absolute right-0 top-0 h-full w-1/2"
+        />
       ),
       leftBgSvg: (
-        <BlueBackgroundLightLeft className="absolute left-0 top-0 h-full w-1/2" />
+        <img
+          src={BlueLeftLight}
+          className="absolute left-0 top-0 h-full w-1/2"
+        />
       ),
       bottomShadowSvg: <BlueBottomShadow className=" bottom-0 w-full" />,
       mainImage: (
