@@ -2,22 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users collection
+    // USERS COLLECTION
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      
+
+      // Only allow updating their role (no create)
       allow update: if request.auth != null
                     && request.auth.uid == userId
-                    && (!('role' in request.resource.data) 
-                        || request.resource.data.role in ['role1', 'role2', 'role3']);
-      
-      allow create: if request.auth != null && request.auth.uid == userId;
+                    && (
+                        !('role' in request.resource.data) ||
+                        request.resource.data.role in ['role1', 'role2', 'role3']
+                    );
+
+      // Deposits subcollection under user
+      match /deposits/{depositId} {
+        allow create: if request.auth != null
+                      && request.auth.uid == userId
+                      && request.resource.data.amount is number
+                      && request.resource.data.blockNumber is int
+                      && request.resource.data.codeChallenge is string
+                      && request.resource.data.timestamp == request.time;
+
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow update, delete: if false;
+      }
     }
 
-    // Clans collection
+    // CLANS COLLECTION (read-only)
     match /clans/{clanId} {
-      allow read: if true; // anyone can read
-      allow write: if false; // no writes from clients
+      allow read: if true;
+      allow update, create, delete: if false;
+
+      match /deposits/{depositId} {
+        allow read: if true;
+        allow create, update, delete: if false;
+      }
     }
   }
 }

@@ -7,6 +7,7 @@ import { setGlobalOptions } from 'firebase-functions';
 import * as logger from 'firebase-functions/logger';
 import { FirebaseAuthError } from 'firebase-admin/auth';
 import { onDocumentWritten } from 'firebase-functions/firestore';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 
 /*
 
@@ -569,3 +570,69 @@ export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
         logger.error('Error updating clan membership:', err);
     }
 });
+
+export const handleUserDepositCreated = onDocumentCreated(
+    'users/{userId}/deposits/{depositId}',
+    async (event) => {
+        const userId = event.params.userId;
+        const depositData = event.data!.data(); // user deposit
+        const { amount, blockNumber, codeChallenge } = depositData;
+
+        if (!amount || !blockNumber) {
+            console.error(
+                'Deposit missing amount or blockNumber:',
+                depositData
+            );
+            return;
+        }
+
+        const userRef = db.collection('users').doc(userId);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            console.error('User document does not exist:', userId);
+            return;
+        }
+
+        const userData = userDoc.data();
+        const role = userData?.role;
+        const displayName = userData?.displayName || 'Unknown';
+
+        if (!role) {
+            console.error('User has no role assigned:', userId);
+            return;
+        }
+
+        const clanRef = db.collection('clans').doc(role);
+
+        const batch = db.batch();
+
+        // Atomic increments
+        batch.update(userRef, {
+            amountMinted: admin.firestore.FieldValue.increment(amount),
+        });
+        batch.update(clanRef, {
+            amountMinted: admin.firestore.FieldValue.increment(amount),
+        });
+
+        // Create clan deposit
+        const clanDepositRef = clanRef.collection('deposits').doc();
+        batch.set(clanDepositRef, {
+            uid: userId,
+            depositorName: displayName,
+            amount,
+            blockNumber,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            codeChallenge: codeChallenge || null,
+        });
+
+        try {
+            await batch.commit();
+            console.log(
+                `Processed deposit for user ${userId} and clan ${role}`
+            );
+        } catch (err) {
+            console.error('Error committing batch:', err);
+        }
+    }
+);

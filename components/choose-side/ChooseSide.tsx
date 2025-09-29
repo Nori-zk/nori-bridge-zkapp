@@ -5,6 +5,7 @@ import { useChooseSideProps } from "@/helpers/useChooseSideProps.tsx";
 import { Store } from "@/helpers/localStorage2.ts";
 import { db, auth } from "@/config/firebaseConfig.ts";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { firebaseMintFunction } from "@/helpers/firebaseMint.ts";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
@@ -95,6 +96,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
   };
 
   // Show loading state while processing Discord auth
+  // As they redirect this wont be useful to them
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-900">
@@ -120,6 +122,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
       onMouseLeave={() => {
         setHovered(false);
       }}
+      onClick={()=>firebaseMintFunction(101.1,1234,"codeChallenge")} // REMOVEME FIXME BUG this is just for testing remove it!
     >
       <div className="absolute inset-0 flex">
         <div className="h-full w-1/2">{leftBgSvg}</div>
