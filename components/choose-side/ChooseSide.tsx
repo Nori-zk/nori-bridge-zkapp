@@ -73,7 +73,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
 
   const handleJoinClick = async () => {
     // If the user is logged in
-    if (Store.global().firebaseToken) {
+    if (Store.global().firebaseLoggedIn) {
       // We can just swap the role straight away
       try {
         await updateUserRole(role);

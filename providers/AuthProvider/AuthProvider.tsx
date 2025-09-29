@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { auth } from "@/config/firebaseConfig.ts";
 import {
   signInWithCustomToken,
@@ -24,8 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isSignedIn, setIsSignedIn] = useState<boolean>(false);
+  //const refreshHandle = useRef<NodeJS.Timeout | null>(null);
 
-  // On mount: handle URL params (firebaseToken) and attempt sign-in with any token in Store.
+  // On mount: handle URL params and attempt custom-token sign-in
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -33,88 +40,104 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const urlToken = params.get("firebaseToken");
 
     if (urlToken) {
-      Store.global().firebaseToken = urlToken;
-      // remove token from URL without reloading
       const cleanUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
     }
 
     const trySignIn = async () => {
-      const token = Store.global().firebaseToken;
-      if (!token) return;
-      if (auth.currentUser) return; // already signed in
+      if (auth.currentUser) return;
 
       try {
-        await signInWithCustomToken(auth, token);
-        // onIdTokenChanged will handle state update & storing tokens
+        if (urlToken) {
+          await signInWithCustomToken(auth, urlToken);
+          Store.global().firebaseLoggedIn = true;
+          setIsSignedIn(true);
+          console.log("Signed in with custom token successfully.");
+        }
       } catch (err) {
-        console.error("signInWithCustomToken failed:", err);
-        // token likely invalid — clear stored token
-        Store.global().firebaseToken = null;
+        console.warn("Custom token sign-in failed:", err);
+        Store.global().firebaseLoggedIn = null;
+        setIsSignedIn(false);
       }
     };
 
     void trySignIn();
   }, []);
 
-  // Keep local Store in sync with Firebase SDK and maintain isSignedIn
+  // Sync Firebase auth state
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, async (u) => {
+    const unsubscribe = onIdTokenChanged(auth, (u) => {
       if (!u) {
         setUser(null);
         setIsSignedIn(false);
-        Store.global().firebaseToken = null;
+        Store.global().firebaseLoggedIn = null;
         return;
       }
-
-      try {
-        const token = await u.getIdToken();
-        setUser(u);
-        setIsSignedIn(true);
-        Store.global().firebaseToken = token;
-      } catch (err) {
-        console.error("Failed to read ID token:", err);
-        setUser(null);
-        setIsSignedIn(false);
-      }
+      setUser(u);
+      setIsSignedIn(true);
+      Store.global().firebaseLoggedIn = true;
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Force refresh periodically (every 4 minutes) to keep tokens fresh and avoid expiry issues
-  useEffect(() => {
+  // Not convinced this is needed in v2
+  // Force refresh periodically (every 4 minutes)
+  /*useEffect(() => {
     const intervalMs = 4 * 60 * 1000;
-    const handle = setInterval(async () => {
+
+    const refreshFn = async () => {
       const u = auth.currentUser;
-      if (!u) return;
-
-      try {
-        const token = await u.getIdToken(true); // force refresh — mandatory
-        Store.global().firebaseToken = token;
-        console.log('Refreshed token');
-      } catch (err) {
-        console.error("Forced token refresh failed:", err);
-        // If refresh fails, clear and sign out to recover a clean state
-        Store.global().firebaseToken = null;
-        try {
-          await firebaseSignOut(auth);
-        } catch {}
-        setUser(null);
-        setIsSignedIn(false);
+      if (!u || !Store.global().firebaseLoggedIn) {
+        if (refreshHandle.current) {
+          clearInterval(refreshHandle.current);
+          refreshHandle.current = null;
+        }
+        return;
       }
-    }, intervalMs);
+      try {
+        await u.getIdToken(true); // force refresh
+        console.log("Token refreshed successfully.");
+      } catch (err) {
+        console.error("Token refresh failed:", err);
+        await signOut();
+      }
+    };
 
+    refreshHandle.current = setInterval(refreshFn, intervalMs);
+    return () => {
+      if (refreshHandle.current) clearInterval(refreshHandle.current);
+    };
+  }, []);*/
+
+  // this is just for development
+  useEffect(() => {
+    const handle = setInterval(async () => {
+      console.log('checking for firebase login', Store.global().firebaseLoggedIn);
+      if (Store.global().firebaseLoggedIn === null && auth.currentUser) {
+        await signOut();
+      }
+    }, 1000);
     return () => clearInterval(handle);
   }, []);
 
   const signOut = async () => {
+
     try {
+      console.log('Signing-out firebase');
       await firebaseSignOut(auth);
     } catch (err) {
-      console.error("firebase signOut failed:", err);
+      console.error("Sign-out failed:", err);
     }
-    Store.global().firebaseToken = null;
+
+    /*if (refreshHandle.current) {
+      clearInterval(refreshHandle.current);
+      refreshHandle.current = null;
+    }*/
+
+    console.log('Signed-out firebase');
+
+    Store.global().firebaseLoggedIn = null;
     setUser(null);
     setIsSignedIn(false);
   };
@@ -124,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!u) return null;
     try {
       return await u.getIdToken();
-    } catch (err) {
+    } catch {
       return null;
     }
   };
