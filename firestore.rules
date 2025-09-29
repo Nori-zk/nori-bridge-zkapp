@@ -39,5 +39,11 @@ service cloud.firestore {
         allow create, update, delete: if false;
       }
     }
+
+    // LEADERBOARD COLLECTION (read-only for everyone)
+    match /leaderboard/{docId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
   }
 }
