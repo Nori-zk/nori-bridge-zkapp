@@ -571,6 +571,92 @@ export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
     }
 });
 
+async function setLeaderboard(
+    userId: string,
+    displayName: string,
+    role: string
+) {
+    const leaderboardRef = db.collection('leaderboard').doc('current');
+    const userRef = db.collection('users').doc(userId);
+
+    // Fetch the latest user total amountMinted
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+        console.error('User document not found:', userId);
+        return;
+    }
+    const amount = userDoc.data()?.amountMinted || 0;
+
+    await db.runTransaction(async (tx) => {
+        const docSnap = await tx.get(leaderboardRef);
+        const data = docSnap.exists ? docSnap.data()! : {};
+
+        // Gather previous top users
+        const topUsers = [
+            { uid: data.topUser1Uid, displayName: data.topUser1DisplayName, role: data.topUser1CurrentRoleId, amount: data.topUser1MintAmount },
+            { uid: data.topUser2Uid, displayName: data.topUser2DisplayName, role: data.topUser2CurrentRoleId, amount: data.topUser2MintAmount },
+            { uid: data.topUser3Uid, displayName: data.topUser3DisplayName, role: data.topUser3CurrentRoleId, amount: data.topUser3MintAmount },
+            { uid: data.topUser4Uid, displayName: data.topUser4DisplayName, role: data.topUser4CurrentRoleId, amount: data.topUser4MintAmount },
+            { uid: data.topUser5Uid, displayName: data.topUser5DisplayName, role: data.topUser5CurrentRoleId, amount: data.topUser5MintAmount },
+        ];
+
+        // Add current user deposit
+        topUsers.push({ uid: userId, displayName, role, amount });
+
+        // Deduplicate by UID, ensuring latest current user deposit is used
+        const seen = new Map<string, typeof topUsers[0]>();
+        for (const u of topUsers) {
+            if (!u.uid) continue;
+            if (u.uid === userId) {
+                // always use latest deposit for current user
+                seen.set(u.uid, u);
+            } else if (!seen.has(u.uid)) {
+                // keep previous top slot if exists
+                seen.set(u.uid, u);
+            }
+        }
+
+        // Sort descending by amount
+        const sortedUsers = Array.from(seen.values()).sort((a, b) => (b.amount || 0) - (a.amount || 0));
+        const top5 = sortedUsers.slice(0, 5);
+
+        // Prepare update object
+        const updateData: Record<string, any> = {};
+        top5.forEach((u, idx) => {
+            const slot = idx + 1;
+            // If this slot is the current user, override amount with latest
+            const mintAmount = u.uid === userId ? amount : u.amount || 0;
+            updateData[`topUser${slot}Uid`] = u.uid || null;
+            updateData[`topUser${slot}DisplayName`] = u.displayName || null;
+            updateData[`topUser${slot}CurrentRoleId`] = u.role || null;
+            updateData[`topUser${slot}MintAmount`] = mintAmount || 0;
+        });
+
+        // Update top clan
+        const clansSnap = await tx.get(db.collection('clans'));
+        let topClan = { clanName: '', roleId: '', amount: 0 };
+        clansSnap.forEach((c) => {
+            const cData = c.data();
+            if ((cData.amountMinted || 0) > topClan.amount) {
+                topClan = {
+                    clanName: cData.clanName || '',
+                    roleId: c.id,
+                    amount: cData.amountMinted || 0,
+                };
+            }
+        });
+
+        updateData['topClanDisplayName'] = topClan.clanName;
+        updateData['topClanRoleId'] = topClan.roleId;
+        updateData['topClanValue'] = topClan.amount;
+
+        tx.set(leaderboardRef, updateData, { merge: true });
+    });
+
+    console.log('Leaderboard updated');
+}
+
+
 export const handleUserDepositCreated = onDocumentCreated(
     'users/{userId}/deposits/{depositId}',
     async (event) => {
@@ -633,6 +719,12 @@ export const handleUserDepositCreated = onDocumentCreated(
             );
         } catch (err) {
             console.error('Error committing batch:', err);
+        }
+
+        try {
+            await setLeaderboard(userId, displayName, role);
+        } catch (err) {
+            console.error('Error updating leaderboard:', err);
         }
     }
 );
