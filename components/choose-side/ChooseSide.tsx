@@ -5,9 +5,10 @@ import { useChooseSideProps } from "@/helpers/useChooseSideProps.tsx";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
+  text: string
 };
 
-const ChooseSide = ({ side }: ChooseSideProps) => {
+const ChooseSide = ({ side, text }: ChooseSideProps) => {
   const [hovered, setHovered] = useState(false);
   const {
     radialBg,
@@ -39,8 +40,7 @@ const ChooseSide = ({ side }: ChooseSideProps) => {
         <div className="flex h-full">
           {hovered && (
             <div className="flex h-full w-full px-10 items-end text-white">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              {text}
             </div>
           )}
         </div>
