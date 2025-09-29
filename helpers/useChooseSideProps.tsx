@@ -47,7 +47,8 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
       textValue: "370 Members",
       joinButtonBgClass: "red",
       joinButtonTextClass: "neonRed",
-      caption:"The Yokai are ancient spirits, violently cast into our world during the cataclysm they call the Sundering. They consider all digital technology an unnatural 'corruption' that poisons their magic and sickens their very being. Their sole purpose is to purge this technological blight and restore a world where the raw power of nature and tradition reigns supreme."
+      caption:
+        "The Yokai are ancient spirits, violently cast into our world during the cataclysm they call the Sundering. They consider all digital technology an unnatural 'corruption' that poisons their magic and sickens their very being. Their sole purpose is to purge this technological blight and restore a world where the raw power of nature and tradition reigns supreme.",
     };
   } else if (side === "green") {
     return {
@@ -67,7 +68,8 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
       textValue: "210 Members",
       joinButtonBgClass: "green",
       joinButtonTextClass: "neonGreen",
-      caption:"Vindicated by the Great Collapse, the Cypherpunks are a leaderless collective of hackers who believe code is the only just law. They fight all forms of centralized authority to build a new reality that guarantees absolute individual freedom. Their world would be governed not by rulers, but by transparent, verifiable algorithms that place power directly in the hands of the people.";
+      caption:
+        "Vindicated by the Great Collapse, the Cypherpunks are a leaderless collective of hackers who believe code is the only just law. They fight all forms of centralized authority to build a new reality that guarantees absolute individual freedom. Their world would be governed not by rulers, but by transparent, verifiable algorithms that place power directly in the hands of the people.",
     };
   } else {
     return {
@@ -89,7 +91,8 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
       textValue: "160 Members",
       joinButtonBgClass: "blue",
       joinButtonTextClass: "neonBlue",
-      caption:"Rising from the chaos of the Great Collapse, the Kageyama Syndicate is a cybernetic Yakuza clan guided by a philosophy of absolute control. They view chaos and freedom as bugs to be fixed and seek to subjugate all other factions, not to destroy them, but to integrate their assets into a single, perfectly efficient, and profitable hierarchy under their command.";
+      caption:
+        "Rising from the chaos of the Great Collapse, the Kageyama Syndicate is a cybernetic Yakuza clan guided by a philosophy of absolute control. They view chaos and freedom as bugs to be fixed and seek to subjugate all other factions, not to destroy them, but to integrate their assets into a single, perfectly efficient, and profitable hierarchy under their command.",
     };
   }
 }
