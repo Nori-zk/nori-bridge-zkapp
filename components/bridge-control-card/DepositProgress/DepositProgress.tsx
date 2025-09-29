@@ -60,7 +60,8 @@ const DepositProgress = () => {
 
   // Determine what to show
   const showBridgeStage =
-    depositStatus !== ReplacementDepositProcessingStatus.WaitingForEthFinality;
+    depositStatus !== ReplacementDepositProcessingStatus.WaitingForEthFinality &&
+    depositStatus !== ReplacementDepositProcessingStatus.ReadyToMint;
 
   // Get explanation for current status
   const getStatusExplanation = () => {
