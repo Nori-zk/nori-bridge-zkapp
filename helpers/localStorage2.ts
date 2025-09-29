@@ -118,7 +118,11 @@ export class Store {
   static global() {
     return createStorageObjectFromSchema(undefined, {
       // todo later multiple deposits
-      firebaseLoggedIn: { type: "boolean" as const }
+      firebaseLoggedIn: { type: "boolean" as const },
+      showFactionClaim: { type: "boolean" as const },
+      test_txAmount: { type: "string" as const },
+      test_codeChallange: { type: "string" as const },
+      test_activeDepositNumber: { type: "number" as const },
     });
   }
 
@@ -147,11 +151,14 @@ export class Store {
   }
 }
 
-//const activeDepositNumber = Store.forPair("","").activeDepositNumber;
 
 export function resetLocalStorage(ethWallet: string, minaWallet: string) {
-  const keys = ["activeDepositNumber", "computedEthProof", "depositMintTx", "txAmount"] as const;
-  keys.forEach((key) => {
+  const globalTestKeys = ["test_txAmount", "test_codeChallange", "test_activeDepositNumber"] as const;
+  globalTestKeys.forEach((key) => {
+    Store.global()[key] = null;
+  });
+  const pairKeys = ["activeDepositNumber", "computedEthProof", "depositMintTx", "txAmount"] as const;
+  pairKeys.forEach((key) => {
     Store.forPair(ethWallet, minaWallet)[key] = null;
   });
 }

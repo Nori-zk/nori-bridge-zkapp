@@ -70,12 +70,17 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
     return () => unsubscribe();
   }, []);
 
-  const buttonText = currentClanRole === role ? "Claim" : "Join";
+  let buttonText;
+  if (!auth.currentUser) {
+    buttonText = "Join"
+  } else {
+    buttonText = currentClanRole === role ? "Claim" : "Join + Claim";
+  }
   const isDimmed = currentClanRole !== null && currentClanRole !== role;
 
   const handleJoinClick = async () => {
     // If the user is logged in
-    if (Store.global().firebaseLoggedIn) {
+    if (auth.currentUser) {
       // We can just swap the role straight away
       try {
         await updateUserRole(role);
@@ -84,11 +89,13 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
         console.error("Failed to update role:", err);
       }
     } else {
+      //leaving to do discord oauth
+      setLoading(true);
       const state = Array.from(crypto.getRandomValues(new Uint32Array(20)))
         .map(
           (x) =>
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[
-              x % 62
+            x % 62
             ]
         )
         .join("");
@@ -114,16 +121,15 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
 
   return (
     <div
-      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all ${
-        isDimmed ? "opacity-60" : ""
-      }`} // CHANGE MADE
+      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all ${isDimmed ? "opacity-60" : ""
+        }`} // CHANGE MADE
       onMouseEnter={() => {
         setHovered(true);
       }}
       onMouseLeave={() => {
         setHovered(false);
       }}
-      onClick={()=>firebaseMintFunction(123.00,4321,"codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
+    // onClick={() => firebaseMintFunction(123.00, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
     >
       <div className="absolute inset-0 flex">
         <div className="h-full w-1/2">{leftBgSvg}</div>

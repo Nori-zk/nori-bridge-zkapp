@@ -4,7 +4,6 @@ import React, {
   createContext,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import { auth } from "@/config/firebaseConfig.ts";

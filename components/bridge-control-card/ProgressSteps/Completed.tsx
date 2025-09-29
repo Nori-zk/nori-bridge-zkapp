@@ -1,3 +1,5 @@
+import { auth } from "@/config/firebaseConfig.ts";
+import { Store } from "@/helpers/localStorage2.ts";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { FaXTwitter } from "react-icons/fa6";
 
@@ -10,6 +12,17 @@ const Completed = () => {
 
     window.open(twitterIntent, '_blank');
   };
+
+  const handlePickSide = () => {
+    if (!auth.currentUser) {
+      Store.global().showFactionClaim = true;
+      //open the faction page
+      //show pick side modal
+    } else {
+      //staright open 
+    }
+
+  }
 
   const handleExit = () => {
     // Logic to handle exit action
