@@ -6,7 +6,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
 
-      // Only allow updating their role (no create)
+      // Only allow updating their role
       allow update: if request.auth != null
                     && request.auth.uid == userId
                     && (
@@ -21,6 +21,7 @@ service cloud.firestore {
                       && request.resource.data.amount is number
                       && request.resource.data.blockNumber is int
                       && request.resource.data.codeChallenge is string
+                      && request.resource.data.roleId == get(/databases/$(database)/documents/users/$(userId)).data.role
                       && request.resource.data.timestamp == request.time;
 
         allow read: if request.auth != null && request.auth.uid == userId;
