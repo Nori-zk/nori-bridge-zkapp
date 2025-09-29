@@ -55,7 +55,7 @@ export const submitSetupStorage = fromPromise(
     const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
     const memo = "Setting up storage";
     const onlySign = false;
-    // Should we be using useSendSignedTransaction here?
+    //@ts-expect-error // mina provider client is bit odd
     const result = await window.mina?.sendTransaction({
       onlySign: onlySign,
       transaction: setupStorageTx,
@@ -166,6 +166,7 @@ export const submitMintTx = fromPromise(
     const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
     const memo = "Submit mint tx";
     const onlySign = false;
+    //@ts-expect-error // mina provider client is bit odd
     const result = await window.mina?.sendTransaction({
       // FIXME this is not done in an idiomatic react way, and the type is incomplete.
       onlySign: onlySign,

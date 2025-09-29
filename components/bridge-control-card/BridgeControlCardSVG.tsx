@@ -6,7 +6,6 @@ type BridgeControlCardSVGProps = {
 
 const BridgeControlCardSVG = ({
   width,
-  height,
   children,
 }: BridgeControlCardSVGProps) => {
   return (

@@ -1,8 +1,16 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useMemo, memo } from "react";
 
 type AnimatedProgressBarProps = {
   progress: number; // 0 to 100
 }
+
+// Define props type for NumberColumn
+type NumberColumnProps = {
+  delay?: number;
+  direction?: "up" | "down";
+  startNumber?: number;
+}
+
 const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
   // const [progress, setProgress] = useState(0);
 
@@ -22,8 +30,8 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
     return Array.from({ length: 10 }, (_, i) => (i + startOffset) % 10);
   };
 
-  const NumberColumn = React.memo(
-    ({ delay = 0, direction = "up", startNumber = 0 }) => (
+  const NumberColumn = memo(
+    ({ delay = 0, direction = "up", startNumber = 0 }: NumberColumnProps) => (
       <div className="flex flex-col overflow-hidden h-full opacity-30 w-6">
         <div
           className="flex flex-col text-[10px] text-lightGreen"
@@ -43,8 +51,8 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
 
             <div
               className={`flex flex-col ${direction === "up"
-                  ? "animate-[scrollUp_20s_linear_infinite]"
-                  : "animate-[scrollDown_20s_linear_infinite]"
+                ? "animate-[scrollUp_20s_linear_infinite]"
+                : "animate-[scrollDown_20s_linear_infinite]"
                 }`}
             >
               {generateNumbers(startNumber).map((num) => (
