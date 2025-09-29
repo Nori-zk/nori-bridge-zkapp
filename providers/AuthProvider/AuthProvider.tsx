@@ -92,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const token = await u.getIdToken(true); // force refresh — mandatory
         Store.global().firebaseToken = token;
+        console.log('Refreshed token');
       } catch (err) {
         console.error("Forced token refresh failed:", err);
         // If refresh fails, clear and sign out to recover a clean state

@@ -29,8 +29,83 @@ const DISCORD_GUILD_ID = defineString('DISCORD_GUILD_ID');
 const DISCORD_ROLE1_ID = defineString('DISCORD_ROLE1_ID');
 const DISCORD_ROLE2_ID = defineString('DISCORD_ROLE2_ID');
 const DISCORD_ROLE3_ID = defineString('DISCORD_ROLE3_ID');
-
 const FRONTEND_URL = defineString('FRONTEND_URL');
+
+// Discord ===============================================================================================
+
+async function getDiscordClient() {
+    const botToken = DISCORD_BOT_TOKEN.value();
+
+    const client = new Client({
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+    });
+
+    try {
+        await client.login(botToken);
+        return client;
+    } catch (err) {
+        // If login fails, ensure client is destroyed
+        // and rethrow for caller to handle
+        try {
+            await client.destroy();
+        } catch {
+            console.warn('Failed to destroy discord client');
+        }
+        throw err;
+    }
+}
+
+async function getGuildMemberDisplayName(
+    discordClient: Client,
+    guildId: string,
+    userId: string
+): Promise<string | null> {
+    try {
+        const guild = await discordClient.guilds.fetch(guildId);
+        const member = await guild.members.fetch(userId);
+
+        // member.nickname is null if no nickname is set, fallback to username
+        return member.nickname || member.user.username;
+    } catch (err) {
+        logger.error(
+            `Failed to fetch display name for user ${userId} in guild ${guildId}:`,
+            err
+        );
+        return null;
+    }
+}
+
+async function joinRole(
+    discordClient: Client,
+    userId: string,
+    accessToken: string,
+    roleId: string,
+    guildId: string
+) {
+    try {
+        const guild = discordClient.guilds.cache.get(guildId);
+        if (!guild) throw new Error('Guild not found');
+
+        await guild.roles.fetch();
+
+        let member;
+        try {
+            member = await guild.members.fetch(userId);
+            if (!member.roles.cache.has(roleId)) await member.roles.add(roleId);
+        } catch {
+            member = await guild.members.add(userId, { accessToken });
+            await member.roles.add(roleId);
+        }
+
+        await member.fetch(true);
+        return member.roles.cache.has(roleId);
+    } catch (err) {
+        logger.error('Role grant error:', err);
+        return false;
+    }
+}
+
+// OAuth =============================================================================================
 
 export const startDiscordOAuth = onRequest(async (req, res) => {
     const clientId = DISCORD_CLIENT_ID.value();
@@ -124,7 +199,6 @@ export const discordCallback = onRequest(async (req, res) => {
         });
 
         // Fetch secrets
-        const botToken = DISCORD_BOT_TOKEN.value();
         const clientId = DISCORD_CLIENT_ID.value();
         const clientSecret = DISCORD_CLIENT_SECRET.value();
         const guildId = DISCORD_GUILD_ID.value();
@@ -228,28 +302,45 @@ export const discordCallback = onRequest(async (req, res) => {
             return;
         }
 
-        // Grant Discord role
-        let roleSuccess = false;
+        // Join Discord role and get display name
+        let discordClient: Client | undefined;
+        let displayName: string | undefined;
         try {
+            discordClient = await getDiscordClient();
             logger.log('Granting Discord role...');
-            roleSuccess = await grantRole(
+            const roleSuccess = await joinRole(
+                discordClient,
                 user.id,
                 tokens.access_token,
                 roleId,
-                guildId,
-                botToken
+                guildId
             );
             logger.log('Role grant success:', roleSuccess);
+
+            if (!roleSuccess) {
+                res.redirect(`${frontendUrl}?error=discord_role_grant_failed`);
+                return;
+            }
+
+            // Fetch guild display name (nickname or username)
+            displayName = (await getGuildMemberDisplayName(
+                discordClient,
+                guildId,
+                user.id
+            )) || user.username || 'User unknown';
+            logger.log('Fetched guild display name:', displayName);
         } catch (err) {
             logger.error('Error granting Discord role:', err);
             res.redirect(`${frontendUrl}?error=discord_role_grant_error`);
             return;
-        }
-
-        if (!roleSuccess) {
-            logger.error('Discord role grant returned false');
-            res.redirect(`${frontendUrl}?error=discord_role_grant_failed`);
-            return;
+        } finally {
+            if (discordClient) {
+                try {
+                    await discordClient.destroy();
+                } catch (e) {
+                    logger.error('client.destroy failed', e);
+                }
+            }
         }
 
         // --- Firebase Custom Token ---
@@ -261,7 +352,7 @@ export const discordCallback = onRequest(async (req, res) => {
             await admin.auth().getUser(uid);
 
             // If we got here, user exists -> update
-            await admin.auth().updateUser(uid, { displayName: user.username });
+            await admin.auth().updateUser(uid, { displayName });
             logger.log('Updated existing Firebase user:', uid);
         } catch (err) {
             // If user-not-found
@@ -270,7 +361,7 @@ export const discordCallback = onRequest(async (req, res) => {
                 logger.log('User not found, creating...', uid);
                 const userRecord = await admin
                     .auth()
-                    .createUser({ uid, displayName: user.username });
+                    .createUser({ uid, displayName });
                 logger.log('Created new user record', userRecord.uid);
             } else {
                 logger.error('Error checking/creating Firebase user:', err);
@@ -315,6 +406,7 @@ export const discordCallback = onRequest(async (req, res) => {
         try {
             await db.collection('users').doc(uid).set(
                 {
+                    displayName,
                     role,
                     lastRoleUpdate:
                         admin.firestore.FieldValue.serverTimestamp(),
@@ -336,60 +428,7 @@ export const discordCallback = onRequest(async (req, res) => {
     }
 });
 
-async function getDiscordClient(botToken: string) {
-    const client = new Client({
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
-    });
-
-    try {
-        await client.login(botToken);
-        return client;
-    } catch (err) {
-        // If login fails, ensure client is destroyed 
-        // and rethrow for caller to handle
-        try {
-            await client.destroy();
-        } catch {
-            console.warn('Failed to destroy discord client');
-        }
-        throw err;
-    }
-}
-
-async function grantRole(
-    userId: string,
-    accessToken: string,
-    roleId: string,
-    guildId: string,
-    botToken: string
-) {
-    try {
-        const client = new Client({
-            intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
-        });
-        await client.login(botToken);
-        const guild = client.guilds.cache.get(guildId);
-        if (!guild) throw new Error('Guild not found');
-
-        await guild.roles.fetch();
-
-        let member;
-        try {
-            member = await guild.members.fetch(userId);
-            if (!member.roles.cache.has(roleId)) await member.roles.add(roleId);
-        } catch {
-            member = await guild.members.add(userId, { accessToken });
-            await member.roles.add(roleId);
-        }
-
-        await member.fetch(true);
-        await client.destroy();
-        return member.roles.cache.has(roleId);
-    } catch (err) {
-        logger.error('Role grant error:', err);
-        return false;
-    }
-}
+// Database change events ==========================================================================
 
 export const onUserRoleChange = onDocumentUpdated(
     'users/{uid}',
@@ -414,12 +453,9 @@ export const onUserRoleChange = onDocumentUpdated(
             return;
         }
 
-        const client = new Client({
-            intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
-        });
-
+        let client: Client | undefined;
         try {
-            await client.login(DISCORD_BOT_TOKEN.value());
+            client = await getDiscordClient();
             const guild = await client.guilds.fetch(DISCORD_GUILD_ID.value());
             const member = await guild.members.fetch(
                 uid.replace('discord:', '')
@@ -438,10 +474,16 @@ export const onUserRoleChange = onDocumentUpdated(
             }
 
             logger.log(`Updated Discord role for ${uid} to ${after.role}`);
-            await client.destroy();
         } catch (err) {
             logger.error('Discord role update error:', err);
-            await client.destroy();
+        } finally {
+            if (client) {
+                try {
+                    await client.destroy();
+                } catch (e) {
+                    logger.error('Failed to destroy Discord client:', e);
+                }
+            }
         }
     }
 );
