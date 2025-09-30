@@ -124,7 +124,7 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
         .map(
           (x) =>
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[
-              x % 62
+            x % 62
             ]
         )
         .join("");
@@ -150,16 +150,15 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
 
   return (
     <div
-      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all ${
-        isDimmed ? "opacity-60" : ""
-      }`} // CHANGE MADE
+      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all ${isDimmed ? "opacity-60" : ""
+        }`} // CHANGE MADE
       onMouseEnter={() => {
         setHovered(true);
       }}
       onMouseLeave={() => {
         setHovered(false);
       }}
-      //onClick={() => firebaseMintFunction(123.0, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
+    //onClick={() => firebaseMintFunction(123.0, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
     >
       <div className="absolute inset-0 flex">
         <div className="h-full w-1/2">{leftBgSvg}</div>

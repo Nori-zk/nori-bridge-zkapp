@@ -32,6 +32,8 @@ const Completed = () => {
     ).activeDepositNumber!;
     Store.global().test_txAmount = Store.forPair(ethAddress,
       minaAddress).txAmount!;
+    Store.global().test_lastEthWallet = ethAddress;
+    Store.global().test_lastMinaWallet = minaAddress;
 
     if (!auth.currentUser) {
       Store.global().showFactionClaim = true;

@@ -900,11 +900,21 @@ export const getDepositMachine = (
             needsToFundAccount: false,
             errorMessage: null,
           }),
-          ({ context }) =>
-            resetLocalStorage(
-              context.mintWorker!.ethWalletPubKeyBase58,
-              context.mintWorker!.minaWalletPubKeyBase58
-            ),
+          ({ context }) => {
+            if (context.mintWorker) {
+              resetLocalStorage(
+                context.mintWorker.ethWalletPubKeyBase58,
+                context.mintWorker.minaWalletPubKeyBase58
+              )
+            } else {
+              const lastEthWallet = Store.global().test_lastEthWallet;
+              const lastMinaWallet = Store.global().test_lastMinaWallet;
+              resetLocalStorage(
+                lastEthWallet!,
+                lastMinaWallet!
+              );
+            }
+          }
         ],
       },
     },
