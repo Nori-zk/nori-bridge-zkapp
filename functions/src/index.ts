@@ -41,55 +41,52 @@ const roleToFriendlyClanName: Record<Roles, ClanNames> = {
     role1: 'The Kayeyama Syndicate',
 };
 
-/*
-
-XXX stakes their claim in Nori Worlds! X user X blazes the trail into uncharted territory.
-  XXX pushes ahead in the Nori Worlds fight! X user X stands behind them
-  XXX is leading the way in Nori Worlds! X user X is backing their play hard.
-
-
-XXX has wrested control from XXX! X user X tips the balance of power.
-  XXX 's approach is in the lead ' XXX! X user X is making the difference.
-  XXX is winning the power struggle against XXX! X user X is the power behind the throne.
-
-
-X user X has seized the crown from X user X! Power shifts in the shadows.
-  X user X is leading the charge, overtaking X user X, and has control ! 
-  X user X stabs X user X in the back and claims the keys to power
-
-X user X  has defected from XXX to XXX
-  X user X  has switched allegiance from XXX to XXX
-  X user X  has gone rogue from XXX and joined XXX
-  X user X  's turned their back' onXXX and now sided with XXX
-
-*/
-
-
-/*
-function chooseRandomItemFromArray(arr) {
-  if (!Array.isArray(arr) || arr.length === 0) return null;
-  const randomIndex = Math.floor(Math.random() * arr.length);
-  return arr[randomIndex];
+function randomString(arr: string[]): string {
+    const randomIndex = Math.floor(Math.random() * arr.length);
+    return arr[randomIndex];
 }
 
-
-const firstLeadingUserMsg = (newLeadingUserDisplayName: string, ) => chooseRandomItemFromArray([]);
-const nextLeadingUserMsg = (newLeadingUserDisplayName: string, oldLeadingUserDisplayName: string) =>
-
-const firstLeadingClanMsg = (userDisplayName: string, topClanName: string)
-const nextLeadingClanMsg = (userDisplayName: string, lastLeadingClanName: string, newLeadingClanName: string) =>
-
 const userJoinMsg = (userDisplayName: string, clanName: string) =>
+    `🔰 **${userDisplayName}** has joined *${clanName}*!`;
 
+const userDefectMsg = (
+    userDisplayName: string,
+    oldClanName: string,
+    newClanName: string
+) =>
+    randomString([
+        `⚡ **${userDisplayName}** has defected from **${oldClanName}** to **${newClanName}**`,
+        `⚡ **${userDisplayName}** has switched allegiance from **${oldClanName}** to **${newClanName}**`,
+        `⚡ **${userDisplayName}** has gone rogue from **${oldClanName}** and joined **${newClanName}**`,
+        `⚡ **${userDisplayName}'s** turned their back on **${oldClanName}** and now sided with **${newClanName}**`,
+    ]);
 
-const userDefectMsg = (userDisplayName: string, oldClanName: string, newClanName: string) => chooseRandomItemFromArray([
-    `${userDisplayName} has defected from ${oldClanName} to ${newClanName}`,
-    `${userDisplayName} has switched allegiance from ${oldClanName} to ${newClanName}`,
-    `${userDisplayName} has gone rogue from ${oldClanName} and joined ${newClanName}`,
-    `${userDisplayName}'s turned their back on ${oldClanName} and now sided with ${newClanName}`
-]);
-*/
+const firstLeadingUserMsg = (userDisplayName: string) =>
+    `🏆 **${userDisplayName}** carves their name first into the ledger! A pioneer in uncharted waters.`;
 
+const nextLeadingUserMsg = (
+    newLeadingUserDisplayName: string,
+    oldLeadingUserDisplayName: string
+) =>
+    randomString([
+        `🏆 **${newLeadingUserDisplayName}** has seized the crown from **${oldLeadingUserDisplayName}**! Power shifts in the shadows.`,
+        `🏆 **${newLeadingUserDisplayName}** is leading the charge, overtaking **${oldLeadingUserDisplayName}**, and has control!`,
+        `🏆 **${newLeadingUserDisplayName}** stabs **${oldLeadingUserDisplayName}** in the back and claims the keys to power.`,
+    ]);
+
+const firstLeadingClanMsg = (userDisplayName: string, topClanName: string) =>
+    `🏰 **${topClanName}** stakes their claim in Nori Worlds! **${userDisplayName}** blazes the trail into uncharted territory.`;
+
+const nextLeadingClanMsg = (
+    userDisplayName: string,
+    lastLeadingClanName: string,
+    newLeadingClanName: string
+) =>
+    randomString([
+        `🏰 **${newLeadingClanName}** wrests control from **${lastLeadingClanName}**! **${userDisplayName}** tips the balance of power.`,
+        `🏰 **${newLeadingClanName}**'s approach is in the lead over **${lastLeadingClanName}**! **${userDisplayName}** is making the difference.`,
+        `🏰 **${newLeadingClanName}** is winning the power struggle against **${lastLeadingClanName}**! **${userDisplayName}** is the power behind the throne.`,
+    ]);
 
 /*
     async function joinNoriWorldClan(
@@ -556,7 +553,8 @@ export const discordCallback = onRequest(async (req, res) => {
                     null;
                 if (newClan && channel && channel.isTextBased()) {
                     await channel.send(
-                        `🔰 **${displayName}** has joined *${newClan}*!`
+                        // `🔰 **${userDisplayName}** has joined *${clanName}*!`
+                        userJoinMsg(displayName || 'User Unknown', newClan)
                     );
                 } else logger.warn('Could not send join message', newClan);
             } catch (err) {
@@ -714,7 +712,7 @@ export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
         const channel = guild.channels.cache.get(channelId);
 
         if (channel && channel.isTextBased()) {
-            const displayName = after.displayName || 'Unknown';
+            const displayName = (after.displayName || 'User Unknown') as string;
             const newClan = roleToFriendlyClanName[after.role as Roles];
 
             if (before && before.role !== after.role) {
@@ -724,7 +722,8 @@ export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
                 // Only send message if both clans are valid
                 if (oldClan && newClan) {
                     await channel.send(
-                        `⚡ **${displayName}** has defected from **${oldClan}** to **${newClan}**!`
+                        // `⚡ **${userDisplayName}** has defected from **${oldClanName}** to **${newClanName}**`,
+                        userDefectMsg(displayName, oldClan, newClan)
                     );
                 } else {
                     logger.error('Invalid role in clan switch:', {
@@ -937,11 +936,13 @@ async function setLeaderboard(
             if (channel && channel.isTextBased()) {
                 if (!lastLeaderDisplayName) {
                     await channel.send(
-                        `🏆 **${displayName}** carves their name first into the ledger! A pioneer in uncharted waters.`
+                        firstLeadingUserMsg(displayName)
+                        // `🏆 **${displayName}** carves their name first into the ledger! A pioneer in uncharted waters.`
                     );
                 } else if (lastLeaderDisplayName !== displayName) {
                     await channel.send(
-                        `🏆 **${displayName}** has seized the crown from **${lastLeaderDisplayName}**! Power shifts in the shadows.`
+                        nextLeadingUserMsg(displayName, lastLeaderDisplayName)
+                        // `🏆 **${displayName}** has seized the crown from **${lastLeaderDisplayName}**! Power shifts in the shadows.`
                     );
                 }
 
@@ -949,11 +950,13 @@ async function setLeaderboard(
                 if (isNewClanLeader && currentTopClanName) {
                     if (!lastTopClanName) {
                         await channel.send(
-                            `🏰 **${currentTopClanName}** stakes their claim in Nori Worlds! **${displayName}** blazes the trail into uncharted territory.`
+                            firstLeadingClanMsg(displayName, currentTopClanName)
+                            // `🏰 **${currentTopClanName}** stakes their claim in Nori Worlds! **${displayName}** blazes the trail into uncharted territory.`
                         );
                     } else {
                         await channel.send(
-                            `🏰 **${currentTopClanName}** has wrested control from **${lastTopClanName}**! **${displayName}** tips the balance of power.`
+                            nextLeadingClanMsg(displayName, lastTopClanName, currentTopClanName)
+                            // `🏰 **${currentTopClanName}** has wrested control from **${lastTopClanName}**! **${displayName}** tips the balance of power.`
                         );
                     }
                 }
