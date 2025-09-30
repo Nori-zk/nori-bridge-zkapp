@@ -31,6 +31,7 @@ const DISCORD_ROLE1_ID = defineString('DISCORD_ROLE1_ID');
 const DISCORD_ROLE2_ID = defineString('DISCORD_ROLE2_ID');
 const DISCORD_ROLE3_ID = defineString('DISCORD_ROLE3_ID');
 const FRONTEND_URL = defineString('FRONTEND_URL');
+const DISCORD_CHANNEL_ID = defineString('DISCORD_CHANNEL_ID');
 
 // Clan operations ==========================================================================
 const ClanNames = [
@@ -149,7 +150,7 @@ async function getGuildMemberDisplayName(
     }
 }
 
-async function joinRole(
+async function tryJoinDiscordGuildRole(
     discordClient: Client,
     userId: string,
     accessToken: string,
@@ -170,6 +171,8 @@ async function joinRole(
             member = await guild.members.add(userId, { accessToken });
             await member.roles.add(roleId);
         }
+
+        // ADD OAUTH JOIN HERE FOR DISCORD BOT FIXME MAYBE...?????
 
         await member.fetch(true);
         return member.roles.cache.has(roleId);
@@ -382,7 +385,7 @@ export const discordCallback = onRequest(async (req, res) => {
         try {
             discordClient = await getDiscordClient();
             logger.log('Granting Discord role...');
-            const roleSuccess = await joinRole(
+            const roleSuccess = await tryJoinDiscordGuildRole(
                 discordClient,
                 user.id,
                 tokens.access_token,
@@ -509,7 +512,7 @@ export const discordCallback = onRequest(async (req, res) => {
 
 export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
     const uid = event.params.uid;
-    const before = event.data?.before.exists ? event.data?.before.data() : null;
+    const before = event.data?.before.exists ? event.data?.before.data() : null; // NOT SURE ABOUT THIS!
     const after = event.data?.after.exists ? event.data?.after.data() : null;
 
     if (!after) return; // document deleted
@@ -550,6 +553,34 @@ export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
         }
 
         logger.log(`Updated Discord role for ${uid} to ${after.role}`);
+
+        // --- Announce join/defection --- PERHAPS REMOVE ME
+        const channelId = DISCORD_CHANNEL_ID.value();
+        const channel = guild.channels.cache.get(channelId);
+
+        if (channel && channel.isTextBased()) {
+            const displayName = after.displayName || 'Unknown';
+            const newClan = roleToFriendlyClanName[after.role as Roles];
+
+            if (!before) {
+                // THIS IS SILLY on first join we do the oauth one.... FIXME
+                // New user joining a clan for the first time
+                await channel.send(
+                    `🔰 **${displayName}** has joined *${newClan}*!`
+                );
+            } else if (before.role !== after.role) {
+                // User switching clans
+                const oldClan = roleToFriendlyClanName[before.role as Roles];
+                await channel.send(
+                    `⚡ **${displayName}** has defected from *${oldClan}* to *${newClan}*!`
+                );
+            }
+        } else {
+            logger.error(
+                'Announcement channel not found or not text-based:',
+                channelId
+            );
+        }
     } catch (err) {
         logger.error('Discord role update error:', err);
     } finally {
@@ -562,7 +593,7 @@ export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
         }
     }
 
-    // Update clan membership
+    // Update clan membership in firebase
     try {
         await joinNoriWorldClan(uid, after.displayName, after.role as Roles);
         logger.log(`Updated clan membership for ${uid} to ${after.role}`);
@@ -587,24 +618,68 @@ async function setLeaderboard(
     }
     const amount = userDoc.data()?.amountMinted || 0;
 
+    let lastLeaderDisplayName: string | null = null;
+    let isNewLeader = false;
+
+    let lastTopClanName: string | null = null;
+    let isNewClanLeader = false;
+    let currentTopClanName: string | null = null;
+
     await db.runTransaction(async (tx) => {
         const docSnap = await tx.get(leaderboardRef);
         const data = docSnap.exists ? docSnap.data()! : {};
 
         // Gather previous top users
         const topUsers = [
-            { uid: data.topUser1Uid, displayName: data.topUser1DisplayName, role: data.topUser1CurrentRoleId, amount: data.topUser1MintAmount },
-            { uid: data.topUser2Uid, displayName: data.topUser2DisplayName, role: data.topUser2CurrentRoleId, amount: data.topUser2MintAmount },
-            { uid: data.topUser3Uid, displayName: data.topUser3DisplayName, role: data.topUser3CurrentRoleId, amount: data.topUser3MintAmount },
-            { uid: data.topUser4Uid, displayName: data.topUser4DisplayName, role: data.topUser4CurrentRoleId, amount: data.topUser4MintAmount },
-            { uid: data.topUser5Uid, displayName: data.topUser5DisplayName, role: data.topUser5CurrentRoleId, amount: data.topUser5MintAmount },
+            {
+                uid: data.topUser1Uid,
+                displayName: data.topUser1DisplayName,
+                role: data.topUser1CurrentRoleId,
+                amount: data.topUser1MintAmount,
+            },
+            {
+                uid: data.topUser2Uid,
+                displayName: data.topUser2DisplayName,
+                role: data.topUser2CurrentRoleId,
+                amount: data.topUser2MintAmount,
+            },
+            {
+                uid: data.topUser3Uid,
+                displayName: data.topUser3DisplayName,
+                role: data.topUser3CurrentRoleId,
+                amount: data.topUser3MintAmount,
+            },
+            {
+                uid: data.topUser4Uid,
+                displayName: data.topUser4DisplayName,
+                role: data.topUser4CurrentRoleId,
+                amount: data.topUser4MintAmount,
+            },
+            {
+                uid: data.topUser5Uid,
+                displayName: data.topUser5DisplayName,
+                role: data.topUser5CurrentRoleId,
+                amount: data.topUser5MintAmount,
+            },
         ];
+
+        // Determine last leader changing the list.
+        lastLeaderDisplayName = topUsers[0]?.displayName || null;
+
+        // Capture previous top clan name
+        if (
+            data.topClanRoleId &&
+            data.topClanRoleId in roleToFriendlyClanName
+        ) {
+            lastTopClanName =
+                roleToFriendlyClanName[data.topClanRoleId as Roles];
+        }
 
         // Add current user deposit
         topUsers.push({ uid: userId, displayName, role, amount });
 
         // Deduplicate by UID, ensuring latest current user deposit is used
-        const seen = new Map<string, typeof topUsers[0]>();
+        const seen = new Map<string, (typeof topUsers)[0]>();
         for (const u of topUsers) {
             if (!u.uid) continue;
             if (u.uid === userId) {
@@ -617,8 +692,13 @@ async function setLeaderboard(
         }
 
         // Sort descending by amount
-        const sortedUsers = Array.from(seen.values()).sort((a, b) => (b.amount || 0) - (a.amount || 0));
+        const sortedUsers = Array.from(seen.values()).sort(
+            (a, b) => (b.amount || 0) - (a.amount || 0)
+        );
         const top5 = sortedUsers.slice(0, 5);
+
+        // Determine if current user is new leader inside transaction
+        isNewLeader = !top5[0] || top5[0].uid === userId || !top5[0].uid;
 
         // Prepare update object
         const updateData: Record<string, any> = {};
@@ -650,12 +730,60 @@ async function setLeaderboard(
         updateData['topClanRoleId'] = topClan.roleId;
         updateData['topClanValue'] = topClan.amount;
 
+        // Get current top clan friendly name
+        if (topClan.roleId && topClan.roleId in roleToFriendlyClanName) {
+            currentTopClanName =
+                roleToFriendlyClanName[topClan.roleId as Roles];
+        }
+
+        // Determine if clan leadership changed - handles empty/undefined/null cases
+        isNewClanLeader =
+            !!currentTopClanName && lastTopClanName !== currentTopClanName;
+
         tx.set(leaderboardRef, updateData, { merge: true });
     });
 
     console.log('Leaderboard updated');
-}
 
+    if (isNewLeader || isNewClanLeader) {
+        try {
+            const client = await getDiscordClient();
+            const guild = await client.guilds.fetch(DISCORD_GUILD_ID.value());
+            const channelId = DISCORD_CHANNEL_ID.value();
+            const channel = guild.channels.cache.get(channelId);
+
+            // Keep this as we may want to do more.
+            if (channel && channel.isTextBased()) {
+                if (!lastLeaderDisplayName) {
+                    await channel.send(
+                        `🏆 **${displayName}** has taken the lead!`
+                    );
+                } else if (lastLeaderDisplayName !== displayName) {
+                    await channel.send(
+                        `🏆 **${displayName}** has dethroned **${lastLeaderDisplayName}** and is now in the lead!`
+                    );
+                }
+
+                // Clan leadership notification
+                if (isNewClanLeader && currentTopClanName) {
+                    if (!lastTopClanName) {
+                        await channel.send(
+                            `🏆 **${currentTopClanName}** clan has taken the lead!`
+                        );
+                    } else {
+                        await channel.send(
+                            `🏆 **${currentTopClanName}** clan has conquered **${lastTopClanName}** and is now in the lead!`
+                        );
+                    }
+                }
+            }
+
+            await client.destroy();
+        } catch (err) {
+            logger.error('Leaderboard Discord notification error:', err);
+        }
+    }
+}
 
 export const handleUserDepositCreated = onDocumentCreated(
     'users/{userId}/deposits/{depositId}',

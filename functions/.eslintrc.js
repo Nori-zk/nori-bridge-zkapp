@@ -30,5 +30,6 @@ module.exports = {
         'require-jsdoc': 'off',
         'no-trailing-spaces': 'off',
         'max-len': 'off',
+        'func-call-spacing': 'off'
     },
 };
