@@ -12,9 +12,11 @@ import { useBridgeControlCardProps } from "@/helpers/useBridgeControlCardProps.t
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { Store } from "@/helpers/localStorage2.ts";
-
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [showMobileWarning, setShowMobileWarning] = useState<boolean>(false);
+
   const { showChooseSide } = useProgress();
 
   const { isConnected: ethConnected } = useMetaMaskWallet();
@@ -22,8 +24,34 @@ export default function Home() {
   const { title, component } = useBridgeControlCardProps();
   const { state: bridgeState } = useNoriBridge();
 
+  useEffect(() => {
+    const checkWidth = () => {
+      setShowMobileWarning(window.innerWidth < 768);
+    };
+
+    checkWidth();
+    window.addEventListener("resize", checkWidth);
+
+    return () => window.removeEventListener("resize", checkWidth);
+  }, []);
+
   return (
     <div className="h-full w-full bg-[radial-gradient(50%_100%_at_50%_0%,theme('colors.darkGreen')_1.31%,theme('colors.veryDarkGreen')_100%)]">
+      {/* Mobile Warning Modal */}
+      {showMobileWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-darkGreen border border-lightGreen rounded-lg p-8 max-w-sm mx-4 shadow-2xl">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-3">
+                Screen Too Small
+              </h2>
+              <p className="text-gray-300 mb-2">
+                Nori App is not currently supported on mobile devices
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {showChooseSide || Store.global().showFactionClaim ? (
         <ChooseSides />
       ) : (
