@@ -83,7 +83,7 @@ const WalletButton = ({
         height,
       }}
       onClick={handleClick}
-      disabled={isConnecting}
+      disabled={isConnecting || !!isComplete}
       className={clsx(
         "px-4 py-2 rounded-lg flex items-center justify-evenly",
         bgClass,

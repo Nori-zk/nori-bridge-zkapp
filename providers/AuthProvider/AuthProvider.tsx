@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // this is just for development
   useEffect(() => {
     const handle = setInterval(async () => {
-      console.log('checking for firebase login', Store.global().firebaseLoggedIn);
+      // console.log('checking for firebase login', Store.global().firebaseLoggedIn);
       if (Store.global().firebaseLoggedIn === null && auth.currentUser) {
         await signOut();
       }

@@ -6,39 +6,19 @@ import { Store } from "@/helpers/localStorage2.ts";
 import { db, auth } from "@/config/firebaseConfig.ts";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { firebaseMintFunction } from "@/helpers/firebaseMint.ts";
+import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
-  text: string
+  isDisabled: boolean;
+  setIsDisabled: (value: boolean) => void;
 };
 
-const updateUserRole = async (role: string) => {
-  const user = auth.currentUser;
-  if (!user) {
-    console.error("No logged-in user");
-    return;
-  }
-
-  try {
-    await setDoc(
-      doc(db, "users", user.uid),
-      {
-        role,
-        lastRoleUpdate: serverTimestamp(),
-      },
-      { merge: true }
-    );
-    console.log("User role updated in Firestore:", role);
-  } catch (err) {
-    console.error("Failed to update role:", err);
-  }
-};
-
-const ChooseSide = ({ side, text }: ChooseSideProps) => {
+const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
   const [hovered, setHovered] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentClanRole, setCurrentClanRole] = useState<string | null>(null);
-
+  const { reset } = useNoriBridge();
   const {
     radialBg,
     rightBgSvg,
@@ -48,6 +28,7 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
     textValue,
     joinButtonBgClass,
     joinButtonTextClass,
+    caption,
   } = useChooseSideProps(side);
 
   const roleMap = {
@@ -56,7 +37,27 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
     red: "role3",
   };
   const role = roleMap[radialBg];
+  const updateUserRole = async (role: string) => {
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("No logged-in user");
+      return;
+    }
 
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          role,
+          lastRoleUpdate: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      console.log("User role updated in Firestore:", role);
+    } catch (err) {
+      console.error("Failed to update role:", err);
+    }
+  };
   // Subscribe to user role updates in Firestore
   useEffect(() => {
     const user = auth.currentUser;
@@ -72,7 +73,7 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
 
   let buttonText;
   if (!auth.currentUser) {
-    buttonText = "Join"
+    buttonText = "Join";
   } else {
     buttonText = currentClanRole === role ? "Claim" : "Join + Claim";
   }
@@ -80,6 +81,7 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
 
   const handleJoinClick = async () => {
     // If the user is logged in
+
     if (auth.currentUser) {
       // We can just swap the role straight away
       try {
@@ -88,9 +90,26 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
       } catch (err) {
         console.error("Failed to update role:", err);
       }
+      try {
+        const txAmount = Store.global().test_txAmount!;
+        const activeDepositNumber = Store.global().test_activeDepositNumber!;
+        const codeChallange = Store.global().test_codeChallange!;
+        if (!txAmount || !activeDepositNumber || !codeChallange)
+          throw new Error("Missing data for firebase mint");
+        await firebaseMintFunction(
+          Number(txAmount),
+          activeDepositNumber,
+          codeChallange
+        );
+        setIsDisabled(true);
+        reset();
+      } catch (err) {
+        console.error("Failed to call firebase mint:", err);
+      }
     } else {
       //leaving to do discord oauth
       setLoading(true);
+      setIsDisabled(true);
       const state = Array.from(crypto.getRandomValues(new Uint32Array(20)))
         .map(
           (x) =>
@@ -140,7 +159,7 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
         <div className="flex h-full">
           {hovered && (
             <div className="flex h-full w-full px-10 items-end text-white">
-              {text}
+              {caption}
             </div>
           )}
         </div>
@@ -155,6 +174,7 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
             {textValue}
           </p>
           <button
+            disabled={isDisabled}
             onClick={handleJoinClick}
             className={`bg-button-choose-side-${joinButtonBgClass} w-1/3 max-w-xs rounded-lg py-3 text-${joinButtonTextClass} text-glow-neon-${joinButtonBgClass} font-normal hover:scale-105 transition-transform text-xl`}
           >

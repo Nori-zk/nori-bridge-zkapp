@@ -1,5 +1,5 @@
 "use client"; // The server cannot use this machine! Should build a seperate machine for other purposes
-import { assign, setup, log, raise, ErrorActorEvent } from "xstate";
+import { assign, setup, log, ErrorActorEvent } from "xstate";
 // Import actual bridge deposit observables
 import {
   getBridgeStateTopic$,
@@ -93,6 +93,7 @@ export interface DepositMintContext {
   activeDepositNumber: number | null;
   computedEthProof: EthProofResult | null;
   depositMintTx: string | null;
+  testShowFactionClaim: boolean;
 
   // Bridge topics (observables)
   ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
@@ -183,6 +184,7 @@ export const getDepositMachine = (
         ), // This browser has NOT sent a setupStorageTx
       shouldGotoSetupStorageGuard: ({ context }) =>
         context.goToSetupStorage === true, // An indicator used to after setupStorageOnChainCheck that we should go to setupStorage
+      shouldShowFactionClaim: ({ context }) => context.testShowFactionClaim,
     },
     actors: {
       compressedDepositProcessingStatusActor,
@@ -204,6 +206,7 @@ export const getDepositMachine = (
       activeDepositNumber: null,
       computedEthProof: null,
       depositMintTx: null,
+      testShowFactionClaim: false,
 
       // RX topics
       ethStateTopic$,
@@ -271,10 +274,19 @@ export const getDepositMachine = (
                 context.mintWorker!.ethWalletPubKeyBase58!,
                 context.mintWorker!.minaWalletPubKeyBase58!
               ).depositMintTx,
+            testShowFactionClaim: () => {
+              const v = Store.global().showFactionClaim;
+              if (!v) return false;
+              return v;
+            },
             errorMessage: null,
           }),
         ],
         always: [
+          {
+            target: "completed",
+            guard: "shouldShowFactionClaim",
+          },
           {
             target: "hasActiveDepositNumber",
             guard: "hasActiveDepositNumberGuard",
@@ -304,7 +316,6 @@ export const getDepositMachine = (
                   context.mintWorker!.ethWalletPubKeyBase58!,
                   context.mintWorker!.minaWalletPubKeyBase58!
                 ).activeDepositNumber = event.value; //.toString();
-                Store.global().test_activeDepositNumber = event.value;
                 return event.value;
               },
             }),

@@ -6,46 +6,34 @@ import ScrollingBridge from "@/components/panels/ScrollingBridge/ScrollingBridge
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import ScrollingWSS from "@/components/panels/ScrollingWSS/ScrollingWSS.tsx";
 import { useAccount } from "wagmina";
-// import Notification from "@/components/ui/Notification/Notification.tsx";
-// import Flip from "@/public/assets/Flip.svg";
 import Notification from "@/components/ui/Notification/Notification.tsx";
-import { useState } from "react";
 import ChooseSides from "@/components/choose-side/ChooseSides.tsx";
 import { useBridgeControlCardProps } from "@/helpers/useBridgeControlCardProps.tsx";
-import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
+import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+import { Store } from "@/helpers/localStorage2.ts";
 
 
 export default function Home() {
-  const [showChooseSide, setShowChooseSide] = useState<boolean>(false);
+  const { showChooseSide } = useProgress();
 
   const { isConnected: ethConnected } = useMetaMaskWallet();
   const { isConnected: minaConnected } = useAccount();
-  const { state: progressState } = useProgress();
-  const { title, component } = useBridgeControlCardProps(
-    progressState.currentStep
-  );
+  const { title, component } = useBridgeControlCardProps();
   const { state: bridgeState } = useNoriBridge();
 
   return (
     <div className="h-full w-full bg-[radial-gradient(50%_100%_at_50%_0%,theme('colors.darkGreen')_1.31%,theme('colors.veryDarkGreen')_100%)]">
-      {showChooseSide ? (
+      {showChooseSide || Store.global().showFactionClaim ? (
         <ChooseSides />
       ) : (
         <div className="flex h-full w-full flex-col relative bg-custom-svg bg-no-repeat bg-cover bg-center">
           <div className="absolute w-full justify-center my-5 flex">
             <Nori className="scale-[1]" />
           </div>
-
-          <button
-            className="text-white"
-            onClick={() => setShowChooseSide(true)}
-          >
-            Show choose side
-          </button>
           <div className="flex flex-grow w-full justify-center items-center h-full">
             <div className="w-1/4 h-[450px]">
-              {ethConnected && minaConnected && <ScrollingWSS />}
+              {/* {ethConnected && minaConnected && <ScrollingWSS />} */}
             </div>
             {/* <DepositMintTestUI /> */}
             <div className="relative inline-block">
@@ -71,7 +59,7 @@ export default function Home() {
               </button> */}
             </div>
             <div className="w-1/4 h-[450px]">
-              {ethConnected && minaConnected && <ScrollingBridge />}
+              {/* {ethConnected && minaConnected && <ScrollingBridge />} */}
             </div>
           </div>
           <div>

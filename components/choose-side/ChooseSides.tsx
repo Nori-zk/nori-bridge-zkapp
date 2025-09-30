@@ -1,15 +1,41 @@
+import { FaXmark } from "react-icons/fa6";
 import ChooseSide from "./ChooseSide.tsx";
+import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
+import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
+import { useState } from "react";
 
 const ChooseSides = () => {
-  const blueText = "Rising from the chaos of the Great Collapse, the Kageyama Syndicate is a cybernetic Yakuza clan guided by a philosophy of absolute control. They view chaos and freedom as bugs to be fixed and seek to subjugate all other factions, not to destroy them, but to integrate their assets into a single, perfectly efficient, and profitable hierarchy under their command.";
-  const greenText = "Vindicated by the Great Collapse, the Cypherpunks are a leaderless collective of hackers who believe code is the only just law. They fight all forms of centralized authority to build a new reality that guarantees absolute individual freedom. Their world would be governed not by rulers, but by transparent, verifiable algorithms that place power directly in the hands of the people.";
-  const redText = "The Yokai are ancient spirits, violently cast into our world during the cataclysm they call the Sundering. They consider all digital technology an unnatural 'corruption' that poisons their magic and sickens their very being. Their sole purpose is to purge this technological blight and restore a world where the raw power of nature and tradition reigns supreme.";
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
+  const { setShowChooseSide } = useProgress();
+  const { reset } = useNoriBridge();
 
+  const handleClose = () => {
+    console.log("Close button clicked");
+    reset();
+    setShowChooseSide(false);
+  };
   return (
-    <div className="flex h-full grid grid-cols-3">
-      <ChooseSide side={"red"} text={redText} />
-      <ChooseSide side={"blue"} text={blueText} />
-      <ChooseSide side={"green"} text={greenText} />
+    <div className="h-full relative w-full">
+      <div className="absolute right-0 top-0 z-20 p-6 text-white">
+        <FaXmark onClick={handleClose} size={34} />
+      </div>
+      <div className="flex h-full grid grid-cols-3">
+        <ChooseSide
+          isDisabled={isDisabled}
+          setIsDisabled={setIsDisabled}
+          side={"red"}
+        />
+        <ChooseSide
+          isDisabled={isDisabled}
+          setIsDisabled={setIsDisabled}
+          side={"blue"}
+        />
+        <ChooseSide
+          isDisabled={isDisabled}
+          setIsDisabled={setIsDisabled}
+          side={"green"}
+        />
+      </div>
     </div>
   );
 };
