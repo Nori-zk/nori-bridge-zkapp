@@ -47,7 +47,7 @@ function randomString(arr: string[]): string {
 }
 
 const userJoinMsg = (userDisplayName: string, clanName: string) =>
-    `🔰 **${userDisplayName}** has joined *${clanName}*!`;
+    `🔰 **${userDisplayName}** has joined **${clanName}**!`;
 
 const userDefectMsg = (
     userDisplayName: string,
