@@ -11,7 +11,7 @@ const Completed = () => {
 
   const handleTwitterShare = () => {
     const message = encodeURIComponent(
-      "I just bridged assets using @nori_zk's zkApp Bridge! #MinaProtocol #Ethereum #ZKApps"
+      "I just used @nori_zk's zkApp Token Bridge! Try it yourself at: https://app.nori-zk.com #MinaProtocol #Ethereum #ZK "
     );
     const twitterIntent = `https://twitter.com/intent/tweet?text=${message}`;
 
