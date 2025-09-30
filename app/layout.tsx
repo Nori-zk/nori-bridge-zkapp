@@ -16,7 +16,7 @@ export const metadata = {
     siteName: "Nori zkApp",
     images: [
       {
-        url: "/assets/Cover.png", // 1200x630 recommended
+        url: "https://noricover.pages.dev/Cover.png", // 1200x630 recommended
         width: 1500,
         height: 500,
         alt: "Nori zkApp Preview",
@@ -29,7 +29,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "Nori Token Bridge zkApp",
     description: "Blockchain interoperability with zero-knowledge proofs",
-    images: ["/assets/Cover.png"],
+    images: ["https://noricover.pages.dev/Cover.png"],
   },
 };
 
