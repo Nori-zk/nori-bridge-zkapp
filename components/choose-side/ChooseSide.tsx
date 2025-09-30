@@ -113,6 +113,7 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
         );
         setIsDisabled(true);
         reset();
+        window.location.reload();
       } catch (err) {
         console.error("Failed to call firebase mint:", err);
       }
