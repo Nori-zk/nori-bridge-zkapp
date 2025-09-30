@@ -7,6 +7,7 @@ import { db, auth } from "@/config/firebaseConfig.ts";
 import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { firebaseMintFunction } from "@/helpers/firebaseMint.ts";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
+import { onAuthStateChanged } from "firebase/auth";
 
 type ChooseSideProps = {
   side: ChooseSideTypes;
@@ -60,15 +61,27 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
   };
   // Subscribe to user role updates in Firestore
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
+    let unsubscribeSnapshot: (() => void) | null = null;
 
-    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      const data = snap.data();
-      setCurrentClanRole(data?.role || null);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setCurrentClanRole(null);
+        return;
+      };
+
+      console.log("making sub for user to get their role");
+
+      unsubscribeSnapshot = onSnapshot(doc(db, "users", user.uid), (snap) => {
+        const data = snap.data();
+        console.log("db snapshot change", data);
+        setCurrentClanRole(data?.role || null);
+      });
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+      unsubscribeAuth();
+    };
   }, []);
 
   let buttonText;
@@ -77,7 +90,8 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
   } else {
     buttonText = currentClanRole === role ? "Claim" : "Join + Claim";
   }
-  const isDimmed = currentClanRole !== null && currentClanRole !== role;
+  console.log("selection of currentClanRole role", currentClanRole, role);
+  const isDimmed = currentClanRole !== null && currentClanRole !== role; // false for all
 
   const handleJoinClick = async () => {
     // If the user is logged in
@@ -114,7 +128,7 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
         .map(
           (x) =>
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[
-            x % 62
+              x % 62
             ]
         )
         .join("");
@@ -140,15 +154,16 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
 
   return (
     <div
-      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all ${isDimmed ? "opacity-60" : ""
-        }`} // CHANGE MADE
+      className={`bg-choose-side-${radialBg} h-screen relative bg-cover bg-no-repeat flex items-center justify-center border border-transparent hover:border-glow-${joinButtonBgClass} transition-all ${
+        isDimmed ? "opacity-60" : ""
+      }`} // CHANGE MADE
       onMouseEnter={() => {
         setHovered(true);
       }}
       onMouseLeave={() => {
         setHovered(false);
       }}
-     onClick={() => firebaseMintFunction(123.00, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
+      onClick={() => firebaseMintFunction(123.0, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
     >
       <div className="absolute inset-0 flex">
         <div className="h-full w-1/2">{leftBgSvg}</div>
