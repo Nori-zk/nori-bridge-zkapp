@@ -891,7 +891,7 @@ export const getDepositMachine = (
       },
 
       RESET: {
-        target: ".checking", // or ".hydrating"
+        target: ".hydrating", // or ".hydrating"
         reenter: true, // v5 only; re-run entry even if already there
         actions: [
           assign({
