@@ -29,10 +29,17 @@ export const metadata = {
     card: "summary_large_image",
     title: "Nori Token Bridge zkApp",
     description: "Blockchain interoperability with zero-knowledge proofs",
-    images: ["https://noricover.pages.dev/Cover.png"],
+    images: [
+      {
+        url: "https://noricover.pages.dev/Cover.png", // 1200x630 recommended
+        width: 1500,
+        height: 500,
+        alt: "Nori zkApp",
+      },
+    ],
+    creator: "@nori_zk",
   },
 };
-
 
 export default function RootLayout({
   children,
