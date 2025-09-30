@@ -62,7 +62,7 @@ const DepositProgress = () => {
   const showBridgeStage =
     depositStatus !== ReplacementDepositProcessingStatus.WaitingForEthFinality &&
     depositStatus !== ReplacementDepositProcessingStatus.ReadyToMint;
-
+  const hideProgress = depositStatus === ReplacementDepositProcessingStatus.ReadyToMint
   // Get explanation for current status
   const getStatusExplanation = () => {
     return (
@@ -197,7 +197,7 @@ const DepositProgress = () => {
           )}
         </div>
         {depositStatus && <hr className="border-0 h-0.5 bg-white/20 mx-7" />}
-        <ProgressBar progress={stageProgress} />
+        <ProgressBar progress={hideProgress? 0.0 : stageProgress} />
         {renderStageProgress()}
       </div>
     </div>
