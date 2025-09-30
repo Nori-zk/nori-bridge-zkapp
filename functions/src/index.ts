@@ -9,18 +9,10 @@ import { FirebaseAuthError } from 'firebase-admin/auth';
 import { onDocumentWritten } from 'firebase-functions/firestore';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 
-/*
-
-    DISCORD_ROLE1_ID=1421501852612296826
-    DISCORD_ROLE2_ID=1421502999964029059
-    DISCORD_ROLE3_ID=1421503067681194065
-
-*/
-
 admin.initializeApp();
 const db = getFirestore();
 
-setGlobalOptions({ maxInstances: 1 });
+setGlobalOptions({ maxInstances: 4 });
 
 const DISCORD_BOT_TOKEN = defineString('DISCORD_BOT_TOKEN');
 const DISCORD_CLIENT_ID = defineString('DISCORD_CLIENT_ID');
@@ -652,7 +644,7 @@ export const onUserWritten = onDocumentWritten('users/{uid}', async (event) => {
                 // Only send message if both clans are valid
                 if (oldClan && newClan) {
                     await channel.send(
-                        `⚡ **${displayName}** has defected from *${oldClan}* to *${newClan}*!`
+                        `⚡ **${displayName}** has defected from **${oldClan}** to **${newClan}**!`
                     );
                 } else {
                     logger.error('Invalid role in clan switch:', {
@@ -877,11 +869,11 @@ async function setLeaderboard(
                 if (isNewClanLeader && currentTopClanName) {
                     if (!lastTopClanName) {
                         await channel.send(
-                            `🏆 **${currentTopClanName}** stakes their claim in Nori Worlds! **${displayName}** blazes the trail into uncharted territory.`
+                            `🏰 **${currentTopClanName}** stakes their claim in Nori Worlds! **${displayName}** blazes the trail into uncharted territory.`
                         );
                     } else {
                         await channel.send(
-                            `🏆 **${currentTopClanName}** has wrested control from **${lastTopClanName}**! **${displayName}** tips the balance of power.`
+                            `🏰 **${currentTopClanName}** has wrested control from **${lastTopClanName}**! **${displayName}** tips the balance of power.`
                         );
                     }
                 }
