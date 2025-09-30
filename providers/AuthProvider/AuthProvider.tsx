@@ -109,8 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);*/
 
-  // this is just for development
-  useEffect(() => {
+  // this is just for development REMOVEME FIXME BUG
+  /*useEffect(() => {
     const handle = setInterval(async () => {
       // console.log('checking for firebase login', Store.global().firebaseLoggedIn);
       if (Store.global().firebaseLoggedIn === null && auth.currentUser) {
@@ -118,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }, 1000);
     return () => clearInterval(handle);
-  }, []);
+  }, []);*/
 
   const signOut = async () => {
 

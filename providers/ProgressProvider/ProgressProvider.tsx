@@ -22,7 +22,7 @@ export const ProgressProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [showChooseSide, setShowChooseSide] = useState<boolean>(true);
+  const [showChooseSide, setShowChooseSide] = useState<boolean>(false);
 
   const value = useMemo(
     () => ({

@@ -42,6 +42,56 @@ const roleToFriendlyClanName: Record<Roles, ClanNames> = {
 };
 
 /*
+
+XXX stakes their claim in Nori Worlds! X user X blazes the trail into uncharted territory.
+  XXX pushes ahead in the Nori Worlds fight! X user X stands behind them
+  XXX is leading the way in Nori Worlds! X user X is backing their play hard.
+
+
+XXX has wrested control from XXX! X user X tips the balance of power.
+  XXX 's approach is in the lead ' XXX! X user X is making the difference.
+  XXX is winning the power struggle against XXX! X user X is the power behind the throne.
+
+
+X user X has seized the crown from X user X! Power shifts in the shadows.
+  X user X is leading the charge, overtaking X user X, and has control ! 
+  X user X stabs X user X in the back and claims the keys to power
+
+X user X  has defected from XXX to XXX
+  X user X  has switched allegiance from XXX to XXX
+  X user X  has gone rogue from XXX and joined XXX
+  X user X  's turned their back' onXXX and now sided with XXX
+
+*/
+
+
+/*
+function chooseRandomItemFromArray(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  const randomIndex = Math.floor(Math.random() * arr.length);
+  return arr[randomIndex];
+}
+
+
+const firstLeadingUserMsg = (newLeadingUserDisplayName: string, ) => chooseRandomItemFromArray([]);
+const nextLeadingUserMsg = (newLeadingUserDisplayName: string, oldLeadingUserDisplayName: string) =>
+
+const firstLeadingClanMsg = (userDisplayName: string, topClanName: string)
+const nextLeadingClanMsg = (userDisplayName: string, lastLeadingClanName: string, newLeadingClanName: string) =>
+
+const userJoinMsg = (userDisplayName: string, clanName: string) =>
+
+
+const userDefectMsg = (userDisplayName: string, oldClanName: string, newClanName: string) => chooseRandomItemFromArray([
+    `${userDisplayName} has defected from ${oldClanName} to ${newClanName}`,
+    `${userDisplayName} has switched allegiance from ${oldClanName} to ${newClanName}`,
+    `${userDisplayName} has gone rogue from ${oldClanName} and joined ${newClanName}`,
+    `${userDisplayName}'s turned their back on ${oldClanName} and now sided with ${newClanName}`
+]);
+*/
+
+
+/*
     async function joinNoriWorldClan(
         uid: string,
         displayName: string,
@@ -208,26 +258,58 @@ async function tryJoinDiscordGuildRole(
     roleId: string,
     guildId: string
 ) {
+    const guild = discordClient.guilds.cache.get(guildId);
+    if (!guild) throw new Error('Guild not found');
+
+    let member;
+    // First, check if user is already a member of the guild
     try {
-        const guild = discordClient.guilds.cache.get(guildId);
-        if (!guild) throw new Error('Guild not found');
+        member = await guild.members.fetch(userId);
+        console.log('👤 User is already a member of the guild');
 
-        await guild.roles.fetch();
-
-        let member;
-        try {
-            member = await guild.members.fetch(userId);
-            if (!member.roles.cache.has(roleId)) await member.roles.add(roleId);
-        } catch {
-            member = await guild.members.add(userId, { accessToken });
-            await member.roles.add(roleId);
+        // Check if user already has the role
+        if (member.roles.cache.has(roleId)) {
+            console.log('ℹ️ User already has this role');
+            return true;
         }
 
+        // Add role to existing member
+        await member.roles.add(roleId);
+        console.log('✅ Role granted to existing member');
         await member.fetch(true);
         return member.roles.cache.has(roleId);
-    } catch (err) {
-        logger.error('Role grant error:', err);
-        return false;
+    } catch (fetchError) {
+        // User is not in the guild, try to add them
+        console.warn('👤 User not in guild, attempting to add...', fetchError);
+
+        try {
+            member = await guild.members.add(userId, {
+                accessToken: accessToken,
+            });
+            console.log('✅ User added to guild');
+
+            // Now add the role to the newly added member
+            await member.roles.add(roleId);
+            console.log('✅ Role granted to new member');
+
+            await member.fetch(true);
+            return member.roles.cache.has(roleId);
+        } catch (addError) {
+            console.error('❌ Failed to add user to guild:', addError);
+
+            // Sometimes members.add fails even if user exists, try fetching again
+            try {
+                member = await guild.members.fetch(userId);
+                await member.roles.add(roleId);
+                console.log('✅ Role granted after retry');
+
+                await member.fetch(true);
+                return member.roles.cache.has(roleId);
+            } catch (retryError) {
+                console.error('❌ Final attempt failed:', retryError);
+                return false;
+            }
+        }
     }
 }
 
@@ -463,9 +545,7 @@ export const discordCallback = onRequest(async (req, res) => {
             try {
                 const guildId = DISCORD_GUILD_ID.value();
                 console.log('guildId', guildId);
-                const guild = await discordClient.guilds.fetch(
-                    guildId
-                );
+                const guild = await discordClient.guilds.fetch(guildId);
                 const channelId = DISCORD_CHANNEL_ID.value();
                 const channel = guild.channels.cache.get(channelId);
                 console.log('sending joinging message', channelId);

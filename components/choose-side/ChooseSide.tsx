@@ -69,11 +69,8 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
         return;
       };
 
-      console.log("making sub for user to get their role");
-
       unsubscribeSnapshot = onSnapshot(doc(db, "users", user.uid), (snap) => {
         const data = snap.data();
-        console.log("db snapshot change", data);
         setCurrentClanRole(data?.role || null);
       });
     });
@@ -90,7 +87,6 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
   } else {
     buttonText = currentClanRole === role ? "Claim" : "Join + Claim";
   }
-  console.log("selection of currentClanRole role", currentClanRole, role);
   const isDimmed = currentClanRole !== null && currentClanRole !== role; // false for all
 
   const handleJoinClick = async () => {
@@ -163,7 +159,7 @@ const ChooseSide = ({ side, isDisabled, setIsDisabled }: ChooseSideProps) => {
       onMouseLeave={() => {
         setHovered(false);
       }}
-      onClick={() => firebaseMintFunction(123.0, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
+      //onClick={() => firebaseMintFunction(123.0, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
     >
       <div className="absolute inset-0 flex">
         <div className="h-full w-1/2">{leftBgSvg}</div>
