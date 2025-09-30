@@ -129,7 +129,7 @@ const ChooseSide = ({ side, text }: ChooseSideProps) => {
       onMouseLeave={() => {
         setHovered(false);
       }}
-    // onClick={() => firebaseMintFunction(123.00, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
+     onClick={() => firebaseMintFunction(123.00, 4321, "codeChallengeNew")} // REMOVEME FIXME BUG this is just for testing remove it!
     >
       <div className="absolute inset-0 flex">
         <div className="h-full w-1/2">{leftBgSvg}</div>
