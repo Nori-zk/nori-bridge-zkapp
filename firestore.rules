@@ -4,7 +4,8 @@ service cloud.firestore {
 
     // USERS COLLECTION
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // Allow anyone to read user documents
+      allow read: if true;
 
       // Only allow updating their role
       allow update: if request.auth != null
