@@ -10,6 +10,7 @@ import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
 import Swap from "@/public/assets/Swap.svg";
 import DepositProgress from "./DepositProgress/DepositProgress.tsx";
 import DecryptedText from "@/blocks/TextAnimations/DecryptedText/DecryptedText.tsx";
+import TextType from "@/blocks/TextAnimations/TextType/TextType.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -74,15 +75,13 @@ const BridgeControlCard = ({
         <BridgeControlCardSVG width={width} height={height}>
           <div className="flex flex-col items-center justify-center h-full">
             <h1 className="text-center text-white text-4xl mb-6 font-[400]">
-              <DecryptedText
+              <TextType
+                key={title}
                 text={title}
-                speed={100}
-                maxIterations={7}
-                characters="ABCD1234!?"
-                className="revealed"
-                parentClassName="all-letters"
-                encryptedClassName="encrypted"
-                animateOn="view"
+                typingSpeed={75}
+                pauseDuration={1500}
+                showCursor={true}
+                cursorCharacter="|"
               />
             </h1>
             <div className="w-3/4">
