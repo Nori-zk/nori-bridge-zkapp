@@ -40,7 +40,7 @@ export function useBridgeControlCardProps(): BridgeControlCardProps {
         description: `Contracts compiled successfully in ${timeTaken}s`,
       });
     }
-  }, [bridgeState.context.mintWorker?.compiled]);
+  }, [bridgeState.context.mintWorker?.compiled]); // REPLACE THIS WITH A GETTER! FIXME
 
   switch (currentState) {
     case "noActiveDepositNumber":
