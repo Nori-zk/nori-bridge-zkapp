@@ -9,6 +9,7 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { useSetup } from "@/providers/SetupProvider/SetupProvider.tsx";
 import Swap from "@/public/assets/Swap.svg";
 import DepositProgress from "./DepositProgress/DepositProgress.tsx";
+import DecryptedText from "@/blocks/TextAnimations/DecryptedText/DecryptedText.tsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -17,7 +18,12 @@ type BridgeControlCardProps = {
   height: string;
 };
 
-const BridgeControlCard = (props: BridgeControlCardProps) => {
+const BridgeControlCard = ({
+  title,
+  content,
+  width,
+  height,
+}: BridgeControlCardProps) => {
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [displayProgressSteps, setDisplayProgressSteps] = useState(false);
   // const [depositNumber, setDepositNumberInput] = useState<string>("12345");
@@ -31,7 +37,6 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
   const [status, setStatus] = useState<
     "connecting" | "open" | "closed" | "reconnecting" | "permanently-closed"
   >("connecting");
-
 
   useEffect(() => {
     setIsMounted(true);
@@ -55,8 +60,8 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
     <div>
       <div
         style={{
-          width: props.width,
-          height: props.height,
+          width: width,
+          height: height,
           position: "relative",
           overflow: "hidden",
           boxShadow:
@@ -66,10 +71,19 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
           borderRadius: "20px",
         }}
       >
-        <BridgeControlCardSVG width={props.width} height={props.height}>
+        <BridgeControlCardSVG width={width} height={height}>
           <div className="flex flex-col items-center justify-center h-full">
             <h1 className="text-center text-white text-4xl mb-6 font-[400]">
-              {props.title}
+              <DecryptedText
+                text={title}
+                speed={100}
+                maxIterations={7}
+                characters="ABCD1234!?"
+                className="revealed"
+                parentClassName="all-letters"
+                encryptedClassName="encrypted"
+                animateOn="view"
+              />
             </h1>
             <div className="w-3/4">
               <div className="flex text-white justify-between items-center">
@@ -91,7 +105,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                 />
               </div>
               <div className="flex justify-center mt-1 text-white">
-                {props.content}
+                {content}
               </div>
             </div>
             {/* {displayProgressSteps && <ProgressTracker steps={progressSteps} />} */}
@@ -126,9 +140,7 @@ const BridgeControlCard = (props: BridgeControlCardProps) => {
                     placeholder="e.g., 12345"
                   /> */}
 
-            {currentState !== 'completed' ?
-              <DepositProgress /> : <></>
-            }
+            {currentState !== "completed" ? <DepositProgress /> : <></>}
           </div>
         </BridgeControlCardSVG>
       </div>
