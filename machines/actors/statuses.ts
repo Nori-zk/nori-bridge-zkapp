@@ -76,7 +76,7 @@ export enum ReplacementDepositProcessingStatus {
   WaitingForEthFinality = "Waiting for Ethereum finality",
   WaitingForPreviousJobCompletion = "Processing previous deposits",
   WaitingForCurrentJobCompletion = "Processing your deposit",
-  ReadyToMint = "Ready to mint",
+  ReadyToMint = "Minting in progress",
   MissedMintingOpportunity = "Missed minting opportunity",
 }
 

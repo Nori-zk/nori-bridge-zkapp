@@ -30,13 +30,13 @@ const STATUS_EXPLANATIONS: Record<string, string> = {
     "Nori has finished processing. Your deposit is proven and you can now start minting nETH!",
 
   [ReplacementStageName.ProvingLightClient]:
-    "Nori proves the detected state transition from its Helios light client inside the SP1 zkVM. This requires the Succinct Prover Network to generate and return a proof.",
+    "Nori proves the detected state transition from its Helios light client inside the SP1 zkVM. This requires the Succinct Prover Network to generate and return a proof. On average, this step takes under 3 minutes.",
 
   [ReplacementStageName.VerifyingZkVMProof]:
-    "The zkVM proof is verified using an o1js verification circuit through Nori's Proof-Conversion service.",
+    "The zkVM proof is verified using an o1js verification circuit through Nori's Proof-Conversion service. This compute-intensive step typically takes under 5.5 minutes.",
 
   [ReplacementStageName.SettlingProof]:
-    "Nori creates and proves a Mina transaction containing the o1js proof of the Ethereum state transition.",
+    "Nori creates and proves a Mina transaction containing the o1js proof of the Ethereum state transition. This step usually takes under 1.5 minutes.",
 
   [ReplacementStageName.WaitingForConfirmation]:
     "The Mina transaction has been submitted. Depending on block times, confirmation may take anywhere from ~3 minutes up to ~25 minutes. Recently, ~85% of transactions have confirmed within 9 minutes.",
@@ -197,7 +197,7 @@ const DepositProgress = () => {
           )}
         </div>
         {depositStatus && <hr className="border-0 h-0.5 bg-white/20 mx-7" />}
-        <ProgressBar progress={hideProgress? 0.0 : stageProgress} />
+        <ProgressBar progress={hideProgress ? 0.0 : stageProgress} />
         {renderStageProgress()}
       </div>
     </div>
