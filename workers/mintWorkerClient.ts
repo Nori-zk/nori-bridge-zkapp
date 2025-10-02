@@ -85,7 +85,7 @@ export default class ZkappMintWorkerClient {
 
   // Terminate the worker when your done with it.
   terminate() {
-    this.#mintWorker.terminate();
+    this.#mintWorker.signalTerminate();
     this.#terminated = true;
   }
 
