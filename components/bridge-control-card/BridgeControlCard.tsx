@@ -11,6 +11,7 @@ import Swap from "@/public/assets/Swap.svg";
 import DepositProgress from "./DepositProgress/DepositProgress.tsx";
 import DecryptedText from "@/blocks/TextAnimations/DecryptedText/DecryptedText.tsx";
 import TextType from "@/blocks/TextAnimations/TextType/TextType.tsx";
+import ElectricBorder from "@/blocks/Animations/ElectricBorder/ElectricBorder.jsx";
 
 type BridgeControlCardProps = {
   title: string;
@@ -26,30 +27,16 @@ const BridgeControlCard = ({
   height,
 }: BridgeControlCardProps) => {
   const [isMounted, setIsMounted] = useState<boolean>(false);
-  const [displayProgressSteps, setDisplayProgressSteps] = useState(false);
   // const [depositNumber, setDepositNumberInput] = useState<string>("12345");
 
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
   const { isConnected: minaConnected, address: minaAddress } = useAccount();
-  const { currentState } = useNoriBridge();
-  const { bridgeSocketConnectionState$ } = useSetup();
-
-  const [status, setStatus] = useState<
-    "connecting" | "open" | "closed" | "reconnecting" | "permanently-closed"
-  >("connecting");
+  const { currentState, state: bridgeState } = useNoriBridge();
 
   useEffect(() => {
     setIsMounted(true);
-    if (progressSteps.length > 0) {
-      setDisplayProgressSteps(true);
-    }
   }, []);
-
-  useEffect(() => {
-    const sub = bridgeSocketConnectionState$.subscribe(setStatus);
-    return () => sub.unsubscribe();
-  }, [bridgeSocketConnectionState$]);
 
   const minaButtonContent = isMounted
     ? minaConnected
@@ -59,58 +46,72 @@ const BridgeControlCard = ({
 
   return (
     <div>
-      <div
-        style={{
-          width: width,
-          height: height,
-          position: "relative",
-          overflow: "hidden",
-          boxShadow:
-            ethConnected && minaConnected
-              ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
-              : "none",
-          borderRadius: "20px",
-        }}
+      {currentState == "computeEthProof" ||
+        currentState == "buildingMintTx" ||
+        bridgeState.context.mintWorker?.isCompilingContracts() ||
+        (currentState == "setupStorage" && (
+          <div className="text-white">COMPUTING</div>
+        ))}
+
+      <ElectricBorder
+        color={"var(--lightGreen)"}
+        speed={1}
+        chaos={0.5}
+        thickness={2}
+        style={{ borderRadius: 16 }}
       >
-        <BridgeControlCardSVG width={width} height={height}>
-          <div className="flex flex-col items-center justify-center h-full">
-            <h1 className="text-center text-white text-4xl mb-6 font-[400]">
-              <TextType
-                key={title}
-                text={title}
-                typingSpeed={75}
-                pauseDuration={1500}
-                showCursor={true}
-                cursorCharacter="|"
-              />
-            </h1>
-            <div className="w-3/4">
-              <div className="flex text-white justify-between items-center">
-                <WalletButton
-                  id="eth-btn"
-                  types={"Ethereum"}
-                  content={
-                    ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
-                  }
+        <div
+          style={{
+            width: width,
+            height: height,
+            position: "relative",
+            overflow: "hidden",
+            boxShadow:
+              ethConnected && minaConnected
+                ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
+                : "none",
+            borderRadius: "20px",
+          }}
+        >
+          <BridgeControlCardSVG width={width} height={height}>
+            <div className="flex flex-col items-center justify-center h-full">
+              <h1 className="text-center text-white text-4xl mb-6 font-[400]">
+                <TextType
+                  key={title}
+                  text={title}
+                  typingSpeed={75}
+                  pauseDuration={1500}
+                  showCursor={true}
+                  cursorCharacter="|"
                 />
-                <div className="flex items-center justify-center w-7 h-7 mx-2">
-                  <Swap />
+              </h1>
+              <div className="w-3/4">
+                <div className="flex text-white justify-between items-center">
+                  <WalletButton
+                    id="eth-btn"
+                    types={"Ethereum"}
+                    content={
+                      ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
+                    }
+                  />
+                  <div className="flex items-center justify-center w-7 h-7 mx-2">
+                    <Swap />
+                  </div>
+
+                  <WalletButton
+                    id="mina-btn"
+                    types={"Mina"}
+                    content={minaButtonContent}
+                  />
                 </div>
-
-                <WalletButton
-                  id="mina-btn"
-                  types={"Mina"}
-                  content={minaButtonContent}
-                />
+                <div className="flex justify-center mt-1 text-white">
+                  {content}
+                </div>
               </div>
-              <div className="flex justify-center mt-1 text-white">
-                {content}
-              </div>
-            </div>
-            {/* {displayProgressSteps && <ProgressTracker steps={progressSteps} />} */}
+              {/* {displayProgressSteps && <ProgressTracker steps={progressSteps} />} */}
 
-            {/* Current State Display */}
-            {/* <div className="flex justify-around items-center">
+              {/* Current State Display */}
+              {/* <div className="flex justify-around items-center">
               <div className="p-4">
                 <div className={`font-mono text-sm ${getStatusColor()}`}>
                   State: <span className="font-bold">{getStateDisplay()}</span>
@@ -130,7 +131,7 @@ const BridgeControlCard = ({
                   {/* <label className="block text-sm font-medium mb-1">
                   Deposit Block Number
                 </label> */}
-            {/* <div className="flex flex-row gap-2">
+              {/* <div className="flex flex-row gap-2">
                   {/* <input
                     type="text"
                     value={depositNumber}
@@ -139,10 +140,11 @@ const BridgeControlCard = ({
                     placeholder="e.g., 12345"
                   /> */}
 
-            {currentState !== "completed" ? <DepositProgress /> : <></>}
-          </div>
-        </BridgeControlCardSVG>
-      </div>
+              {currentState !== "completed" ? <DepositProgress /> : <></>}
+            </div>
+          </BridgeControlCardSVG>
+        </div>
+      </ElectricBorder>
     </div>
   );
 };
