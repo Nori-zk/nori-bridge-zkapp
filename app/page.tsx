@@ -64,15 +64,15 @@ export default function Home() {
               {/* {ethConnected && minaConnected && <ScrollingWSS />} */}
             </div>
             {/* <DepositMintTestUI /> */}
-            <div className="relative inline-block">
+            <div className="relative inline-block w-[830px] h-[550px]">
               <BridgeControlCard
                 title={
                   ethConnected && minaConnected
                     ? title
                     : "First connect wallets"
                 }
-                width={"780"}
-                height={"450"}
+                width={"100%"}
+                height={"100%"}
                 content={ethConnected && minaConnected ? component : null}
               />
               {/* <button
