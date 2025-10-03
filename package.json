@@ -12,7 +12,7 @@
     "lint": "next lint",
     "ts-watch": "tsc --noEmit --incremental --watch",
     "test": "vitest",
-    "firebase:deploy": "npm run build && npx firebase deploy",
+    "firebase:deploy": "npx firebase deploy",
     "firebase:deploy:hosting": "npm run build && npx firebase deploy --only hosting",
     "firebase:deploy:functions": "firebase deploy --only functions"
   },
