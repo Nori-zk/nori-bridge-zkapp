@@ -61,7 +61,8 @@ const WalletButton = ({
         className={clsx(
           "px-4 py-2 rounded-lg flex items-center justify-evenly",
           "bg-white",
-          "text-black"
+          "text-black",
+          "text-xl"
         )}
       >
         {logo}
@@ -84,7 +85,7 @@ const WalletButton = ({
       onClick={handleClick}
       disabled={isConnecting || !!isComplete}
       className={clsx(
-        "px-4 py-2 rounded-lg flex items-center justify-evenly",
+        "px-4 py-2 rounded-lg flex items-center justify-evenly text-xl",
         bgClass,
         textClass,
         isConnecting && "opacity-50 cursor-not-allowed"

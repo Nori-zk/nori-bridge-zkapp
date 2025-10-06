@@ -166,9 +166,9 @@ const DepositProgress = () => {
   };
 
   return (
-    <div>
+    <div className="w-full">
       <div className="w-full">
-        <hr className="border-0 h-0.5 bg-white/20 mt-8 w-[684px]" />
+        <hr className="border-0 h-0.5 bg-white/20 mt-8" />
         <div className="flex w-full justify-center items-center text-lightGreen py-3 relative">
           <span>{depositStatus}</span>
 
@@ -198,7 +198,7 @@ const DepositProgress = () => {
             </div>
           )}
         </div>
-        {depositStatus && <hr className="border-0 h-0.5 bg-white/20 mx-7" />}
+        {depositStatus && <hr className="border-0 h-0.5 bg-white/20" />}
         <ProgressBar progress={hideProgress ? 0.0 : stageProgress} />
         {renderStageProgress()}
       </div>

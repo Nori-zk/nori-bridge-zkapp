@@ -64,7 +64,7 @@ const LockTokens = () => {
           state.context.activeDepositNumber != null
             ? "text-white/20"
             : "text-white"
-        } rounded-lg px-4 py-3`}
+        } rounded-lg py-3`}
       >
         <TextInput
           id="amount-input"
