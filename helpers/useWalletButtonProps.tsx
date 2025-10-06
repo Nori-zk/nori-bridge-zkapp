@@ -5,7 +5,6 @@ import Ethereum from "@/public/assets/Ethereum.svg";
 import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "./walletHelper.tsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
-import { Store } from "./localStorage2.ts";
 
 //TODO rename to return type
 type WalletButtonUIProps = {
@@ -26,9 +25,13 @@ export function useWalletButtonProps(
 ): WalletButtonUIProps {
   const eth = useMetaMaskWallet();
   const { address, isConnected } = useAccount();
-  const { isConnectingWalletOpen, connect, disconnect, walletAddress: minaAddress } = useAuroWallet();
+  const {
+    isConnectingWalletOpen,
+    connect,
+    disconnect,
+    walletAddress: minaAddress,
+  } = useAuroWallet();
   const isEthereum = type === "Ethereum";
-
 
   if (isEthereum) {
     return {

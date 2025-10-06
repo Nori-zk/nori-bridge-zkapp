@@ -39,12 +39,11 @@ const WalletButton = ({
   } = useWalletButtonProps(types, content);
   const { walletAddress: ethAddress } = useMetaMaskWallet();
   const { walletAddress: minaAddress } = useAuroWallet();
-  const { currentState } = useNoriBridge()
+  const { currentState } = useNoriBridge();
 
   //TODO this needs setting programmatically
   const isComplete = currentState.match("completed");
   const txAmount = Store.forPair(ethAddress!, minaAddress!).txAmount;
-
 
   useEffect(() => {
     setIsMounted(true);
@@ -109,7 +108,7 @@ const WalletButton = ({
       ) : (
         <>
           <div className="m-1">{logo}</div>
-          <div className="m-3 text-lg">{displayAddress}</div>
+          <div className="m-3 text-xl">{displayAddress}</div>
         </>
       )}
     </button>

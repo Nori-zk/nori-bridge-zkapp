@@ -2,14 +2,14 @@ import { useMemo, memo } from "react";
 
 type AnimatedProgressBarProps = {
   progress: number; // 0 to 100
-}
+};
 
 // Define props type for NumberColumn
 type NumberColumnProps = {
   delay?: number;
   direction?: "up" | "down";
   startNumber?: number;
-}
+};
 
 const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
   // const [progress, setProgress] = useState(0);
@@ -50,10 +50,11 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
             </div>
 
             <div
-              className={`flex flex-col ${direction === "up"
-                ? "animate-[scrollUp_20s_linear_infinite]"
-                : "animate-[scrollDown_20s_linear_infinite]"
-                }`}
+              className={`flex flex-col ${
+                direction === "up"
+                  ? "animate-[scrollUp_20s_linear_infinite]"
+                  : "animate-[scrollDown_20s_linear_infinite]"
+              }`}
             >
               {generateNumbers(startNumber).map((num) => (
                 <span
@@ -97,7 +98,7 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
   }, []);
 
   return (
-    <div className="px-7 py-4 flex items-center justify-center">
+    <div className="w-full py-4 flex items-center justify-center">
       <div className="w-full max-w-2xl">
         <div className="relative w-full h-10 border border-white/20 rounded-lg overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">

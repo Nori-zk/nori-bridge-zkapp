@@ -51,42 +51,52 @@ const BridgeControlCardContent = ({
             ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
             : "none",
         borderRadius: "20px",
+        justifyContent: "center",
+        display: "flex",
       }}
     >
       <BridgeControlCardSVG width={width} height={height}>
-        <div className="flex flex-col items-center justify-center h-full">
-          <h1 className="text-center text-white text-4xl mb-6 font-[400]">
-            <TextType
-              key={title}
-              text={title}
-              typingSpeed={75}
-              pauseDuration={1500}
-              showCursor={true}
-              cursorCharacter="|"
-            />
-          </h1>
-          <div className="w-3/4">
-            <div className="flex text-white justify-between items-center">
-              <WalletButton
-                id="eth-btn"
-                types={"Ethereum"}
-                content={
-                  ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
-                }
+        <div className="w-full h-full flex justify-center">
+          <div className="flex flex-col items-center justify-center h-full">
+            <h1 className="text-center text-white text-4xl mb-6 font-[400]">
+              <TextType
+                key={title}
+                text={title}
+                typingSpeed={75}
+                pauseDuration={1500}
+                showCursor={true}
+                cursorCharacter="|"
               />
-              <div className="flex items-center justify-center w-7 h-7 mx-2">
-                <Swap />
-              </div>
+            </h1>
+            <div className="w-full">
+              <div className="flex text-white justify-between items-center">
+                <WalletButton
+                  id="eth-btn"
+                  types={"Ethereum"}
+                  content={
+                    ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
+                  }
+                  width={300}
+                  height={70}
+                />
+                <div className="flex items-center justify-center w-7 h-7 mx-2">
+                  <Swap />
+                </div>
 
-              <WalletButton
-                id="mina-btn"
-                types={"Mina"}
-                content={minaButtonContent}
-              />
+                <WalletButton
+                  id="mina-btn"
+                  types={"Mina"}
+                  content={minaButtonContent}
+                  width={300}
+                  height={70}
+                />
+              </div>
+              <div className="flex justify-center mt-1 text-white">
+                {content}
+              </div>
             </div>
-            <div className="flex justify-center mt-1 text-white">{content}</div>
+            {currentState !== "completed" ? <DepositProgress /> : <></>}
           </div>
-          {currentState !== "completed" ? <DepositProgress /> : <></>}
         </div>
       </BridgeControlCardSVG>
     </div>
