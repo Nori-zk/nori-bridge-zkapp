@@ -88,6 +88,10 @@ const LockTokens = () => {
               parseFloat(value) >= 0.0001 || "Must be at least 0.0001",
           })}
         />
+        <div className="text-white/20 flex justify-between mt-1">
+          <div className="text-sm">1% transaction...</div>
+          <div className="text-sm">Available: 0.05 ETH | Max</div>
+        </div>
         {errors.amount && (
           <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
         )}
