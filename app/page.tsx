@@ -13,6 +13,7 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { Store } from "@/helpers/localStorage2.ts";
 import { useEffect, useState } from "react";
+import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
 
 export default function Home() {
   const [showMobileWarning, setShowMobileWarning] = useState<boolean>(false);
@@ -60,11 +61,35 @@ export default function Home() {
             <Nori className="scale-[1]" />
           </div>
           <div className="flex flex-grow w-full justify-center items-center h-full">
-            <div className="w-1/4 h-[450px]">
-              {/* {ethConnected && minaConnected && <ScrollingWSS />} */}
+            {/* Left LaserFlow */}
+            <div className="w-1/4 h-[450px] flex items-center justify-end pr-4 relative z-1">
+              <div
+                // className="-rotate-90 origin-center"
+                style={{
+                  width: "500px",
+                  height: "1200px",
+                  // position: "relative",
+                  left: "200px",
+                  zIndex: 1,
+                }}
+              >
+                <LaserFlow
+                  style={{ width: "725px", zIndex: 1 }}
+                  className={"-rotate-90"}
+                  horizontalBeamOffset={-0.0}
+                  verticalBeamOffset={-0.12}
+                  color="#64E18E"
+                  horizontalSizing={1}
+                  verticalSizing={5}
+                  fogIntensity={0.6}
+                  wispIntensity={6.0}
+                  dpr={undefined}
+                />
+              </div>
             </div>
-            {/* <DepositMintTestUI /> */}
-            <div className="relative inline-block w-[830px] h-[550px]">
+
+            {/* Center Bridge Control Card */}
+            <div className="relative inline-block w-[830px] h-[550px] z-10">
               <BridgeControlCard
                 title={
                   ethConnected && minaConnected
@@ -75,20 +100,10 @@ export default function Home() {
                 height={"100%"}
                 content={ethConnected && minaConnected ? component : null}
               />
-              {/* <button
-                onClick={() => console.log("Flip pressed")}
-                className="absolute -top-1 -right-11 z-20 transition-all duration-300 ease-in-out hover:scale-110 hover:rotate-6"
-              >
-                <Flip
-                  width={65}
-                  height={65}
-                  className="scale-[0.82] fill-red-100 transition-colors duration-300 ease-in-out group-hover:fill-red-300"
-                />
-              </button> */}
             </div>
-            <div className="w-1/4 h-[450px]">
-              {/* {ethConnected && minaConnected && <ScrollingBridge />} */}
-            </div>
+
+            {/* Right LaserFlow */}
+            <div className="w-1/4 h-[450px] flex items-center justify-start pl-4 relative"></div>
           </div>
           <div>
             <Notification
@@ -96,18 +111,6 @@ export default function Home() {
               show={!ethConnected || !minaConnected}
             />
           </div>
-          {/* <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
-            Powered by{" "}
-            <a
-              href="https://www.coingecko.com/en/api"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="z-10 mx-1 hover:underline"
-            >
-              CoinGecko API
-            </a>
-          </div> */}
 
           {bridgeState.context.mintWorker?.areContractCompiled() && (
             <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
