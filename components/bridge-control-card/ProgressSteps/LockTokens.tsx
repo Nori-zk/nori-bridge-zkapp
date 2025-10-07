@@ -18,8 +18,10 @@ const LockTokens = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormValues>();
+  const amountValue = watch("amount");
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -68,6 +70,7 @@ const LockTokens = () => {
       >
         <TextInput
           id="amount-input"
+          hasValue={!!amountValue && amountValue.length > 0}
           disabled={state.context.activeDepositNumber != null || locking}
           {...register("amount", {
             required: "Amount is required",
@@ -83,7 +86,6 @@ const LockTokens = () => {
               value: 0.1,
               message: "Must be at most 0.1",
             },
-
             validate: (value) =>
               parseFloat(value) >= 0.0001 || "Must be at least 0.0001",
           })}
