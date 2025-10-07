@@ -62,25 +62,23 @@ export default function Home() {
           </div>
           <div className="flex flex-grow w-full justify-center items-center h-full">
             {/* Left LaserFlow */}
-            <div className="w-1/4 h-[450px] flex items-center justify-end pr-4 relative z-1">
+            <div className="w-1/4 h-[450px] flex items-center justify-end pr-4 relative overflow-hidden">
               <div
-                // className="-rotate-90 origin-center"
                 style={{
                   width: "500px",
                   height: "1200px",
-                  // position: "relative",
                   left: "200px",
                   zIndex: 1,
                 }}
               >
                 <LaserFlow
-                  style={{ width: "725px", zIndex: 1 }}
+                  style={{ width: "800px" }}
                   className={"-rotate-90"}
                   horizontalBeamOffset={-0.0}
-                  verticalBeamOffset={-0.12}
+                  verticalBeamOffset={-0.095}
                   color="#64E18E"
                   horizontalSizing={1}
-                  verticalSizing={5}
+                  verticalSizing={4}
                   fogIntensity={0.6}
                   wispIntensity={6.0}
                   dpr={undefined}
