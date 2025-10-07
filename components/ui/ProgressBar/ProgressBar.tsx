@@ -11,7 +11,7 @@ type NumberColumnProps = {
   startNumber?: number;
 };
 
-const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
+const ProgressBar = ({ progress }: AnimatedProgressBarProps) => {
   // const [progress, setProgress] = useState(0);
 
   // // Simulate progress loading
@@ -107,10 +107,11 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
             </div>
           </div>
           <div
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-lightGreen to-lightGreen transition-all duration-300 ease-out rounded-lg z-10"
+            //progress bar using hex and via to obtain horizontal shimmer effect
+            className="absolute top-0 left-0 h-full bg-gradient-to-b from-[#55C374] via-[#82FCA5] to-[#55C374] transition-all duration-300 ease-out rounded-lg z-10"
             style={{
               width: `${progress}%`,
-              boxShadow: "5px 0 10px lightGreen",
+              boxShadow: "10px 0 30px lightGreen",
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
@@ -141,4 +142,4 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
   );
 };
 
-export default AnimatedProgressBar;
+export default ProgressBar;
