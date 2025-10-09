@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import Vector from "@/public/assets/Vector.svg";
-import BlackVector from "@/public/assets/BlackVector.svg";
 
 const ScrollingBridge = () => {
   return (
@@ -13,17 +12,19 @@ const ScrollingBridge = () => {
           "linear-gradient(to left, transparent 5%, white 30%, white 100%)",
       }}
     >
-      <motion.div
-        className="left-0 text-2xl whitespace-nowrap flex items-center"
-        initial={{ x: "-25%" }}
-        animate={{ x: "25%" }}
-        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-      >
-        <div className="flex items-center">
-          <Vector />
-          <BlackVector />
-        </div>
-      </motion.div>
+      <div style={{ transform: "scale(0.55) translateY(-40%)", transformOrigin: "center" }}>
+        <motion.div
+          className="left-0 text-2xl whitespace-nowrap flex items-center"
+          initial={{ x: "-25%" }}
+          animate={{ x: "25%" }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+        >
+          <div className="flex items-center">
+            <Vector />
+            <Vector />
+          </div>
+        </motion.div>
+      </div>
     </div>
     // </div>
   );

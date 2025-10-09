@@ -103,8 +103,7 @@ export default function Home() {
             </div>
 
             <div className="w-1/4 h-[450px]">
-              {/* {ethConnected && minaConnected && <ScrollingBridge />} */}
-              {ethConnected && minaConnected && <div></div>}
+              {ethConnected && minaConnected && <ScrollingBridge />}
             </div>
           </div>
           <div>
