@@ -63,27 +63,29 @@ export default function Home() {
           <div className="flex flex-grow w-full justify-center items-center h-full">
             {/* Left LaserFlow */}
             <div className="w-1/4 h-[450px] flex items-center justify-end pr-4 relative overflow-hidden">
-              <div
-                style={{
-                  width: "500px",
-                  height: "1200px",
-                  left: "200px",
-                  zIndex: 1,
-                }}
-              >
-                <LaserFlow
-                  style={{ width: "800px" }}
-                  className={"-rotate-90"}
-                  horizontalBeamOffset={-0.0}
-                  verticalBeamOffset={-0.095}
-                  color="#64E18E"
-                  horizontalSizing={1}
-                  verticalSizing={4}
-                  fogIntensity={0.6}
-                  wispIntensity={6.0}
-                  dpr={undefined}
-                />
-              </div>
+              {ethConnected && minaConnected && (
+                <div
+                  style={{
+                    width: "500px",
+                    height: "1200px",
+                    left: "200px",
+                    zIndex: 1,
+                  }}
+                >
+                  <LaserFlow
+                    style={{ width: "800px" }}
+                    className={"-rotate-90"}
+                    horizontalBeamOffset={-0.0}
+                    verticalBeamOffset={-0.095}
+                    color="#64E18E"
+                    horizontalSizing={1}
+                    verticalSizing={4}
+                    fogIntensity={0.6}
+                    wispIntensity={6.0}
+                    dpr={undefined}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Center Bridge Control Card */}
@@ -100,8 +102,10 @@ export default function Home() {
               />
             </div>
 
-            {/* Right LaserFlow */}
-            <div className="w-1/4 h-[450px] flex items-center justify-start pl-4 relative"></div>
+            <div className="w-1/4 h-[450px]">
+              {/* {ethConnected && minaConnected && <ScrollingBridge />} */}
+              {ethConnected && minaConnected && <div></div>}
+            </div>
           </div>
           <div>
             <Notification
