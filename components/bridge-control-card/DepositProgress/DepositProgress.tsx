@@ -1,4 +1,5 @@
 import ProgressBar from "@/components/ui/ProgressBar/ProgressBar.tsx";
+import Tooltip from "@/components/ui/Tooltip/Tooltip.tsx";
 import {
   ReplacementDepositProcessingStatus,
   ReplacementStageName,
@@ -6,6 +7,7 @@ import {
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import LeftLine from "@/public/assets/LeftLine.svg";
 import RightLine from "@/public/assets/RightLine.svg";
+import { STATUS_EXPLANATIONS } from "@/types/types.ts";
 import { useState } from "react";
 
 // Define the order of stages
@@ -15,32 +17,6 @@ const STAGE_ORDER = [
   ReplacementStageName.SettlingProof,
   ReplacementStageName.WaitingForConfirmation,
 ];
-
-// Status explanations mapping
-const STATUS_EXPLANATIONS: Record<string, string> = {
-  [ReplacementDepositProcessingStatus.WaitingForEthFinality]:
-    "For your deposit to be locked in permanently, the Ethereum consensus layer requires two epochs (~14 minutes). During this time, validators attest to and justify the blocks. Once finalised, the block containing your deposit cannot be reverted.",
-
-  [ReplacementDepositProcessingStatus.WaitingForPreviousJobCompletion]:
-    "Nori's infrastructure is still proving the last Ethereum state transition with a batch of deposits. Your deposit has not yet been included in that batch.",
-  [ReplacementDepositProcessingStatus.WaitingForCurrentJobCompletion]:
-    "Nori's infrastructure is actively proving the state transition for the batch of deposits that includes yours.",
-
-  [ReplacementDepositProcessingStatus.ReadyToMint]:
-    "Nori has finished processing. Your deposit is proven and you can now start minting nETH!",
-
-  [ReplacementStageName.ProvingLightClient]:
-    "Nori proves the detected state transition from its Helios light client inside the SP1 zkVM. This requires the Succinct Prover Network to generate and return a proof. On average, this step takes under 3 minutes.",
-
-  [ReplacementStageName.VerifyingZkVMProof]:
-    "The zkVM proof is verified using an o1js verification circuit through Nori's Proof-Conversion service. This compute-intensive step typically takes under 5.5 minutes.",
-
-  [ReplacementStageName.SettlingProof]:
-    "Nori creates and proves a Mina transaction containing the o1js proof of the Ethereum state transition. This step usually takes under 1.5 minutes.",
-
-  [ReplacementStageName.WaitingForConfirmation]:
-    "The Mina transaction has been submitted. Depending on block times, confirmation may take anywhere from ~3 minutes up to ~25 minutes. Recently, ~85% of transactions have confirmed within 9 minutes.",
-};
 
 const DepositProgress = () => {
   const {
@@ -139,16 +115,12 @@ const DepositProgress = () => {
 
               {/* Tooltip */}
               {showTooltip === centerStage && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 z-50">
-                  <div className="bg-darkGreen/95 border border-lightGreen/30 rounded-lg p-3 text-sm text-lightGreen/90 shadow-lg backdrop-blur-sm">
-                    <div className="relative">
-                      {STATUS_EXPLANATIONS[centerStage] ||
-                        "Processing stage in progress."}
-                      {/* Tooltip arrow */}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-lightGreen/30"></div>
-                    </div>
-                  </div>
-                </div>
+                <Tooltip
+                  content={
+                    STATUS_EXPLANATIONS[centerStage] ||
+                    "Processing stage in progress."
+                  }
+                />
               )}
             </div>
           )}
@@ -185,15 +157,7 @@ const DepositProgress = () => {
 
               {/* Tooltip */}
               {showTooltip === true && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 z-50">
-                  <div className="bg-darkGreen/95 border border-lightGreen/30 rounded-lg p-3 text-sm text-lightGreen/90 shadow-lg backdrop-blur-sm">
-                    <div className="relative">
-                      {getStatusExplanation()}
-                      {/* Tooltip arrow */}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-lightGreen/30"></div>
-                    </div>
-                  </div>
-                </div>
+                <Tooltip content={getStatusExplanation()} />
               )}
             </div>
           )}

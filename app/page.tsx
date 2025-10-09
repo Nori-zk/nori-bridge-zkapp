@@ -38,7 +38,6 @@ export default function Home() {
 
   return (
     <div className="h-full w-full bg-[radial-gradient(50%_100%_at_50%_0%,theme('colors.darkGreen')_1.31%,theme('colors.veryDarkGreen')_100%)]">
-      {/* Mobile Warning Modal */}
       {showMobileWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="bg-darkGreen border border-lightGreen rounded-lg p-8 max-w-sm mx-4 shadow-2xl">
@@ -61,12 +60,13 @@ export default function Home() {
             <Nori className="scale-[1]" />
           </div>
           <div className="flex flex-grow w-full justify-center items-center h-full">
-            {/* Left LaserFlow */}
             <div
               className="w-1/4 h-[450px] flex items-center justify-end pr-4 relative overflow-hidden"
               style={{
-                maskImage: "linear-gradient(to right, transparent 0%, white 15%, white 100%)",
-                WebkitMaskImage: "linear-gradient(to right, transparent 0%, white 15%, white 100%)",
+                maskImage:
+                  "linear-gradient(to right, transparent 0%, white 15%, white 100%)",
+                WebkitMaskImage:
+                  "linear-gradient(to right, transparent 0%, white 15%, white 100%)",
               }}
             >
               {ethConnected && minaConnected && (
@@ -93,8 +93,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-
-            {/* Center Bridge Control Card */}
             <div className="relative inline-block w-[830px] h-[550px] z-10">
               <BridgeControlCard
                 title={
@@ -107,7 +105,6 @@ export default function Home() {
                 content={ethConnected && minaConnected ? component : null}
               />
             </div>
-
             <div className="w-1/4 h-[450px]">
               {ethConnected && minaConnected && <ScrollingBridge />}
             </div>
@@ -118,13 +115,11 @@ export default function Home() {
               show={!ethConnected || !minaConnected}
             />
           </div>
-
           {bridgeState.context.mintWorker?.areContractCompiled() && (
             <div className="mb-6 text-white/30 text-xs flex justify-end z-10">
               {`Contracts compiled in: ${bridgeState.context.mintWorker?.getLastCompileTimeSeconds()}s`}
             </div>
           )}
-
           <div className="flex w-full justify-center relative">
             <BottomShadows
               className="absolute bottom-[-100px] scale-[0.9]"
