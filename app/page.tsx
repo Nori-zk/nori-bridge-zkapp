@@ -62,7 +62,13 @@ export default function Home() {
           </div>
           <div className="flex flex-grow w-full justify-center items-center h-full">
             {/* Left LaserFlow */}
-            <div className="w-1/4 h-[450px] flex items-center justify-end pr-4 relative overflow-hidden">
+            <div
+              className="w-1/4 h-[450px] flex items-center justify-end pr-4 relative overflow-hidden"
+              style={{
+                maskImage: "linear-gradient(to right, transparent 0%, white 15%, white 100%)",
+                WebkitMaskImage: "linear-gradient(to right, transparent 0%, white 15%, white 100%)",
+              }}
+            >
               {ethConnected && minaConnected && (
                 <div
                   style={{
