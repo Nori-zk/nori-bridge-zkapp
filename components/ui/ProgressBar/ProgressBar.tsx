@@ -1,3 +1,4 @@
+import RotatingText from "@/blocks/TextAnimations/RotatingText/RotatingText.tsx";
 import { useMemo, memo } from "react";
 
 type AnimatedProgressBarProps = {
@@ -114,6 +115,22 @@ const ProgressBar = ({ progress }: AnimatedProgressBarProps) => {
               boxShadow: "10px 0 30px lightGreen",
             }}
           >
+            {progress === 100 && (
+              <div className="w-full h-full flex justify-center items-center z-15">
+                <RotatingText
+                  texts={["Taking longer than expected!", ""]}
+                  mainClassName="px-2 sm:px-2 md:px-3 bg-transparent text-darkGreen overflow-hidden py-0.5 sm:py-1 md:py-2 justify-center rounded-lg"
+                  staggerFrom={"first"}
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "-120%" }}
+                  staggerDuration={0.025}
+                  splitLevelClassName="overflow-hidden pb-0.5 sm:pb-1 md:pb-1"
+                  transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                  rotationInterval={2000}
+                />
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
           </div>
         </div>
