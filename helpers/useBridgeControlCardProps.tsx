@@ -1,7 +1,4 @@
 import { ReactNode, useEffect, useRef } from "react";
-import { ProgressStep, DepositStates } from "@/types/types.ts";
-import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useAccount } from "wagmina";
 import LockTokens from "@/components/bridge-control-card/ProgressSteps/LockTokens.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import SetupStorage from "@/components/bridge-control-card/ProgressSteps/SetupStorage.tsx";
@@ -14,17 +11,10 @@ import Completed from "@/components/bridge-control-card/ProgressSteps/Completed.
 type BridgeControlCardProps = {
   title: string;
   component?: ReactNode;
-  //   buttonText: string;
-  //   buttonDisabled: boolean;
-  //   textInputDisabled: boolean;
-  //   textInputVisible: boolean;
 };
 
-export function useBridgeControlCardProps(
-  currentStep: ProgressStep
-): BridgeControlCardProps {
-  const { isConnected: ethConnected } = useMetaMaskWallet();
-  const { isConnected: minaConnected } = useAccount();
+export function useBridgeControlCardProps(): BridgeControlCardProps {
+
   const { state: bridgeState, currentState } = useNoriBridge();
 
   const rawToast = useToast({
@@ -50,7 +40,7 @@ export function useBridgeControlCardProps(
         description: `Contracts compiled successfully in ${timeTaken}s`,
       });
     }
-  }, [bridgeState.context.mintWorker?.compiled]);
+  }, [bridgeState.context.mintWorker?.compiled]); // REPLACE THIS WITH A GETTER! FIXME
 
   switch (currentState) {
     case "noActiveDepositNumber":
@@ -159,45 +149,6 @@ export function useBridgeControlCardProps(
       };
   }
 
-  //  (currentState == "noActiveDepositNumber") {
-
-  // }
-
-  // if (currentState == "monitoringDepositStatus") {
-  //   return {
-  //     title:
-  //       bridgeState.context.processingStatus?.deposit_processing_status.valueOf() ==
-  //       "WaitingForEthFinality"
-  //         ? "Waiting for ETH finality"
-  //         : "Monitoring deposit status",
-  //     component: <LockTokens />,
-  //   };
-  // }
-
-  // // ? bridgeState.context.activeDepositNumber
-  // //             ? bridgeState.context.processingStatus?.deposit_processing_status.valueOf() ==
-  // //               "WaitingForEthFinality"
-  // //               ? "Waiting for ETH finality"
-  // //               : "Monitoring deposit status"
-  // //             :
-
-  // if (currentStep === "setup_storage") {
-  //   return {
-  //     title: "Setting up storage",
-  //     component: <SetupStorage />,
-  //   };
-  // }
-  // if (currentStep === "monitor_deposit") {
-  //   return {
-  //     title: "Monitoring deposit status",
-  //     component: <DepositStatus />,
-  //   };
-  // } else {
-  //   return {
-  //     title: "tiddies",
-  //     component: <div>Tiddies Content</div>,
-  //   };
-  // }
 }
 
 export const getContractCompileLabel = (

@@ -1,17 +1,18 @@
+import RotatingText from "@/blocks/TextAnimations/RotatingText/RotatingText.tsx";
 import { useMemo, memo } from "react";
 
 type AnimatedProgressBarProps = {
   progress: number; // 0 to 100
-}
+};
 
 // Define props type for NumberColumn
 type NumberColumnProps = {
   delay?: number;
   direction?: "up" | "down";
   startNumber?: number;
-}
+};
 
-const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
+const ProgressBar = ({ progress }: AnimatedProgressBarProps) => {
   // const [progress, setProgress] = useState(0);
 
   // // Simulate progress loading
@@ -50,10 +51,11 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
             </div>
 
             <div
-              className={`flex flex-col ${direction === "up"
-                ? "animate-[scrollUp_20s_linear_infinite]"
-                : "animate-[scrollDown_20s_linear_infinite]"
-                }`}
+              className={`flex flex-col ${
+                direction === "up"
+                  ? "animate-[scrollUp_20s_linear_infinite]"
+                  : "animate-[scrollDown_20s_linear_infinite]"
+              }`}
             >
               {generateNumbers(startNumber).map((num) => (
                 <span
@@ -97,7 +99,7 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
   }, []);
 
   return (
-    <div className="px-7 py-4 flex items-center justify-center">
+    <div className="w-full py-4 flex items-center justify-center">
       <div className="w-full max-w-2xl">
         <div className="relative w-full h-10 border border-white/20 rounded-lg overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">
@@ -106,12 +108,29 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
             </div>
           </div>
           <div
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-lightGreen to-lightGreen transition-all duration-300 ease-out rounded-lg z-10"
+            //progress bar using hex and via to obtain horizontal shimmer effect
+            className="absolute top-0 left-0 h-full bg-gradient-to-b from-[#55C374] via-[#82FCA5] to-[#55C374] transition-all duration-300 ease-out rounded-lg z-10"
             style={{
               width: `${progress}%`,
-              boxShadow: "5px 0 10px lightGreen",
+              boxShadow: "10px 0 30px lightGreen",
             }}
           >
+            {progress === 100 && (
+              <div className="w-full h-full flex justify-center items-center z-15">
+                <RotatingText
+                  texts={["Taking longer than expected!", ""]}
+                  mainClassName="px-2 sm:px-2 md:px-3 bg-transparent text-darkGreen overflow-hidden py-0.5 sm:py-1 md:py-2 justify-center rounded-lg"
+                  staggerFrom={"first"}
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "-120%" }}
+                  staggerDuration={0.025}
+                  splitLevelClassName="overflow-hidden pb-0.5 sm:pb-1 md:pb-1"
+                  transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                  rotationInterval={2000}
+                />
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
           </div>
         </div>
@@ -140,4 +159,4 @@ const AnimatedProgressBar = ({ progress }: AnimatedProgressBarProps) => {
   );
 };
 
-export default AnimatedProgressBar;
+export default ProgressBar;

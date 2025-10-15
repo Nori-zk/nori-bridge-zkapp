@@ -20,7 +20,7 @@ const Toast = (props: ToastProps) => {
     "flex rounded-lg shadow-lg ring-1 w-full md:max-w-[364px] items-center p-3";
   const typeStyles = {
     error: "bg-veryDarkRed text-white ring-darkRed",
-    notification: "bg-veryDarkGreen text-white ring-blue-500",
+    notification: "bg-veryDarkGreen text-white ring-green-500",
   };
 
   const className = `${baseStyles} ${typeStyles[type]}`;
@@ -49,11 +49,10 @@ const Toast = (props: ToastProps) => {
       {button && (
         <div className="ml-5 shrink-0 rounded-md">
           <button
-            className={`rounded px-3 py-1 text-sm font-semibold text-white transition ${
-              type === "error"
-                ? "bg-darkRed hover:bg-lightRed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            className={`rounded px-3 py-1 text-sm font-semibold text-white transition ${type === "error"
+              ? "bg-darkRed hover:bg-lightRed"
+              : "bg-blue-600 hover:bg-blue-700"
+              }`}
             onClick={() => {
               button.onClick();
               sonnerToast.dismiss(id);

@@ -1,16 +1,15 @@
-import BlueBackgroundLightLeft from "@/public/assets/choose-side/backgrounds/BlueBackgroundLightLeft.svg";
-import BlueBackgroundLightRight from "@/public/assets/choose-side/backgrounds/BlueBackgroundLightRight.svg";
 import BlueBottomShadow from "@/public/assets/choose-side/backgrounds/BlueBottomShadow.svg";
-import RedBackgroundLightLeft from "@/public/assets/choose-side/backgrounds/RedBackgroundLightLeft.svg";
-import RedBackgroundLightRight from "@/public/assets/choose-side/backgrounds/RedBackgroundLightRight.svg";
 import RedBottomShadow from "@/public/assets/choose-side/backgrounds/RedBottomShadow.svg";
 import GreenBackgroundLightRight from "@/public/assets/choose-side/backgrounds/GreenBackgroundLightRight.svg";
 import GreenBackgroundLightLeft from "@/public/assets/choose-side/backgrounds/GreenBackgroundLightLeft.svg";
 import GreenBottomShadow from "@/public/assets/choose-side/backgrounds/GreenBottomShadow.svg";
 import { ChooseSideTypes } from "@/types/types.ts";
+import { useEffect, useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/config/firebaseConfig.ts";
 
 type ChooseSideUIProps = {
-  radialBg: string;
+  radialBg: "blue" | "green" | "red";
   rightBgSvg: React.ReactNode;
   leftBgSvg: React.ReactNode;
   bottomShadowSvg: React.ReactNode;
@@ -18,38 +17,73 @@ type ChooseSideUIProps = {
   textValue: string;
   joinButtonBgClass: string;
   joinButtonTextClass: string;
+  caption: string;
 };
 
 //TODO this should be fixed by moving assets into src
 const NoriRed = "/assets/choose-side/images/NoriRed.png";
 const NoriBlue = "/assets/choose-side/images/NoriBlue.png";
 const NoriGreen = "/assets/choose-side/images/NoriGreen.png";
+const BlueLeftLight = "/assets/choose-side/backgrounds/BlueLeftLight.png";
+const BlueRightLight = "/assets/choose-side/backgrounds/BlueRightLight.png";
+const RedRightLight = "/assets/choose-side/backgrounds/RedRightLight.png";
+const RedLeftLight = "/assets/choose-side/backgrounds/RedLeftLight.png";
+
+function useClanMemberCount(clanRole: "role1" | "role2" | "role3") {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "clans", clanRole), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setCount(data.memberCount ?? 0);
+      } else {
+        setCount(0);
+      }
+    });
+    return () => unsub();
+  }, [clanRole]);
+
+  return count;
+}
 
 export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
+  const roleMap = {
+    red: "role3" as const,
+    green: "role2" as const,
+    blue: "role1" as const,
+  };
+  const clanRole = roleMap[side];
+  const memberCount = useClanMemberCount(clanRole) ?? 0;
+
   if (side === "red") {
     return {
       radialBg: "red",
       rightBgSvg: (
-        <RedBackgroundLightRight className="absolute right-0 top-0 h-full w-1/2" />
+        <img
+          src={RedRightLight}
+          className="absolute right-0 top-0 h-full w-1/2"
+        />
       ),
       leftBgSvg: (
-        <RedBackgroundLightLeft className="absolute left-0 top-0 h-full w-1/2" />
+        <img
+          src={RedLeftLight}
+          className="absolute left-0 top-0 h-full w-1/2"
+        />
       ),
       bottomShadowSvg: <RedBottomShadow className="bottom-0 w-full" />,
       mainImage: (
-        //using inline styles to control size as svg import not responding to tailwind width/height classes
-        // <div style={{ width: "60%", height: "80%" }}>
-        //   <Image src />
-        // </div>
         <img
           src={NoriRed}
           alt="Nori-Red-img"
           className="w-full h-auto rounded-lg shadow-md object-cover"
         />
       ),
-      textValue: "370 Members",
+      textValue: `${memberCount} Members`,
       joinButtonBgClass: "red",
       joinButtonTextClass: "neonRed",
+      caption:
+        "The Yokai are ancient spirits, violently cast into our world during the cataclysm they call the Sundering. They consider all digital technology an unnatural 'corruption' that poisons their magic and sickens their very being. Their sole purpose is to purge this technological blight and restore a world where the raw power of nature and tradition reigns supreme.",
     };
   } else if (side === "green") {
     return {
@@ -66,18 +100,26 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
           className="w-full h-auto rounded-lg shadow-md object-cover"
         />
       ),
-      textValue: "210 Members",
+      textValue: `${memberCount} Members`,
       joinButtonBgClass: "green",
       joinButtonTextClass: "neonGreen",
+      caption:
+        "Vindicated by the Great Collapse, the Cypherpunks are a leaderless collective of hackers who believe code is the only just law. They fight all forms of centralized authority to build a new reality that guarantees absolute individual freedom. Their world would be governed not by rulers, but by transparent, verifiable algorithms that place power directly in the hands of the people.",
     };
   } else {
     return {
       radialBg: "blue",
       rightBgSvg: (
-        <BlueBackgroundLightRight className="absolute right-0 top-0 h-full w-1/2" />
+        <img
+          src={BlueRightLight}
+          className="absolute right-0 top-0 h-full w-1/2"
+        />
       ),
       leftBgSvg: (
-        <BlueBackgroundLightLeft className="absolute left-0 top-0 h-full w-1/2" />
+        <img
+          src={BlueLeftLight}
+          className="absolute left-0 top-0 h-full w-1/2"
+        />
       ),
       bottomShadowSvg: <BlueBottomShadow className=" bottom-0 w-full" />,
       mainImage: (
@@ -87,9 +129,11 @@ export function useChooseSideProps(side: ChooseSideTypes): ChooseSideUIProps {
           className="w-full h-auto rounded-lg shadow-md object-cover"
         />
       ),
-      textValue: "160 Members",
+      textValue: `${memberCount} Members`,
       joinButtonBgClass: "blue",
       joinButtonTextClass: "neonBlue",
+      caption:
+        "Rising from the chaos of the Great Collapse, the Kageyama Syndicate is a cybernetic Yakuza clan guided by a philosophy of absolute control. They view chaos and freedom as bugs to be fixed and seek to subjugate all other factions, not to destroy them, but to integrate their assets into a single, perfectly efficient, and profitable hierarchy under their command.",
     };
   }
 }

@@ -1,4 +1,5 @@
 import ProgressBar from "@/components/ui/ProgressBar/ProgressBar.tsx";
+import Tooltip from "@/components/ui/Tooltip/Tooltip.tsx";
 import {
   ReplacementDepositProcessingStatus,
   ReplacementStageName,
@@ -6,7 +7,9 @@ import {
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import LeftLine from "@/public/assets/LeftLine.svg";
 import RightLine from "@/public/assets/RightLine.svg";
+import { STATUS_EXPLANATIONS } from "@/types/types.ts";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Define the order of stages
 const STAGE_ORDER = [
@@ -15,32 +18,6 @@ const STAGE_ORDER = [
   ReplacementStageName.SettlingProof,
   ReplacementStageName.WaitingForConfirmation,
 ];
-
-// Status explanations mapping
-const STATUS_EXPLANATIONS: Record<string, string> = {
-  [ReplacementDepositProcessingStatus.WaitingForEthFinality]:
-    "For your deposit to be locked in permanently, the Ethereum consensus layer requires two epochs (~14 minutes). During this time, validators attest to and justify the blocks. Once finalised, the block containing your deposit cannot be reverted.",
-
-  [ReplacementDepositProcessingStatus.WaitingForPreviousJobCompletion]:
-    "Nori's infrastructure is still proving the last Ethereum state transition with a batch of deposits. Your deposit has not yet been included in that batch.",
-  [ReplacementDepositProcessingStatus.WaitingForCurrentJobCompletion]:
-    "Nori's infrastructure is actively proving the state transition for the batch of deposits that includes yours.",
-
-  [ReplacementDepositProcessingStatus.ReadyToMint]:
-    "Nori has finished processing. Your deposit is proven and you can now start minting nETH!",
-
-  [ReplacementStageName.ProvingLightClient]:
-    "Nori proves the detected state transition from its Helios light client inside the SP1 zkVM. This requires the Succinct Prover Network to generate and return a proof.",
-
-  [ReplacementStageName.VerifyingZkVMProof]:
-    "The zkVM proof is verified using an o1js verification circuit through Nori's Proof-Conversion service.",
-
-  [ReplacementStageName.SettlingProof]:
-    "Nori creates and proves a Mina transaction containing the o1js proof of the Ethereum state transition.",
-
-  [ReplacementStageName.WaitingForConfirmation]:
-    "The Mina transaction has been submitted. Depending on block times, confirmation may take anywhere from ~3 minutes up to ~25 minutes. Recently, ~85% of transactions have confirmed within 9 minutes.",
-};
 
 const DepositProgress = () => {
   const {
@@ -60,9 +37,11 @@ const DepositProgress = () => {
 
   // Determine what to show
   const showBridgeStage =
-    depositStatus !== ReplacementDepositProcessingStatus.WaitingForEthFinality &&
+    depositStatus !==
+      ReplacementDepositProcessingStatus.WaitingForEthFinality &&
     depositStatus !== ReplacementDepositProcessingStatus.ReadyToMint;
-
+  const hideProgress =
+    depositStatus === ReplacementDepositProcessingStatus.ReadyToMint;
   // Get explanation for current status
   const getStatusExplanation = () => {
     return (
@@ -113,60 +92,131 @@ const DepositProgress = () => {
     const [leftStage, centerStage, rightStage] = getDisplayStages();
 
     return (
-      <div className="flex items-center w-full justify-around px-12">
+      <div className="flex items-center w-full justify-around px-12 relative z-20">
         {/* Left stage */}
-        <div className="text-lightGreen/20 flex-1 text-center">{leftStage}</div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`left-${leftStage}`}
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: leftStage ? 0.2 : 0, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{
+              duration: 0.5,
+              ease: "easeInOut",
+              type: "spring",
+              stiffness: 100,
+              damping: 20,
+            }}
+            className="w-24 mx-1 text-lightGreen flex items-center text-center text-sm leading-tight"
+            style={{ minHeight: "2.5rem" }}
+          >
+            {leftStage}
+          </motion.div>
+        </AnimatePresence>
 
         {/* Left line - only show if left stage exists */}
-        {leftStage && <LeftLine />}
+        <AnimatePresence>
+          {leftStage && (
+            <motion.div
+              className="mx-1"
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              exit={{ opacity: 0, scaleX: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <LeftLine />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Center stage (current) */}
-        <div className="flex flex-col items-center justify-center flex-1 text-center relative">
-          <span className="text-lightGreen">{centerStage}</span>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`center-${centerStage}`}
+            initial={{ opacity: 0, scale: 0.8, x: 100 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: -100 }}
+            transition={{
+              duration: 0.6,
+              ease: [0.43, 0.13, 0.23, 0.96],
+              type: "spring",
+              stiffness: 120,
+              damping: 20,
+            }}
+            className="flex flex-row items-center justify-center flex-1 text-center relative"
+          >
+            <span className="text-lightGreen whitespace-nowrap">
+              {centerStage}
+            </span>
 
-          {/* Help Icon with Tooltip for center stage - positioned below */}
-          {centerStage && (
-            <div className="relative mt-1">
-              <div
-                className="w-4 h-4 rounded-full border border-lightGreen/60 flex items-center justify-center cursor-help text-xs text-lightGreen/60 hover:text-lightGreen hover:border-lightGreen transition-colors"
-                onMouseEnter={() => setShowTooltip(centerStage)}
-                onMouseLeave={() => setShowTooltip(false)}
-              >
-                ?
-              </div>
-
-              {/* Tooltip */}
-              {showTooltip === centerStage && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 z-50">
-                  <div className="bg-darkGreen/95 border border-lightGreen/30 rounded-lg p-3 text-sm text-lightGreen/90 shadow-lg backdrop-blur-sm">
-                    <div className="relative">
-                      {STATUS_EXPLANATIONS[centerStage] ||
-                        "Processing stage in progress."}
-                      {/* Tooltip arrow */}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-lightGreen/30"></div>
-                    </div>
-                  </div>
+            {/* Help Icon with Tooltip for center stage - positioned below */}
+            {centerStage && (
+              <div className="relative flex mt-1">
+                <div
+                  className="w-4 h-4 mx-1 rounded-full border border-lightGreen/60 flex items-center justify-center cursor-help text-xs text-lightGreen/60 hover:text-lightGreen hover:border-lightGreen transition-colors"
+                  onMouseEnter={() => setShowTooltip(centerStage)}
+                  onMouseLeave={() => setShowTooltip(false)}
+                >
+                  ?
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+
+                {/* Tooltip */}
+                {showTooltip === centerStage && (
+                  <Tooltip
+                    content={
+                      STATUS_EXPLANATIONS[centerStage] ||
+                      "Processing stage in progress."
+                    }
+                  />
+                )}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
         {/* Right line - only show if right stage exists */}
-        {rightStage && <RightLine />}
+        <AnimatePresence>
+          {rightStage && (
+            <motion.div
+              className="mx-1"
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              exit={{ opacity: 0, scaleX: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <RightLine />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Right stage */}
-        <div className="text-lightGreen/20 flex-1 text-center">
-          {rightStage}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`right-${rightStage}`}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: rightStage ? 0.2 : 0, x: 0 }}
+            exit={{ opacity: 0, x: 50 }}
+            transition={{
+              duration: 0.5,
+              ease: "easeInOut",
+              type: "spring",
+              stiffness: 100,
+              damping: 20,
+            }}
+            className="text-lightGreen w-24 mx-1 flex items-center text-center text-sm leading-tight"
+            style={{ minHeight: "2.5rem" }}
+          >
+            {rightStage}
+          </motion.div>
+        </AnimatePresence>
       </div>
     );
   };
 
   return (
-    <div className="w-4/5">
-      <div className="w-full">
-        <hr className="border-0 h-0.5 mx-7 bg-white/20" />
+    <div className="w-full relative">
+      <div className="w-full relative">
+        <hr className="border-0 h-0.5 bg-white/20 mt-8" />
         <div className="flex w-full justify-center items-center text-lightGreen py-3 relative">
           <span>{depositStatus}</span>
 
@@ -183,21 +233,13 @@ const DepositProgress = () => {
 
               {/* Tooltip */}
               {showTooltip === true && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 z-50">
-                  <div className="bg-darkGreen/95 border border-lightGreen/30 rounded-lg p-3 text-sm text-lightGreen/90 shadow-lg backdrop-blur-sm">
-                    <div className="relative">
-                      {getStatusExplanation()}
-                      {/* Tooltip arrow */}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-lightGreen/30"></div>
-                    </div>
-                  </div>
-                </div>
+                <Tooltip content={getStatusExplanation()} />
               )}
             </div>
           )}
         </div>
-        {depositStatus && <hr className="border-0 h-0.5 bg-white/20 mx-7" />}
-        <ProgressBar progress={stageProgress} />
+        {depositStatus && <hr className="border-0 h-0.5 bg-white/20" />}
+        <ProgressBar progress={hideProgress ? 0.0 : stageProgress} />
         {renderStageProgress()}
       </div>
     </div>

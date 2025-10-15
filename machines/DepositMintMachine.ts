@@ -1,5 +1,5 @@
 "use client"; // The server cannot use this machine! Should build a seperate machine for other purposes
-import { assign, setup, log, raise, ErrorActorEvent } from "xstate";
+import { assign, setup, log, ErrorActorEvent } from "xstate";
 // Import actual bridge deposit observables
 import {
   getBridgeStateTopic$,
@@ -33,8 +33,8 @@ import {
   submitMintTx,
   submitSetupStorage,
 } from "@/machines/actors/actions.ts";
-// eslint-disable-next-line 
-import _ from "@/node_modules/xstate/dist/declarations/src/guards.js";// this is just to supress the xstate guards ref needed.
+// eslint-disable-next-line
+import _ from "@/node_modules/xstate/dist/declarations/src/guards.js"; // this is just to supress the xstate guards ref needed.
 import { type getDepositProcessingStatus$ } from "./obs/getDepositProcessingStatus$.ts";
 import {
   isSetupStorageInProgressForMinaKey,
@@ -79,10 +79,15 @@ const invokeMonitoringDepositStatus = {
 };
 
 function getErrorReason(event: ErrorActorEvent<unknown, string>) {
-  if (typeof event.error === "object" && event.error !== null && 'message' in event.error && typeof event.error.message === 'string') {
-    return event.error.message
+  if (
+    typeof event.error === "object" &&
+    event.error !== null &&
+    "message" in event.error &&
+    typeof event.error.message === "string"
+  ) {
+    return event.error.message;
   }
-  return 'Unknown reason...'
+  return "Unknown reason...";
 }
 
 // Machine types -----------------------------------------------------------------------
@@ -93,6 +98,7 @@ export interface DepositMintContext {
   activeDepositNumber: number | null;
   computedEthProof: EthProofResult | null;
   depositMintTx: string | null;
+  testShowFactionClaim: boolean;
 
   // Bridge topics (observables)
   ethStateTopic$: ReturnType<typeof getEthStateTopic$>;
@@ -143,11 +149,9 @@ export type DepositMintEvents =
   | { type: "ASSIGN_WORKER"; mintWorkerClient: ZkappMintWorkerClient };
 
 export const getDepositMachine = (
-
   ethStateTopic$: ReturnType<typeof getEthStateTopic$>,
   bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>,
   bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>
-
 ) =>
   setup({
     types: {
@@ -183,6 +187,7 @@ export const getDepositMachine = (
         ), // This browser has NOT sent a setupStorageTx
       shouldGotoSetupStorageGuard: ({ context }) =>
         context.goToSetupStorage === true, // An indicator used to after setupStorageOnChainCheck that we should go to setupStorage
+      shouldShowFactionClaim: ({ context }) => context.testShowFactionClaim,
     },
     actors: {
       compressedDepositProcessingStatusActor,
@@ -204,6 +209,7 @@ export const getDepositMachine = (
       activeDepositNumber: null,
       computedEthProof: null,
       depositMintTx: null,
+      testShowFactionClaim: false,
 
       // RX topics
       ethStateTopic$,
@@ -238,10 +244,16 @@ export const getDepositMachine = (
       // Initial hydration state
       hydrating: {
         entry: log("Entering hydrating 💤"),
-        always: {
-          target: "checking",
-          guard: ({ context }) => context.mintWorker !== null,
-        },
+        always: [
+          {
+            target: "completed",
+            guard: "shouldShowFactionClaim",
+          },
+          {
+            target: "checking",
+            guard: ({ context }) => context.mintWorker !== null,
+          },
+        ],
       },
 
       // Boot: hydrate state and determine next steps
@@ -271,6 +283,11 @@ export const getDepositMachine = (
                 context.mintWorker!.ethWalletPubKeyBase58!,
                 context.mintWorker!.minaWalletPubKeyBase58!
               ).depositMintTx,
+            testShowFactionClaim: () => {
+              const v = Store.global().showFactionClaim;
+              if (!v) return false;
+              return v;
+            },
             errorMessage: null,
           }),
         ],
@@ -286,8 +303,8 @@ export const getDepositMachine = (
       // Add new intermediate state
       checkingDelay: {
         after: {
-          8000: { target: "checking" } // Wait 8 seconds, then go to checking
-        }
+          8000: { target: "checking" }, // Wait 8 seconds, then go to checking
+        },
       },
 
       // User needs to configure deposit number
@@ -407,14 +424,16 @@ export const getDepositMachine = (
             },
             onError: {
               target: "checking",
-              actions: [assign({
-                errorMessage: () => "Failed to check storage setup",
-                errorReason: ({ event }) => getErrorReason(event),
-                errorTimestamp: () => Date.now(),
-              }),
-              ({ event }) => {
-                console.error("checkStorageSetupOnChain error:", event.error);
-              },]
+              actions: [
+                assign({
+                  errorMessage: () => "Failed to check storage setup",
+                  errorReason: ({ event }) => getErrorReason(event),
+                  errorTimestamp: () => Date.now(),
+                }),
+                ({ event }) => {
+                  console.error("checkStorageSetupOnChain error:", event.error);
+                },
+              ],
             },
           },
         ],
@@ -469,7 +488,6 @@ export const getDepositMachine = (
                   errorMessage: () => "Failed to setup storage",
                   errorReason: ({ event }) => getErrorReason(event),
                   errorTimestamp: () => Date.now(),
-
                 }),
                 ({ event }) => {
                   console.error("setupStorage error:", event.error);
@@ -501,14 +519,16 @@ export const getDepositMachine = (
             },
             onError: {
               target: "setupStorage",
-              actions: [assign({
-                errorMessage: () => "Failed to submit storage, trying again.",
-                errorReason: ({ event }) => getErrorReason(event),
-                errorTimestamp: () => Date.now(),
-              }),
-              ({ event }) => {
-                console.error("setupStorage error:", event.error);
-              },]
+              actions: [
+                assign({
+                  errorMessage: () => "Failed to submit storage, trying again.",
+                  errorReason: ({ event }) => getErrorReason(event),
+                  errorTimestamp: () => Date.now(),
+                }),
+                ({ event }) => {
+                  console.error("setupStorage error:", event.error);
+                },
+              ],
             },
           },
         ],
@@ -564,10 +584,12 @@ export const getDepositMachine = (
                   errorMessage: () => "Failed to wait for storage setup",
                   errorReason: ({ event }) => getErrorReason(event),
                   errorTimestamp: () => Date.now(),
-
                 }),
                 ({ event }) => {
-                  console.error("storageIsSetupWithDelayActor error:", event.error);
+                  console.error(
+                    "storageIsSetupWithDelayActor error:",
+                    event.error
+                  );
                 },
               ],
             },
@@ -674,7 +696,6 @@ export const getDepositMachine = (
                   errorMessage: () => "Failed to compute ETH proof",
                   errorReason: ({ event }) => getErrorReason(event),
                   errorTimestamp: () => Date.now(),
-
                 }),
                 ({ event }) => {
                   console.error("computeEthProof error:", event.error);
@@ -760,7 +781,6 @@ export const getDepositMachine = (
                   errorMessage: () => "Failed to build mint transaction",
                   errorReason: ({ event }) => getErrorReason(event),
                   errorTimestamp: () => Date.now(),
-
                 }),
                 ({ event }) => {
                   console.error("computeMintTx error:", event.error);
@@ -770,7 +790,6 @@ export const getDepositMachine = (
           },
         ],
       }, // this still need missed mint oppertunity in always, invokeMonitoringDepositStatus ensures we can use the isMissedOpportunity guard
-
 
       submittingMintTx: {
         invoke: [
@@ -790,7 +809,6 @@ export const getDepositMachine = (
                   errorMessage: () => "Failed to submit mint transaction",
                   errorReason: ({ event }) => getErrorReason(event),
                   errorTimestamp: () => Date.now(),
-
                 }),
                 ({ event }) => {
                   console.error("ubmitMintTx error:", event.error);
@@ -830,8 +848,6 @@ export const getDepositMachine = (
           log("Deposit completed successfully"),
           ({ context }) => {
             //infrom the frotnend we are done and wait for it to send reset
-
-
             // resetLocalStorage(
             //   context.mintWorker!.ethWalletPubKeyBase58,
             //   context.mintWorker!.minaWalletPubKeyBase58
@@ -875,7 +891,7 @@ export const getDepositMachine = (
       },
 
       RESET: {
-        target: ".checking", // or ".hydrating"
+        target: ".hydrating", // or ".hydrating"
         reenter: true, // v5 only; re-run entry even if already there
         actions: [
           assign({
@@ -888,11 +904,18 @@ export const getDepositMachine = (
             needsToFundAccount: false,
             errorMessage: null,
           }),
-          ({ context }) =>
-            resetLocalStorage(
-              context.mintWorker!.ethWalletPubKeyBase58,
-              context.mintWorker!.minaWalletPubKeyBase58
-            ),
+          ({ context }) => {
+            if (context.mintWorker) {
+              resetLocalStorage(
+                context.mintWorker.ethWalletPubKeyBase58,
+                context.mintWorker.minaWalletPubKeyBase58
+              );
+            } else {
+              const lastEthWallet = Store.global().test_lastEthWallet;
+              const lastMinaWallet = Store.global().test_lastMinaWallet;
+              resetLocalStorage(lastEthWallet!, lastMinaWallet!);
+            }
+          },
         ],
       },
     },

@@ -39,12 +39,11 @@ const WalletButton = ({
   } = useWalletButtonProps(types, content);
   const { walletAddress: ethAddress } = useMetaMaskWallet();
   const { walletAddress: minaAddress } = useAuroWallet();
-  const { currentState } = useNoriBridge()
+  const { currentState } = useNoriBridge();
 
   //TODO this needs setting programmatically
   const isComplete = currentState.match("completed");
   const txAmount = Store.forPair(ethAddress!, minaAddress!).txAmount;
-
 
   useEffect(() => {
     setIsMounted(true);
@@ -62,7 +61,8 @@ const WalletButton = ({
         className={clsx(
           "px-4 py-2 rounded-lg flex items-center justify-evenly",
           "bg-white",
-          "text-black"
+          "text-black",
+          "text-xl"
         )}
       >
         {logo}
@@ -83,9 +83,9 @@ const WalletButton = ({
         height,
       }}
       onClick={handleClick}
-      disabled={isConnecting}
+      disabled={isConnecting || !!isComplete}
       className={clsx(
-        "px-4 py-2 rounded-lg flex items-center justify-evenly",
+        "px-4 py-2 rounded-lg flex items-center justify-evenly text-xl",
         bgClass,
         textClass,
         isConnecting && "opacity-50 cursor-not-allowed"
@@ -109,7 +109,7 @@ const WalletButton = ({
       ) : (
         <>
           <div className="m-1">{logo}</div>
-          <div className="m-3 text-lg">{displayAddress}</div>
+          <div className="m-3 text-xl">{displayAddress}</div>
         </>
       )}
     </button>

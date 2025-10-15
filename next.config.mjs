@@ -12,7 +12,7 @@ const nextConfig = {
   },
   output: "export",
   typescript: {
-    ignoreBuildErrors: true,
+    // ignoreBuildErrors: true,
   },
   webpack(config, { isServer }) {
     if (!isServer) {
