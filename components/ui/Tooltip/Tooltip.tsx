@@ -16,7 +16,7 @@ const Tooltip = ({ content }: TooltipProps) => {
       </div> */}
 
       <TooltipSVG>
-        <div className="relative w-full flex items-center justify-center h-full p-4">
+        <div className="relative w-full flex items-center justify-center h-full p-4 text-sm">
           {content}
           {/* Tooltip arrow  */}
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-lightGreen/30"></div>
