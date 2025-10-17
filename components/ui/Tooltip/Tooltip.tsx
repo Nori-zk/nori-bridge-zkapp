@@ -6,7 +6,7 @@ type TooltipProps = {
 
 const Tooltip = ({ content }: TooltipProps) => {
   return (
-    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 z-150">
+    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 z-150 text-lightGreen text-sm">
       {/* <div className="bg-black/50 h-full rounded-xl p-3 text-sm text-lightGreen/90 shadow-lg backdrop-blur-sm border border-lightGreen">
         <div className="relative">
           {content}

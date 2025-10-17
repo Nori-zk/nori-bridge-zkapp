@@ -10,7 +10,7 @@ type TooltipSVGProps = {
 const TooltipSVG = ({
   children,
   width = 364,
-  height = 150,
+  height = 110,
   className = "",
 }: TooltipSVGProps) => {
   return (
