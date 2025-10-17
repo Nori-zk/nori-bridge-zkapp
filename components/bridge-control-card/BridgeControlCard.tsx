@@ -30,6 +30,7 @@ const BridgeControlCard = ({
           chaos={0.5}
           thickness={2}
           style={{ borderRadius: 16 }}
+          className={""}
         >
           <BridgeControlCardContent
             width={width}

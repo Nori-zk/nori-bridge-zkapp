@@ -66,8 +66,8 @@ export const useMetaMaskWallet = (): MetaMaskWalletContextType => {
   return context;
 };
 
-// const holesky_network_id = "0x4268";
-const SEPOLIA_NETWORK_ID = "0xaa36a7"; // 11155111 in hex
+const REQUIRED_NETWORK_ID = "0xaa36a7"; // 11155111 in hex - sepolia
+const REQUIRED_NETWORK_NAME = "Sepolia";
 
 export const MetaMaskWalletProvider = ({
   children,
@@ -79,7 +79,6 @@ export const MetaMaskWalletProvider = ({
   const [signer, setSigner] = useState<Signer | null>(null);
   const [contract, setContract] = useState<Contract | null>(null);
   const [lockedAmount, setLockedAmount] = useState<string | null>(null);
-  // NEW: Track current chain ID
   const [chainId, setChainId] = useState<string | null>(null);
 
   const rawToast = useToast({
@@ -95,16 +94,14 @@ export const MetaMaskWalletProvider = ({
 
   // Helper to check if we're on the correct network
   const isOnCorrectNetwork = useMemo(() => {
-    return chainId === SEPOLIA_NETWORK_ID;
+    return chainId === REQUIRED_NETWORK_ID;
   }, [chainId]);
-
   const initializeContract = useCallback(async (signer: Signer) => {
     const contractAddress = envConfig.NORI_TOKEN_BRIDGE_ADDRESS;
     console.log("Initializing contract at:", contractAddress);
     return new Contract(contractAddress, noriTokenBridgeJson.abi, signer);
   }, []);
 
-  // Helper function to clear wallet state
   const clearWalletState = useCallback(() => {
     setWalletAddress(null);
     setIsConnected(false);
@@ -113,7 +110,51 @@ export const MetaMaskWalletProvider = ({
     setLockedAmount(null);
   }, []);
 
-  // Helper function to initialize wallet connection
+  const validateNetwork = useCallback(async (): Promise<void> => {
+    if (!isOnCorrectNetwork) {
+      toast.current({
+        type: "error",
+        title: "Wrong Network",
+        description: `Please switch to ${REQUIRED_NETWORK_NAME} network.`,
+      });
+      clearWalletState();
+      throw new Error(`Not on ${REQUIRED_NETWORK_NAME} network`);
+    }
+
+    if (!window.ethereum) {
+      throw new Error("MetaMask not available");
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const network = await provider.getNetwork();
+    const currentChainId = "0x" + network.chainId.toString(16);
+
+    if (currentChainId !== REQUIRED_NETWORK_ID) {
+      toast.current({
+        type: "error",
+        title: "Wrong Network",
+        description: `Network changed! Please ensure you're on ${REQUIRED_NETWORK_NAME}.`,
+      });
+      clearWalletState();
+      throw new Error(
+        `Network validation failed - not on ${REQUIRED_NETWORK_NAME}`
+      );
+    }
+
+    if (signer?.provider) {
+      const signerNetwork = await signer.provider.getNetwork();
+      if ("0x" + signerNetwork.chainId.toString(16) !== REQUIRED_NETWORK_ID) {
+        toast.current({
+          type: "error",
+          title: "Wrong Network",
+          description: "Signer network mismatch detected!",
+        });
+        clearWalletState();
+        throw new Error("Signer network validation failed");
+      }
+    }
+  }, [isOnCorrectNetwork, signer, clearWalletState]);
+
   const initializeWalletConnection = useCallback(
     async (address: string) => {
       try {
@@ -178,7 +219,7 @@ export const MetaMaskWalletProvider = ({
         isConnected
       );
 
-      if (chainId !== SEPOLIA_NETWORK_ID) {
+      if (chainId !== REQUIRED_NETWORK_ID) {
         // User switched to wrong network
         if (isConnected) {
           toast.current({
@@ -200,7 +241,7 @@ export const MetaMaskWalletProvider = ({
 
             await window.ethereum.request({
               method: "wallet_switchEthereumChain",
-              params: [{ chainId: SEPOLIA_NETWORK_ID }],
+              params: [{ chainId: REQUIRED_NETWORK_ID }],
             });
           } catch (error) {
             console.warn("Failed to revoke permissions:", error);
@@ -216,7 +257,7 @@ export const MetaMaskWalletProvider = ({
               toast.current({
                 type: "notification",
                 title: "Network Connected",
-                description: "Reconnected to Sepolia network successfully!",
+                description: `Reconnected to ${REQUIRED_NETWORK_NAME} network successfully!`,
               });
             }
           });
@@ -245,13 +286,12 @@ export const MetaMaskWalletProvider = ({
         toast.current({
           type: "error",
           title: "Wrong Network",
-          description:
-            "Please switch to Sepolia network before connecting your wallet.",
+          description: `Please switch to ${REQUIRED_NETWORK_NAME} network before connecting your wallet.`,
         });
 
         await window.ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: SEPOLIA_NETWORK_ID }],
+          params: [{ chainId: REQUIRED_NETWORK_ID }],
         });
 
         return;
@@ -303,15 +343,17 @@ export const MetaMaskWalletProvider = ({
 
   const signMessage = useCallback(
     async (message: string): Promise<SignMessageResult> => {
-      if (!isConnected || !isOnCorrectNetwork) {
+      if (!isConnected) {
         toast.current({
           type: "error",
           title: "Error",
-          description: "Please connect wallet on Sepolia network first.",
+          description: "Please connect wallet first.",
         });
-        throw new Error("Wallet not connected or on wrong network");
+        throw new Error("Wallet not connected");
       }
+
       try {
+        await validateNetwork();
         const signature = await window.ethereum.request({
           method: "personal_sign",
           params: [message, walletAddress!],
@@ -327,7 +369,7 @@ export const MetaMaskWalletProvider = ({
         throw error;
       }
     },
-    [isConnected, isOnCorrectNetwork, walletAddress]
+    [isConnected, walletAddress, validateNetwork]
   );
 
   const bridgeOperator = useCallback(async () => {
@@ -335,7 +377,7 @@ export const MetaMaskWalletProvider = ({
       toast.current({
         type: "error",
         title: "Error",
-        description: "Please connect wallet on Sepolia network first.",
+        description: `Please connect wallet on ${REQUIRED_NETWORK_NAME} network first.`,
       });
       return;
     }
@@ -358,15 +400,17 @@ export const MetaMaskWalletProvider = ({
 
   const lockTokens = useCallback(
     async (codeChallange: string, amount: number): Promise<number> => {
-      if (!contract || !isOnCorrectNetwork) {
+      if (!contract) {
         toast.current({
           type: "error",
           title: "Error",
-          description: "Please connect wallet on Sepolia network first.",
+          description: "Please connect wallet first.",
         });
-        throw Error("contract not connected or wrong network");
+        throw Error("Contract not connected");
       }
+
       try {
+        await validateNetwork();
         const codeChallengePKARMBigInt = BigInt(codeChallange);
         const credentialAttestationBigNumberIsh: BigNumberish =
           codeChallengePKARMBigInt;
@@ -384,17 +428,34 @@ export const MetaMaskWalletProvider = ({
         });
 
         const receipt = await tx.wait();
+
+        // SECURITY: Verify the receipt is from Sepolia
+        if (
+          receipt.chainId &&
+          "0x" + receipt.chainId.toString(16) !== REQUIRED_NETWORK_ID
+        ) {
+          toast.current({
+            type: "error",
+            title: "Transaction Error",
+            description: `Transaction was not confirmed on ${REQUIRED_NETWORK_NAME} network!`,
+          });
+          throw Error("Transaction confirmed on wrong network");
+        }
+
         console.log("Transaction Receipt:", receipt);
         console.log("Block Number:", receipt.blockNumber);
+        console.log("Chain ID:", receipt.chainId);
+
         //assign eth wallet for mina wallet
         const minaWalletPubKey = getWorkerClient().minaWalletPubKeyBase58;
-        Store.forMina(minaWalletPubKey).ethWallet = walletAddress
-        Store.forPair(walletAddress!, minaWalletPubKey).txAmount = amount.toString();
+        Store.forMina(minaWalletPubKey).ethWallet = walletAddress;
+        Store.forPair(walletAddress!, minaWalletPubKey).txAmount =
+          amount.toString();
 
         toast.current({
           type: "notification",
           title: "Success",
-          description: "Tokens locked successfully!",
+          description: `Tokens locked successfully on ${REQUIRED_NETWORK_NAME}!`,
         });
         return receipt.blockNumber;
       } catch (error) {
@@ -407,7 +468,7 @@ export const MetaMaskWalletProvider = ({
         throw error;
       }
     },
-    [contract, isOnCorrectNetwork]
+    [contract, walletAddress, validateNetwork]
   );
 
   const getLockedTokens = useCallback(async () => {
@@ -415,7 +476,7 @@ export const MetaMaskWalletProvider = ({
       toast.current({
         type: "error",
         title: "Error",
-        description: "Please connect wallet on Sepolia network first.",
+        description: `Please connect wallet on ${REQUIRED_NETWORK_NAME} network first.`,
       });
       return;
     }
@@ -507,7 +568,7 @@ export const MetaMaskWalletProvider = ({
               title: "Account Changed",
               description: `Account switched to: ${formatDisplayAddress(
                 newAddress
-              )}. Please switch to Sepolia network to connect.`,
+              )}. Please switch to ${REQUIRED_NETWORK_NAME} network to connect.`,
             });
           }
         }
