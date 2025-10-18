@@ -163,6 +163,7 @@ const DepositProgress = () => {
                 {/* Tooltip */}
                 {showTooltip === centerStage && (
                   <Tooltip
+                    title={centerStage}
                     content={
                       STATUS_EXPLANATIONS[centerStage] ||
                       "Processing stage in progress."
