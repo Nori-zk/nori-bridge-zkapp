@@ -14,6 +14,7 @@ import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { Store } from "@/helpers/localStorage2.ts";
 import { useEffect, useState } from "react";
 import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
+import Flip from "@/public/assets/Flip.svg";
 
 export default function Home() {
   const [showMobileWarning, setShowMobileWarning] = useState<boolean>(false);
@@ -104,6 +105,12 @@ export default function Home() {
                 height={"100%"}
                 content={ethConnected && minaConnected ? component : null}
               />
+              <button
+                onClick={() => console.log("Flip pressed")}
+                className="absolute -top-0 -right-10 z-20"
+              >
+                <Flip width={57} height={57} />
+              </button>
             </div>
             <div className="w-1/4 h-[450px]">
               {ethConnected && minaConnected && <ScrollingBridge />}
