@@ -4,7 +4,6 @@ import Nori from "@/public/assets/Nori.svg";
 import BottomShadows from "@/public/assets/BottomShadows.svg";
 import ScrollingBridge from "@/components/panels/ScrollingBridge/ScrollingBridge.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import ScrollingWSS from "@/components/panels/ScrollingWSS/ScrollingWSS.tsx";
 import { useAccount } from "wagmina";
 import Notification from "@/components/ui/Notification/Notification.tsx";
 import ChooseSides from "@/components/choose-side/ChooseSides.tsx";
@@ -15,7 +14,7 @@ import { Store } from "@/helpers/localStorage2.ts";
 import { useEffect, useState } from "react";
 import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
 import Flip from "@/public/assets/Flip.svg";
-import ExpandCard from "@/components/ui/ExpandCard/ExpandCard.tsx";
+import FlipCard from "@/components/ui/FlipCard/FlipCard.tsx";
 import TransactionCard from "@/components/transaction-card/TransactionCard.tsx";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -110,7 +109,7 @@ export default function Home() {
               </AnimatePresence>
             </div>
             <div className="relative inline-block w-[830px] h-[550px] z-10">
-              <ExpandCard
+              <FlipCard
                 className={"w-full h-full z-100"}
                 isExpandActive={isExpandActive}
                 setIsExpandActive={setIsExpandActive}
@@ -135,7 +134,7 @@ export default function Home() {
                     content={ethConnected && minaConnected ? component : null}
                   />
                 )}
-              </ExpandCard>
+              </FlipCard>
               {!isExpandActive && (
                 <button
                   onClick={() => {
