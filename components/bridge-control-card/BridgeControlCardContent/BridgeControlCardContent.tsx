@@ -46,10 +46,6 @@ const BridgeControlCardContent = ({
         height: height,
         position: "relative",
         overflow: "hidden",
-        boxShadow:
-          ethConnected && minaConnected
-            ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
-            : "none",
         borderRadius: "20px",
         justifyContent: "center",
         display: "flex",

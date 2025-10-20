@@ -1,12 +1,16 @@
 "use client";
 
+import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useState, useRef, useEffect } from "react";
+import { useAccount } from "wagmina";
 
 type ExpandCardProps = {
   children: React.ReactNode;
   className?: string;
   isExpandActive: boolean;
   setIsExpandActive: (active: boolean) => void;
+  isTransitioning: boolean;
+  setIsTransitioning: (transitioning: boolean) => void;
 };
 
 const ExpandCard = ({
@@ -14,8 +18,13 @@ const ExpandCard = ({
   isExpandActive,
   setIsExpandActive,
   className,
+  isTransitioning,
+  setIsTransitioning,
 }: ExpandCardProps) => {
   const cardRef = useRef(null);
+  const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
+    useMetaMaskWallet();
+  const { isConnected: minaConnected, address: minaAddress } = useAccount();
 
   const [transform, setTransform] = useState({
     translateX: 0,
@@ -39,36 +48,39 @@ const ExpandCard = ({
     // Calculate scale to make card bigger (but not too big)
     const scaleW = (viewportWidth / rect.width) * 0.9;
     const scaleH = (viewportHeight / rect.height) * 0.9;
-    const scale = Math.min(scaleW, scaleH, 1.75); // Max scale of 1.75
+    const scale = Math.min(scaleW, scaleH, 1); // Max scale of 1.75
 
     return { deltaX, deltaY, scale };
   };
 
-  const handleClick = () => {
-    // if (!isExpandActive) {
-    //   // Activate - center and scale up
-    //   const { deltaX, deltaY, scale } = setCenter();
+  // const handleClick = () => {
+  //   // if (!isExpandActive) {
+  //   //   // Activate - center and scale up
+  //   //   const { deltaX, deltaY, scale } = setCenter();
 
-    //   setTransform({
-    //     translateX: deltaX,
-    //     translateY: deltaY,
-    //     scale: scale,
-    //     rotateX: 360,
-    //     rotateY: 0,
-    //   });
+  //   //   setTransform({
+  //   //     translateX: deltaX,
+  //   //     translateY: deltaY,
+  //   //     scale: scale,
+  //   //     rotateX: 360,
+  //   //     rotateY: 0,
+  //   //   });
 
-    //   setIsExpandActive(true);
+  //   //   setIsExpandActive(true);
 
-    //   // Prevent body scroll when card is active
-    //   document.body.style.overflow = "hidden";
-    // } else {
-    // Deactivate - return to normal
-    retreat();
-    // }
-  };
+  //   //   // Prevent body scroll when card is active
+  //   //   document.body.style.overflow = "hidden";
+  //   // } else {
+  //   // Deactivate - return to normal
+  //   retreat();
+  //   // }
+  // };
 
   useEffect(() => {
     if (isExpandActive) {
+      // Start transition
+      setIsTransitioning(true);
+
       // Activate - center and scale up
       const { deltaX, deltaY, scale } = setCenter();
       setTransform({
@@ -78,12 +90,21 @@ const ExpandCard = ({
         rotateX: 360,
         rotateY: 0,
       });
+
+      // End transition after animation completes (700ms)
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 700);
+
       // Prevent body scroll when card is active
       document.body.style.overflow = "hidden";
     }
   }, [isExpandActive]);
 
   const retreat = () => {
+    // Start transition
+    setIsTransitioning(true);
+
     setTransform({
       translateX: 0,
       translateY: 0,
@@ -92,6 +113,11 @@ const ExpandCard = ({
       rotateY: 0,
     });
     setIsExpandActive(false);
+
+    // End transition after animation completes (700ms)
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 700);
 
     // Re-enable body scroll
     document.body.style.overflow = "";
@@ -137,17 +163,22 @@ const ExpandCard = ({
       {/* Backdrop overlay */}
       {isExpandActive && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300"
+          className="fixed inset-0 transition-opacity duration-300"
           onClick={retreat}
         />
       )}
 
       {/* Card container */}
       <div
-        className={`inline-block transition-none ${className}`}
+        className={`inline-block transition-all duration-700 ease-out ${className}`}
         style={{
           perspective: "2000px",
           zIndex: isExpandActive ? 50 : 1,
+          boxShadow:
+            ethConnected && minaConnected && !isTransitioning
+              ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
+              : "none",
+          borderRadius: "20px",
         }}
       >
         <div
@@ -165,7 +196,7 @@ const ExpandCard = ({
             transformStyle: "preserve-3d",
             transitionProperty: "transform",
           }}
-          onClick={handleClick}
+          // onClick={handleClick}
         >
           {children}
         </div>
