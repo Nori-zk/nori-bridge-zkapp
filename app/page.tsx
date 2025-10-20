@@ -15,9 +15,12 @@ import { Store } from "@/helpers/localStorage2.ts";
 import { useEffect, useState } from "react";
 import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
 import Flip from "@/public/assets/Flip.svg";
+import ExpandCard from "@/components/ui/ExpandCard/ExpandCard.tsx";
+import TransactionCard from "@/components/transaction-card/TransactionCard.tsx";
 
 export default function Home() {
   const [showMobileWarning, setShowMobileWarning] = useState<boolean>(false);
+  const [isExpandActive, setIsExpandActive] = useState(false);
 
   const { showChooseSide } = useProgress();
 
@@ -70,7 +73,7 @@ export default function Home() {
                   "linear-gradient(to right, transparent 0%, white 15%, white 100%)",
               }}
             >
-              {ethConnected && minaConnected && (
+              {ethConnected && minaConnected && !isExpandActive && (
                 <div
                   style={{
                     width: "500px",
@@ -95,25 +98,46 @@ export default function Home() {
               )}
             </div>
             <div className="relative inline-block w-[830px] h-[550px] z-10">
-              <BridgeControlCard
-                title={
-                  ethConnected && minaConnected
-                    ? title
-                    : "First connect wallets"
-                }
-                width={"100%"}
-                height={"100%"}
-                content={ethConnected && minaConnected ? component : null}
-              />
-              <button
-                onClick={() => console.log("Flip pressed")}
-                className="absolute -top-0 -right-10 z-20"
+              <ExpandCard
+                className={"w-full h-full z-100"}
+                isExpandActive={isExpandActive}
+                setIsExpandActive={setIsExpandActive}
               >
-                <Flip width={57} height={57} />
-              </button>
+                {isExpandActive ? (
+                  <TransactionCard
+                    width={"100%"}
+                    height={"100%"}
+                    title={"Transactions"}
+                  />
+                ) : (
+                  <BridgeControlCard
+                    title={
+                      ethConnected && minaConnected
+                        ? title
+                        : "First connect wallets"
+                    }
+                    width={"100%"}
+                    height={"100%"}
+                    content={ethConnected && minaConnected ? component : null}
+                  />
+                )}
+              </ExpandCard>
+              {!isExpandActive && (
+                <button
+                  onClick={() => {
+                    setIsExpandActive(true);
+                    console.log("Flip pressed");
+                  }}
+                  className="absolute -top-0 -right-10 z-20"
+                >
+                  <Flip width={57} height={57} />
+                </button>
+              )}
             </div>
             <div className="w-1/4 h-[450px]">
-              {ethConnected && minaConnected && <ScrollingBridge />}
+              {ethConnected && minaConnected && !isExpandActive && (
+                <ScrollingBridge />
+              )}
             </div>
           </div>
           <div>
