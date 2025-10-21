@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import ElectricBorder from "@/blocks/Animations/ElectricBorder/ElectricBorder.jsx";
-import BridgeControlCardContent from "./BridgeControlCardContent/BridgeControlCardContent.tsx";
+import BridgeControlCardContent from "@/components/bridge-control-card/BridgeControlCardContent/BridgeControlCardContent.tsx";
 
 type BridgeControlCardProps = {
   title: string;

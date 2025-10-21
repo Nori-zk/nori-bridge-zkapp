@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
-import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControlCardSVG.tsx";
+import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControlCardSVG/BridgeControlCardSVG.tsx";
 import Swap from "@/public/assets/Swap.svg";
 import DepositProgress from "@/components/bridge-control-card/DepositProgress/DepositProgress.tsx";
 import TextType from "@/blocks/TextAnimations/TextType/TextType.tsx";

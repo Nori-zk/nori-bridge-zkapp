@@ -1,5 +1,5 @@
 "use client";
-import BridgeControlCard from "@/components/bridge-control-card/BridgeControlCard.tsx";
+import BridgeControlCard from "@/components/bridge-control-card/BridgeControlCard/BridgeControlCard.tsx";
 import Nori from "@/public/assets/Nori.svg";
 import BottomShadows from "@/public/assets/BottomShadows.svg";
 import ScrollingBridge from "@/components/panels/ScrollingBridge/ScrollingBridge.tsx";
@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
 import Flip from "@/public/assets/Flip.svg";
 import FlipCard from "@/components/ui/FlipCard/FlipCard.tsx";
-import TransactionCard from "@/components/transaction-card/TransactionCard.tsx";
+import TransactionCard from "@/components/transaction-card/TransactionCard/TransactionCard.tsx";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function Home() {
