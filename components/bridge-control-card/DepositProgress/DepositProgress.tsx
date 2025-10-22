@@ -110,7 +110,7 @@ const DepositProgress = () => {
             className="w-24 mx-1 text-lightGreen flex items-center text-center text-sm leading-tight"
             style={{ minHeight: "2.5rem" }}
           >
-            {leftStage}
+            <div className="w-full truncate">{leftStage}</div>
           </motion.div>
         </AnimatePresence>
 
@@ -153,7 +153,7 @@ const DepositProgress = () => {
             {centerStage && (
               <div className="relative flex mt-1">
                 <div
-                  className="w-4 h-4 mx-1 rounded-full border border-lightGreen/60 flex items-center justify-center cursor-help text-xs text-lightGreen/60 hover:text-lightGreen hover:border-lightGreen transition-colors"
+                  className="w-4 h-4 mx-2 rounded-full border border-lightGreen/60 flex items-center justify-center cursor-help text-xs text-lightGreen/60 hover:text-lightGreen hover:border-lightGreen transition-colors"
                   onMouseEnter={() => setShowTooltip(centerStage)}
                   onMouseLeave={() => setShowTooltip(false)}
                 >
@@ -163,6 +163,7 @@ const DepositProgress = () => {
                 {/* Tooltip */}
                 {showTooltip === centerStage && (
                   <Tooltip
+                    title={centerStage}
                     content={
                       STATUS_EXPLANATIONS[centerStage] ||
                       "Processing stage in progress."
@@ -206,7 +207,7 @@ const DepositProgress = () => {
             className="text-lightGreen w-24 mx-1 flex items-center text-center text-sm leading-tight"
             style={{ minHeight: "2.5rem" }}
           >
-            {rightStage}
+            <div className="w-full truncate">{rightStage}</div>
           </motion.div>
         </AnimatePresence>
       </div>

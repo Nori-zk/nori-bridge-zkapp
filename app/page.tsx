@@ -4,7 +4,6 @@ import Nori from "@/public/assets/Nori.svg";
 import BottomShadows from "@/public/assets/BottomShadows.svg";
 import ScrollingBridge from "@/components/panels/ScrollingBridge/ScrollingBridge.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import ScrollingWSS from "@/components/panels/ScrollingWSS/ScrollingWSS.tsx";
 import { useAccount } from "wagmina";
 import Notification from "@/components/ui/Notification/Notification.tsx";
 import ChooseSides from "@/components/choose-side/ChooseSides.tsx";
