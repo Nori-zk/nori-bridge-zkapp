@@ -9,7 +9,7 @@ type TooltipProps = {
 const Tooltip = ({ title, content }: TooltipProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState<number>(125);
-  const padding = 32; //(16px top + 16px bottom)
+  const padding = 40; //(16px top + 16px bottom)
 
   useEffect(() => {
     //mesaure content height and pass into SVG height
@@ -20,10 +20,10 @@ const Tooltip = ({ title, content }: TooltipProps) => {
   }, [content]);
 
   return (
-    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-150 text-lightGreen text-sm">
+    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-150 text-lightGreen text-sm backdrop-blur-md rounded-3xl">
       <TooltipSVG width={320} height={contentHeight}>
-        <div className="relative w-full h-full px-6 py-4">
-          <div ref={contentRef} className="w-full text-left ">
+        <div className="flex items-center relative w-full h-full px-6 rounded-md">
+          <div ref={contentRef} className="w-full text-left px-2">
             {title && <div className="text-sm mb-1">{title}</div>}
             <div className="text-xs">{content}</div>
           </div>

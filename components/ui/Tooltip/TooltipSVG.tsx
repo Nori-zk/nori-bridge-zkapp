@@ -44,7 +44,7 @@ const TooltipSVG = ({
             height={height - 1}
             rx="19.5"
             fill="#060A08"
-            fillOpacity="1"
+            fillOpacity="0.5"
             shapeRendering="crispEdges"
           />
           <rect
@@ -54,7 +54,7 @@ const TooltipSVG = ({
             height={height - 1}
             rx="19.5"
             fill="url(#tooltip_paint0_radial)"
-            fillOpacity="0.2"
+            fillOpacity="0.1"
             shapeRendering="crispEdges"
           />
           <rect
