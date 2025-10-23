@@ -1,5 +1,4 @@
 "use client";
-
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useState, useRef, useEffect } from "react";
 import { useAccount } from "wagmina";
@@ -25,7 +24,7 @@ const FlipCard = ({
   const { isConnected: ethConnected } = useMetaMaskWallet();
   const { isConnected: minaConnected } = useAccount();
 
-  const [rotateY, setRotateY] = useState(0);
+  const [rotateX, setRotateX] = useState(0);
 
   useEffect(() => {
     if (isExpandActive) {
@@ -33,7 +32,7 @@ const FlipCard = ({
       setIsTransitioning(true);
 
       // Flip to 180 degrees
-      setRotateY(180);
+      setRotateX(180);
 
       // End transition after animation completes (700ms)
       setTimeout(() => {
@@ -42,12 +41,13 @@ const FlipCard = ({
     }
   }, [isExpandActive, setIsTransitioning]);
 
+  //https://youtu.be/6T7KK-TVAek?si=tLs82eokPiCDk6hr&t=59
   const retreat = () => {
     // Start transition
     setIsTransitioning(true);
 
     // Flip back to 0 degrees
-    setRotateY(0);
+    setRotateX(0);
     setIsExpandActive(false);
 
     // End transition after animation completes (700ms)
@@ -73,38 +73,41 @@ const FlipCard = ({
       {/* Backdrop overlay */}
       {isExpandActive && (
         <div
-          className="fixed inset-0 transition-opacity duration-300"
+          className="fixed inset-0 "
           style={{ zIndex: 40 }}
           onClick={retreat}
         />
       )}
 
-      {/* Card container */}
+      {/* Perspective container */}
       <div
-        className={`inline-block transition-all duration-700 ease-out ${className}`}
+        className={`inline-block ${className}`}
         style={{
           perspective: "2000px",
           zIndex: isExpandActive ? 50 : 1,
           position: "relative",
-          boxShadow:
-            ethConnected && minaConnected && !isTransitioning
-              ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
-              : "none",
-          borderRadius: "20px",
         }}
       >
+        {/* Rotating container with box shadow */}
         <div
           ref={cardRef}
-          className={`relative transition-all duration-700 ease-out`}
+          className={`relative transition-all duration-[1.5s] ease-out`}
           style={{
-            transform: `rotateY(${rotateY}deg)`,
+            transform: `rotateX(${rotateX}deg)`,
             transformStyle: "preserve-3d",
             transitionProperty: "transform",
+            boxShadow:
+              ethConnected && minaConnected && !isTransitioning
+                ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
+                : "none",
+            borderRadius: "20px",
           }}
         >
+          {/* Counter-rotate content to keep it readable */}
           <div
+            className="w-full h-full"
             style={{
-              transform: `rotateY(${-rotateY}deg)`,
+              transform: `rotateX(${-rotateX}deg)`,
               transformStyle: "preserve-3d",
             }}
           >

@@ -108,14 +108,14 @@ export default function Home() {
                   )}
               </AnimatePresence>
             </div>
-            <div className="relative inline-block w-[830px] h-[550px] z-10">
-              <FlipCard
-                className={"w-full h-full z-100"}
-                isExpandActive={isExpandActive}
-                setIsExpandActive={setIsExpandActive}
-                isTransitioning={isTransitioning}
-                setIsTransitioning={setIsTransitioning}
-              >
+            <FlipCard
+              className="relative inline-block w-[830px] h-[550px] z-10"
+              isExpandActive={isExpandActive}
+              setIsExpandActive={setIsExpandActive}
+              isTransitioning={isTransitioning}
+              setIsTransitioning={setIsTransitioning}
+            >
+              <div className={"w-full h-full z-100"}>
                 {isExpandActive ? (
                   <TransactionCard
                     width={"100%"}
@@ -134,19 +134,19 @@ export default function Home() {
                     content={ethConnected && minaConnected ? component : null}
                   />
                 )}
-              </FlipCard>
-              {!isExpandActive && (
-                <button
-                  onClick={() => {
-                    setIsExpandActive(true);
-                    console.log("Flip pressed");
-                  }}
-                  className="absolute -top-0 -right-10 z-20"
-                >
-                  <Flip width={57} height={57} />
-                </button>
-              )}
-            </div>
+                {!isExpandActive && (
+                  <button
+                    onClick={() => {
+                      setIsExpandActive(true);
+                      console.log("Flip pressed");
+                    }}
+                    className="absolute -top-0 -right-10 z-20"
+                  >
+                    <Flip width={57} height={57} />
+                  </button>
+                )}
+              </div>
+            </FlipCard>
             <div className="w-1/4 h-[450px]">
               <AnimatePresence mode="wait">
                 {ethConnected &&
