@@ -145,7 +145,7 @@ export default function Home() {
                     <TransactionCard
                       width={"100%"}
                       height={"100%"}
-                      title={"Transactions"}
+                      title={"Transaction Details"}
                     />
                   </div>
                 }
