@@ -42,8 +42,8 @@ const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
               ethBtnFooterNumericContent={0.002}
               minaBtnFooterNumericContent={0.00045}
             />
-            <div className="w-full flex-1 overflow-hidden">
-              <div className="flex justify-center mt-1 text-white">
+            <div className="w-full flex-1 overflow-hidden flex flex-col">
+              <div className="flex justify-center mt-1 text-white h-full w-full">
                 <TransactionTable />
               </div>
             </div>

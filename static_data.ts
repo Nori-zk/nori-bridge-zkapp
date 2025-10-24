@@ -52,4 +52,20 @@ export const dummyTransactions = [
     nAmount: "0.2 nETH",
     date: "2024-06-01 12:34:56",
   },
+  {
+    ethHash:
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    minaHash: "B62qxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxy",
+    amount: "0.12 ETH",
+    nAmount: "0.1 nETH",
+    date: "2024-06-01 12:34:56",
+  },
+  {
+    ethHash:
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    minaHash: "B62qxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxy",
+    amount: "0.17 ETH",
+    nAmount: "0.2 nETH",
+    date: "2024-06-01 12:34:56",
+  },
 ];
