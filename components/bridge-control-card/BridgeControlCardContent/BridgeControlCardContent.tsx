@@ -8,7 +8,6 @@ import { useAccount } from "wagmina";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-
 type BridgeControlCardPContentProps = {
   title: string;
   content?: ReactNode;
@@ -51,7 +50,7 @@ const BridgeControlCardContent = ({
         display: "flex",
       }}
     >
-      <BridgeControlCardSVG width={width} height={height}>
+      <BridgeControlCardSVG>
         <div className="w-full h-full flex justify-center">
           <div className="flex flex-col items-center justify-center h-full">
             <h1 className="text-center text-white text-4xl mb-6 font-[400]">
