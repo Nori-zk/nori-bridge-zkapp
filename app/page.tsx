@@ -108,45 +108,49 @@ export default function Home() {
                   )}
               </AnimatePresence>
             </div>
-            <FlipCard
-              className="relative inline-block w-[830px] h-[550px] z-10"
-              isExpandActive={isExpandActive}
-              setIsExpandActive={setIsExpandActive}
-              isTransitioning={isTransitioning}
-              setIsTransitioning={setIsTransitioning}
-            >
-              <div className={"w-full h-full z-100"}>
-                {isExpandActive ? (
-                  <TransactionCard
-                    width={"100%"}
-                    height={"100%"}
-                    title={"Transactions"}
-                  />
-                ) : (
-                  <BridgeControlCard
-                    title={
-                      ethConnected && minaConnected
-                        ? title
-                        : "First connect wallets"
-                    }
-                    width={"100%"}
-                    height={"100%"}
-                    content={ethConnected && minaConnected ? component : null}
-                  />
-                )}
-                {!isExpandActive && (
-                  <button
-                    onClick={() => {
-                      setIsExpandActive(true);
-                      console.log("Flip pressed");
-                    }}
-                    className="absolute -top-0 -right-10 z-20"
-                  >
-                    <Flip width={57} height={57} />
-                  </button>
-                )}
-              </div>
-            </FlipCard>
+            <div className="relative inline-block w-[830px] h-[550px] z-10">
+              <FlipCard
+                className="w-full h-full"
+                isExpandActive={isExpandActive}
+                setIsExpandActive={setIsExpandActive}
+                isTransitioning={isTransitioning}
+                setIsTransitioning={setIsTransitioning}
+                frontContent={
+                  <div className="relative inline-block w-full h-full z-10">
+                    <BridgeControlCard
+                      title={
+                        ethConnected && minaConnected
+                          ? title
+                          : "First connect wallets"
+                      }
+                      width={"100%"}
+                      height={"100%"}
+                      content={ethConnected && minaConnected ? component : null}
+                    />
+                    {!isExpandActive && (
+                      <button
+                        onClick={() => {
+                          setIsExpandActive(true);
+                          console.log("Flip pressed");
+                        }}
+                        className="absolute -top-0 -right-10 z-20"
+                      >
+                        <Flip width={57} height={57} />
+                      </button>
+                    )}
+                  </div>
+                }
+                backContent={
+                  <div className="w-full h-full">
+                    <TransactionCard
+                      width={"100%"}
+                      height={"100%"}
+                      title={"Transactions"}
+                    />
+                  </div>
+                }
+              />
+            </div>
             <div className="w-1/4 h-[450px]">
               <AnimatePresence mode="wait">
                 {ethConnected &&

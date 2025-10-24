@@ -1,10 +1,11 @@
 "use client";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, ReactNode } from "react";
 import { useAccount } from "wagmina";
 
 type FlipCardProps = {
-  children: React.ReactNode;
+  frontContent: ReactNode;
+  backContent: ReactNode;
   className?: string;
   isExpandActive: boolean;
   setIsExpandActive: (active: boolean) => void;
@@ -13,7 +14,8 @@ type FlipCardProps = {
 };
 
 const FlipCard = ({
-  children,
+  frontContent,
+  backContent,
   isExpandActive,
   setIsExpandActive,
   className,
@@ -25,35 +27,47 @@ const FlipCard = ({
   const { isConnected: minaConnected } = useAccount();
 
   const [rotateX, setRotateX] = useState(0);
+  const [showingFront, setShowingFront] = useState(true);
 
   useEffect(() => {
     if (isExpandActive) {
-      // Start transition
+      // Start transition - keep showing front initially
       setIsTransitioning(true);
 
       // Flip to 180 degrees
       setRotateX(180);
 
-      // End transition after animation completes (700ms)
+      // At 90 degrees (halfway through), switch to back content
+      setTimeout(() => {
+        setShowingFront(false);
+      }, 275);
+
+      // End transition after animation completes (1500ms)
       setTimeout(() => {
         setIsTransitioning(false);
-      }, 700);
+      }, 1500);
     }
   }, [isExpandActive, setIsTransitioning]);
 
   //https://youtu.be/6T7KK-TVAek?si=tLs82eokPiCDk6hr&t=59
   const retreat = () => {
-    // Start transition
+    // Start transition - keep showing back initially
     setIsTransitioning(true);
 
     // Flip back to 0 degrees
     setRotateX(0);
+
+    // At 90 degrees (halfway through), switch back to front content
+    setTimeout(() => {
+      setShowingFront(true);
+    }, 275);
+
     setIsExpandActive(false);
 
-    // End transition after animation completes (700ms)
+    // End transition after animation completes (1500ms)
     setTimeout(() => {
       setIsTransitioning(false);
-    }, 700);
+    }, 1500);
   };
 
   // Close on Escape key
@@ -70,7 +84,7 @@ const FlipCard = ({
 
   return (
     <>
-      {/* Backdrop overlay */}
+      {/* Backdrop overlay - when clicked flip to front */}
       {isExpandActive && (
         <div
           className="fixed inset-0 "
@@ -88,7 +102,7 @@ const FlipCard = ({
           position: "relative",
         }}
       >
-        {/* Rotating container with box shadow */}
+        {/* Rotating container */}
         <div
           ref={cardRef}
           className={`relative transition-all duration-[1.5s] ease-out`}
@@ -103,15 +117,13 @@ const FlipCard = ({
             borderRadius: "20px",
           }}
         >
-          {/* Counter-rotate content to keep it readable */}
+          {/* Render content, rotate and flip to get transaction card upright */}
           <div
-            className="w-full h-full"
-            style={{
-              transform: `rotateX(${-rotateX}deg)`,
-              transformStyle: "preserve-3d",
-            }}
+            className={`w-full h-full ${showingFront ? null : "rotate-180"} ${
+              showingFront ? null : "-scale-x-100"
+            }`}
           >
-            {children}
+            {showingFront ? frontContent : backContent}
           </div>
         </div>
       </div>
