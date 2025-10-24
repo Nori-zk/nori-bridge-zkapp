@@ -2,6 +2,7 @@ import TextType from "@/blocks/TextAnimations/TextType/TextType.tsx";
 import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControlCardSVG/BridgeControlCardSVG.tsx";
 import { ReactNode } from "react";
 import TransactionTable from "@/components/transaction-card/TransactionTable/TransactionTable.tsx";
+import WalletPair from "@/components/ui/WalletPair/WalletPair.tsx";
 
 type TransactionCardProps = {
   title: string;
@@ -36,6 +37,11 @@ const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
                 cursorCharacter="|"
               />
             </h1>
+            <WalletPair
+              isTransactionCard={true}
+              ethBtnFooterNumericContent={0.002}
+              minaBtnFooterNumericContent={0.00045}
+            />
             <div className="w-full flex-1 overflow-hidden">
               <div className="flex justify-center mt-1 text-white">
                 <TransactionTable />

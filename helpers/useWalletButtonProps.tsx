@@ -5,13 +5,14 @@ import Ethereum from "@/public/assets/Ethereum.svg";
 import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "./walletHelper.tsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
+import { ReactNode } from "react";
 
 //TODO rename to return type
 type WalletButtonUIProps = {
   bgClass: string;
   textClass: string;
   displayAddress: string;
-  logo: React.ReactNode;
+  logo: ReactNode;
   onClick: () => void;
   isConnecting?: boolean;
   currency?: string;
@@ -25,12 +26,7 @@ export function useWalletButtonProps(
 ): WalletButtonUIProps {
   const eth = useMetaMaskWallet();
   const { address, isConnected } = useAccount();
-  const {
-    isConnectingWalletOpen,
-    connect,
-    disconnect,
-    walletAddress: minaAddress,
-  } = useAuroWallet();
+  const { isConnectingWalletOpen, connect, disconnect } = useAuroWallet();
   const isEthereum = type === "Ethereum";
 
   if (isEthereum) {
