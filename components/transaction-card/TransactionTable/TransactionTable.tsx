@@ -22,7 +22,7 @@ const TransactionTable = () => {
                 key={index}
                 className="border-b border-white/10 hover:bg-white/5 transition-colors h-full w-full"
               >
-                <td className="py-3 px-4 w-1/2">
+                <td className="pt-4 pb-1 px-4 w-1/2">
                   <div className="text-xs text-white/50">{tx.date}</div>
                   <div className="flex flex-row justify-between items-center">
                     <div className="text-lg">
@@ -31,7 +31,7 @@ const TransactionTable = () => {
                     <div className="text-lg">{tx.amount}</div>
                   </div>
                 </td>
-                <td className="py-3 px-4 w-1/2">
+                <td className="pt-4 pb-1 px-4 w-1/2">
                   <div className="text-xs text-white/50">{tx.date}</div>
                   <div className="flex flex-row justify-between items-center">
                     <div className="text-lg">

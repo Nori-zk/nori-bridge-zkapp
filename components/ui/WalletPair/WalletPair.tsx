@@ -55,33 +55,35 @@ const WalletPair = ({
           />
         </div>
       </div>
-      <div className="flex text-white justify-between items-center">
-        <div className="flex flex-start w-full">
-          {ethBtnFooterNumericContent && (
-            <div className="flex flex-row text-white/50">
-              <div className="flex flex-row">
-                <div className="text-sm">{"Locked so far "}</div>
-                <div className="flex items-center text-lightGreen text-sm mx-1">
-                  {ethBtnFooterNumericContent}
+      {
+        <div className="flex text-white justify-between items-center">
+          <div className="flex flex-start w-full">
+            {ethBtnFooterNumericContent && (
+              <div className="flex flex-row text-white/50">
+                <div className="flex flex-row">
+                  <div className="text-sm">{"Locked so far "}</div>
+                  <div className="flex items-center text-lightGreen text-sm mx-1">
+                    {ethBtnFooterNumericContent}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-center w-12 h-7 mx-2" />
-        <div className="flex flex-start w-full">
-          {minaBtnFooterNumericContent && (
-            <div className="flex flex-row text-white/50">
-              <div className="flex flex-row">
-                <div className="text-sm">{"Minted so far "}</div>
-                <div className="flex items-center text-lightGreen text-sm mx-1">
-                  {minaBtnFooterNumericContent}
+            )}
+          </div>
+          <div className="flex items-center justify-center w-12 h-7 mx-2" />
+          <div className="flex flex-start w-full">
+            {minaBtnFooterNumericContent && (
+              <div className="flex flex-row text-white/50">
+                <div className="flex flex-row">
+                  <div className="text-sm">{"Minted so far "}</div>
+                  <div className="flex items-center text-lightGreen text-sm mx-1">
+                    {minaBtnFooterNumericContent}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      }
     </div>
   );
 };
