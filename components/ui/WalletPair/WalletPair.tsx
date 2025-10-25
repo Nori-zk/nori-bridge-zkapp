@@ -55,7 +55,7 @@ const WalletPair = ({
           />
         </div>
       </div>
-      {
+      {(ethBtnFooterNumericContent || minaBtnFooterNumericContent) && (
         <div className="flex text-white justify-between items-center">
           <div className="flex flex-start w-full">
             {ethBtnFooterNumericContent && (
@@ -83,7 +83,7 @@ const WalletPair = ({
             )}
           </div>
         </div>
-      }
+      )}
     </div>
   );
 };
