@@ -3,8 +3,17 @@ import { dummyTransactions } from "@/static_data.ts";
 
 const TransactionTable = () => {
   return (
-    <div className="w-full h-3/4 my-6 relative">
-      <div className="w-full h-full overflow-auto">
+    <div className="w-full h-4/5 my-6 relative">
+      {/* div with maskImage below for fading at bottom of table */}
+      <div
+        className="w-full h-full overflow-auto"
+        style={{
+          maskImage:
+            "linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)",
+        }}
+      >
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/20">
@@ -25,19 +34,20 @@ const TransactionTable = () => {
                 <td className="pt-4 pb-1 px-4 w-1/2">
                   <div className="text-xs text-white/50">{tx.date}</div>
                   <div className="flex flex-row justify-between items-center">
-                    <div className="text-lg">
+                    {/*use base test rather than md*/}
+                    <div className="text-base">
                       {formatDisplayAddress(tx.ethHash)}
                     </div>
-                    <div className="text-lg">{tx.amount}</div>
+                    <div className="text-base">{tx.amount}</div>
                   </div>
                 </td>
                 <td className="pt-4 pb-1 px-4 w-1/2">
                   <div className="text-xs text-white/50">{tx.date}</div>
                   <div className="flex flex-row justify-between items-center">
-                    <div className="text-lg">
+                    <div className="text-base">
                       {formatDisplayAddress(tx.minaHash)}
                     </div>
-                    <div className="text-lg">{tx.nAmount}</div>
+                    <div className="text-base">{tx.nAmount}</div>
                   </div>
                 </td>
               </tr>
