@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
-import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControlCardSVG.tsx";
+import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControlCardSVG/BridgeControlCardSVG.tsx";
 import Swap from "@/public/assets/Swap.svg";
 import DepositProgress from "@/components/bridge-control-card/DepositProgress/DepositProgress.tsx";
 import TextType from "@/blocks/TextAnimations/TextType/TextType.tsx";
@@ -45,10 +45,6 @@ const BridgeControlCardContent = ({
         height: height,
         position: "relative",
         overflow: "hidden",
-        boxShadow:
-          ethConnected && minaConnected
-            ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
-            : "none",
         borderRadius: "20px",
         justifyContent: "center",
         display: "flex",

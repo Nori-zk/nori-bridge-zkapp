@@ -1,5 +1,5 @@
 "use client";
-import BridgeControlCard from "@/components/bridge-control-card/BridgeControlCard.tsx";
+import BridgeControlCard from "@/components/bridge-control-card/BridgeControlCard/BridgeControlCard.tsx";
 import Nori from "@/public/assets/Nori.svg";
 import BottomShadows from "@/public/assets/BottomShadows.svg";
 import ScrollingBridge from "@/components/panels/ScrollingBridge/ScrollingBridge.tsx";
@@ -13,9 +13,15 @@ import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { Store } from "@/helpers/localStorage2.ts";
 import { useEffect, useState } from "react";
 import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
+import Flip from "@/public/assets/Flip.svg";
+import FlipCard from "@/components/ui/FlipCard/FlipCard.tsx";
+import TransactionCard from "@/components/transaction-card/TransactionCard/TransactionCard.tsx";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function Home() {
   const [showMobileWarning, setShowMobileWarning] = useState<boolean>(false);
+  const [isExpandActive, setIsExpandActive] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const { showChooseSide } = useProgress();
 
@@ -68,44 +74,92 @@ export default function Home() {
                   "linear-gradient(to right, transparent 0%, white 15%, white 100%)",
               }}
             >
-              {ethConnected && minaConnected && (
-                <div
-                  style={{
-                    width: "500px",
-                    height: "1200px",
-                    left: "200px",
-                    zIndex: 1,
-                  }}
-                >
-                  <LaserFlow
-                    style={{ width: "800px" }}
-                    className={"-rotate-90"}
-                    horizontalBeamOffset={-0.0}
-                    verticalBeamOffset={-0.095}
-                    color="#64E18E"
-                    horizontalSizing={1}
-                    verticalSizing={4}
-                    fogIntensity={0.6}
-                    wispIntensity={6.0}
-                    dpr={undefined}
-                  />
-                </div>
-              )}
+              <AnimatePresence mode="wait">
+                {ethConnected &&
+                  minaConnected &&
+                  !isExpandActive &&
+                  !isTransitioning && (
+                    <motion.div
+                      key="laser-flow"
+                      style={{
+                        width: "500px",
+                        height: "1200px",
+                        left: "200px",
+                        zIndex: 1,
+                      }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                    >
+                      <LaserFlow
+                        style={{ width: "800px" }}
+                        className={"-rotate-90"}
+                        horizontalBeamOffset={-0.0}
+                        verticalBeamOffset={-0.095}
+                        color="#64E18E"
+                        horizontalSizing={1}
+                        verticalSizing={4}
+                        fogIntensity={0.6}
+                        wispIntensity={6.0}
+                        dpr={undefined}
+                      />
+                    </motion.div>
+                  )}
+              </AnimatePresence>
             </div>
             <div className="relative inline-block w-[830px] h-[550px] z-10">
-              <BridgeControlCard
-                title={
-                  ethConnected && minaConnected
-                    ? title
-                    : "First connect wallets"
+              <FlipCard
+                className="w-full h-full"
+                isExpandActive={isExpandActive}
+                setIsExpandActive={setIsExpandActive}
+                isTransitioning={isTransitioning}
+                setIsTransitioning={setIsTransitioning}
+                frontContent={
+                  <div className="relative inline-block w-full h-full z-10">
+                    <BridgeControlCard
+                      title={
+                        ethConnected && minaConnected
+                          ? title
+                          : "First connect wallets"
+                      }
+                      width={"100%"}
+                      height={"100%"}
+                      content={ethConnected && minaConnected ? component : null}
+                    />
+                    {!isExpandActive && (
+                      <button
+                        onClick={() => {
+                          setIsExpandActive(true);
+                          console.log("Flip pressed");
+                        }}
+                        className="absolute -top-0 -right-10 z-20"
+                      >
+                        <Flip width={57} height={57} />
+                      </button>
+                    )}
+                  </div>
                 }
-                width={"100%"}
-                height={"100%"}
-                content={ethConnected && minaConnected ? component : null}
+                backContent={
+                  <div className="w-full h-full">
+                    <TransactionCard
+                      width={"100%"}
+                      height={"100%"}
+                      title={"Transactions"}
+                    />
+                  </div>
+                }
               />
             </div>
             <div className="w-1/4 h-[450px]">
-              {ethConnected && minaConnected && <ScrollingBridge />}
+              <AnimatePresence mode="wait">
+                {ethConnected &&
+                  minaConnected &&
+                  !isExpandActive &&
+                  !isTransitioning && (
+                    <ScrollingBridge key="scrolling-bridge" />
+                  )}
+              </AnimatePresence>
             </div>
           </div>
           <div>
