@@ -1,14 +1,8 @@
 type BridgeControlCardSVGProps = {
-  width?: string;
-  height?: string;
   children?: React.ReactNode;
 };
 
-const BridgeControlCardSVG = ({
-  width,
-  height,
-  children,
-}: BridgeControlCardSVGProps) => {
+const BridgeControlCardSVG = ({ children }: BridgeControlCardSVGProps) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
