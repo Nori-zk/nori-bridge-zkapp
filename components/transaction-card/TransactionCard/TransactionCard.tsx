@@ -43,7 +43,6 @@ const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
               />
             </h1>
             <WalletPair
-              isTransactionCard={true}
               ethBtnFooterNumericContent={0.002}
               minaBtnFooterNumericContent={0.00045}
             />

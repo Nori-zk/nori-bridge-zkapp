@@ -6,7 +6,6 @@ import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 import { useEffect, useState } from "react";
 
 type WalletPairProps = {
-  isTransactionCard?: boolean;
   ethBtnFooterNumericContent?: number;
   minaBtnFooterNumericContent?: number;
 };

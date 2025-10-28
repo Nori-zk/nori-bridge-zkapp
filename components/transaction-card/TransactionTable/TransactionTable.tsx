@@ -34,7 +34,7 @@ const TransactionTable = () => {
                 <td className="pt-4 pb-1 px-4 w-1/2">
                   <div className="text-xs text-white/50">{tx.date}</div>
                   <div className="flex flex-row justify-between items-center">
-                    {/*use base test rather than md*/}
+                    {/*use base text rather than md*/}
                     <div className="text-base">
                       {formatDisplayAddress(tx.ethHash)}
                     </div>
