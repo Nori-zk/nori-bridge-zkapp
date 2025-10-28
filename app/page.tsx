@@ -127,7 +127,7 @@ export default function Home() {
                       height={"100%"}
                       content={ethConnected && minaConnected ? component : null}
                     />
-                    {!isExpandActive && (
+                    {!isExpandActive && ethConnected && minaConnected && (
                       <button
                         onClick={() => {
                           setIsExpandActive(true);
@@ -145,7 +145,7 @@ export default function Home() {
                     <TransactionCard
                       width={"100%"}
                       height={"100%"}
-                      title={"Transactions"}
+                      title={"Transaction Details"}
                     />
                   </div>
                 }
