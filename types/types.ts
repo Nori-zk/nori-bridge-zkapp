@@ -68,3 +68,40 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
   [ReplacementStageName.WaitingForConfirmation]:
     "The Mina transaction has been submitted. Depending on block times, confirmation may take anywhere from ~3 minutes up to ~25 minutes. Recently, ~85% of transactions have confirmed within 9 minutes.",
 };
+
+export type BalanceChange = {
+  magnitude: string;
+  sgn: string;
+};
+
+export type AccountUpdate = {
+  body: {
+    publicKey: string;
+    tokenId: string;
+    balanceChange: BalanceChange;
+  };
+};
+
+export type ZkappCommand = {
+  hash: string;
+  failureReason: {
+    index: number;
+    failures: string[];
+  } | null;
+  zkappCommand: {
+    memo: string;
+    accountUpdates: AccountUpdate[];
+  };
+};
+
+export type Block = {
+  stateHash: string;
+  protocolState: {
+    blockchainState: {
+      date: string;
+    };
+  };
+  transactions: {
+    zkappCommands: ZkappCommand[];
+  };
+};

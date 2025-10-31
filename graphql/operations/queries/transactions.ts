@@ -12,6 +12,10 @@ export const FIND_TRANSACTIONS_QUERY = gql`
       transactions {
         zkappCommands {
           hash
+          failureReason {
+            index
+            failures
+          }
           zkappCommand {
             memo
             accountUpdates {
