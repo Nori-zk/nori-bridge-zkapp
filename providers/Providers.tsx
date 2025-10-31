@@ -9,6 +9,8 @@ import { SetupProvider } from "./SetupProvider/SetupProvider.tsx";
 import { ProgressProvider } from "./ProgressProvider/ProgressProvider.tsx";
 import { AuroWalletProvider } from "./AuroWalletProvider/AuroWalletProvider.tsx";
 import { AuthProvider } from "./AuthProvider/AuthProvider.tsx";
+import { Provider } from "urql";
+import { urqlClient } from "@/lib/urql-client.ts";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -25,7 +27,9 @@ const Providers = ({ children }: AppProvidersProps) => {
             <WagminaProvider config={config}>
               <AuroWalletProvider>
                 <NoriBridgeProvider>
-                  <ProgressProvider>{children}</ProgressProvider>
+                  <ProgressProvider>
+                    <Provider value={urqlClient}>{children}</Provider>
+                  </ProgressProvider>
                 </NoriBridgeProvider>
               </AuroWalletProvider>
             </WagminaProvider>
