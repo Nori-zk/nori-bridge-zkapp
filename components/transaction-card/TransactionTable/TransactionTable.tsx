@@ -1,16 +1,108 @@
 "use client";
 
+import { useEffect, useMemo } from "react";
 import { useQuery } from "urql";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 import { FIND_TRANSACTIONS_QUERY } from "@/graphql/operations/queries/transactions.ts";
 import { AccountUpdate, ZkappCommand, Block } from "@/types/types.ts";
 import { useAccount } from "wagmina";
 
-const TransactionTable = () => {
+type TransactionTableProps = {
+  setLockedSoFar: (value: number) => void;
+  setMintedSoFar: (value: number) => void;
+};
+
+const TransactionTable = ({
+  setLockedSoFar,
+  setMintedSoFar,
+}: TransactionTableProps) => {
   const [result] = useQuery({ query: FIND_TRANSACTIONS_QUERY });
 
   const { data, fetching, error } = result;
   const { address: minaAddress } = useAccount();
+
+  // Transform the data to match your table structure
+  const transactions = useMemo(
+    () =>
+      data?.bestChain
+        ?.flatMap((block: Block) =>
+          block.transactions.zkappCommands
+            .filter((cmd: ZkappCommand) => {
+              // Check if the transaction was successful (no failure reason)
+              if (cmd.failureReason !== null) {
+                return false;
+              }
+              // Check if the target public key has any balance change > 0
+              return cmd.zkappCommand.accountUpdates.some(
+                (update: AccountUpdate) =>
+                  update.body.publicKey === minaAddress &&
+                  parseFloat(update.body.balanceChange.magnitude) > 0
+              );
+            })
+            .map((cmd: ZkappCommand) => {
+              // Find the account update for the target public key with magnitude > 0
+              const targetUpdate = cmd.zkappCommand.accountUpdates.find(
+                (update: AccountUpdate) =>
+                  update.body.publicKey === minaAddress &&
+                  parseFloat(update.body.balanceChange.magnitude) > 0
+              );
+
+              // Get the magnitude from the target update
+              const magnitude = parseFloat(
+                targetUpdate?.body.balanceChange.magnitude || "0"
+              );
+
+              // Format amount (assuming token uses standard decimals)
+              const formattedAmount = (magnitude / 1_000_000).toFixed(4);
+
+              // Parse date as timestamp for sorting
+              const dateTimestamp = parseInt(
+                block.protocolState.blockchainState.date
+              );
+
+              const date = new Date(dateTimestamp);
+              const formattedDate = date.toLocaleDateString("en-GB", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+
+              const ethHash = cmd.zkappCommand.memo;
+
+              return {
+                ethHash: ethHash,
+                minaHash: targetUpdate?.body.publicKey, // The receiving public key (claim transaction)
+                amount: `${formattedAmount} ETH`,
+                nAmount: `${formattedAmount} nETH`,
+                date: formattedDate,
+                dateTimestamp: dateTimestamp, // Keep timestamp for sorting
+                magnitude: magnitude, // Keep raw magnitude for summing
+              };
+            })
+        )
+        .sort((a, b) => b.dateTimestamp - a.dateTimestamp) || [], // Sort by date descending (most recent first)
+    [data, minaAddress]
+  );
+
+  // Calculate and update the total locked and minted amounts
+  useEffect(() => {
+    if (transactions.length > 0) {
+      const totalMagnitude = transactions.reduce(
+        (sum, tx) => sum + tx.magnitude,
+        0
+      );
+      // Convert from token smallest unit to standard unit
+      const totalInStandardUnits = totalMagnitude / 1_000_000;
+
+      setLockedSoFar(0.111);
+      setMintedSoFar(totalInStandardUnits);
+    } else {
+      setLockedSoFar(0);
+      setMintedSoFar(0);
+    }
+  }, [transactions, setLockedSoFar, setMintedSoFar]);
 
   if (fetching) {
     return (
@@ -27,67 +119,6 @@ const TransactionTable = () => {
       </div>
     );
   }
-
-  // Transform the data to match your table structure
-  const transactions =
-    data?.bestChain
-      ?.flatMap((block: Block) =>
-        block.transactions.zkappCommands
-          .filter((cmd: ZkappCommand) => {
-            // Check if the transaction was successful (no failure reason)
-            if (cmd.failureReason !== null) {
-              return false;
-            }
-            // Check if the target public key has any balance change > 0
-            return cmd.zkappCommand.accountUpdates.some(
-              (update: AccountUpdate) =>
-                update.body.publicKey === minaAddress &&
-                parseFloat(update.body.balanceChange.magnitude) > 0
-            );
-          })
-          .map((cmd: ZkappCommand) => {
-            // Find the account update for the target public key with magnitude > 0
-            const targetUpdate = cmd.zkappCommand.accountUpdates.find(
-              (update: AccountUpdate) =>
-                update.body.publicKey === minaAddress &&
-                parseFloat(update.body.balanceChange.magnitude) > 0
-            );
-
-            // Get the magnitude from the target update
-            const magnitude = parseFloat(
-              targetUpdate?.body.balanceChange.magnitude || "0"
-            );
-
-            // Format amount (assuming token uses standard decimals)
-            const formattedAmount = (magnitude / 1_000_000).toFixed(4);
-
-            // Parse date as timestamp for sorting
-            const dateTimestamp = parseInt(
-              block.protocolState.blockchainState.date
-            );
-
-            const date = new Date(dateTimestamp);
-            const formattedDate = date.toLocaleDateString("en-GB", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-
-            const ethHash = cmd.zkappCommand.memo;
-
-            return {
-              ethHash: ethHash,
-              minaHash: targetUpdate?.body.publicKey, // The receiving public key (claim transaction)
-              amount: `${formattedAmount} ETH`,
-              nAmount: `${formattedAmount} nETH`,
-              date: formattedDate,
-              dateTimestamp: dateTimestamp, // Keep timestamp for sorting
-            };
-          })
-      )
-      .sort((a, b) => b.dateTimestamp - a.dateTimestamp) || []; // Sort by date descending (most recent first)
 
   return (
     <div className="w-full h-4/5 my-6 relative">
