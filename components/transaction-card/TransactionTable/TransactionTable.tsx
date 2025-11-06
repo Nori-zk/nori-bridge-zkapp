@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useQuery } from "urql";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import { FIND_TRANSACTIONS_QUERY } from "@/graphql/operations/queries/transactions.ts";
+import { FIND_MINA_TRANSACTIONS_QUERY } from "@/graphql/operations/queries/mina/transactions.ts";
 import { AccountUpdate, ZkappCommand, Block } from "@/types/types.ts";
 import { useAccount } from "wagmina";
 
@@ -16,13 +16,13 @@ const TransactionTable = ({
   setLockedSoFar,
   setMintedSoFar,
 }: TransactionTableProps) => {
-  const [result] = useQuery({ query: FIND_TRANSACTIONS_QUERY });
+  const [result] = useQuery({ query: FIND_MINA_TRANSACTIONS_QUERY });
 
   const { data, fetching, error } = result;
   const { address: minaAddress } = useAccount();
 
   // Transform the data to match your table structure
-  const transactions = useMemo(
+  const minaTransactions = useMemo(
     () =>
       data?.bestChain
         ?.flatMap((block: Block) =>
@@ -88,8 +88,8 @@ const TransactionTable = ({
 
   // Calculate and update the total locked and minted amounts
   useEffect(() => {
-    if (transactions.length > 0) {
-      const totalMagnitude = transactions.reduce(
+    if (minaTransactions.length > 0) {
+      const totalMagnitude = minaTransactions.reduce(
         (sum, tx) => sum + tx.magnitude,
         0
       );
@@ -102,7 +102,7 @@ const TransactionTable = ({
       setLockedSoFar(0);
       setMintedSoFar(0);
     }
-  }, [transactions, setLockedSoFar, setMintedSoFar]);
+  }, [minaTransactions, setLockedSoFar, setMintedSoFar]);
 
   if (fetching) {
     return (
@@ -144,14 +144,14 @@ const TransactionTable = ({
             </tr>
           </thead>
           <tbody>
-            {transactions.length === 0 ? (
+            {minaTransactions.length === 0 ? (
               <tr>
                 <td colSpan={2} className="py-8 text-center text-white/60">
                   No transactions found
                 </td>
               </tr>
             ) : (
-              transactions.map((tx, index) => {
+              minaTransactions.map((tx, index) => {
                 return (
                   <tr
                     key={index}

@@ -1,6 +1,6 @@
 import { gql } from "urql";
 
-export const FIND_TRANSACTIONS_QUERY = gql`
+export const FIND_MINA_TRANSACTIONS_QUERY = gql`
   query findTransactions {
     bestChain(maxLength: 250) {
       stateHash
