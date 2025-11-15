@@ -58,9 +58,9 @@ const Completed = () => {
           <FaXTwitter className="w-5 h-5 justify-center items-center align-center" />
         </div>
       </button>
-      <button onClick={handlePickSide} className="flex items-center justify-center gap-2 px-4 my-3 py-3 w-full text-xl text-white rounded-lg border border-white">
+      {/* <button onClick={handlePickSide} className="flex items-center justify-center gap-2 px-4 my-3 py-3 w-full text-xl text-white rounded-lg border border-white">
         {"Pick Your Side"}
-      </button>
+      </button> */}
       <button
         onClick={handleExit}
         className="flex items-center justify-center gap-2 px-4 my-3 py-3 w-full text-xl text-lightGreen"
