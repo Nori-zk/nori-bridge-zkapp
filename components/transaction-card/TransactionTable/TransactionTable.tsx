@@ -15,6 +15,7 @@ const TransactionTable = ({
   setMintedSoFar,
 }: TransactionTableProps) => {
   const [isFetching, setIsFetching] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
   // const [result] = useQuery({ query: FIND_MINA_TRANSACTIONS_QUERY });
   const { walletAddress: ethAddress } = useMetaMaskWallet();
   //use ethError and ethLoading as using graphQL equivs for MINA
@@ -206,17 +207,29 @@ const TransactionTable = ({
   //   );
   // }
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const threshold = 5;
+    const isBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight <= threshold;
+    setIsAtBottom(isBottom);
+  };
+
   return (
     <div className="w-full h-4/5 my-6 relative">
-      {/* div with maskImage below for fading at bottom of table */}
       <div
         className="w-full h-full overflow-auto"
-        style={{
-          maskImage:
-            "linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)",
-          WebkitMaskImage:
-            "linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)",
-        }}
+        onScroll={handleScroll}
+        style={
+          isAtBottom
+            ? {}
+            : {
+                maskImage:
+                  "linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)",
+              }
+        }
       >
         <table className="w-full text-sm">
           <thead>
