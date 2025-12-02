@@ -34,7 +34,7 @@ const TransactionTable = ({
       data?.bestChain
         ?.flatMap((block: Block) => {
           try {
-            block.transactions.zkappCommands
+            return block.transactions.zkappCommands
               .filter((cmd: ZkappCommand) => {
                 // Check if the transaction was successful (no failure reason)
                 if (cmd.failureReason !== null) {
@@ -163,15 +163,15 @@ const TransactionTable = ({
     const totalLocked = ethTransactions.reduce((sum, tx) => sum + tx.amount, 0);
     if (minaTransactions.length > 0) {
       const totalMagnitude = minaTransactions.reduce(
-        (sum, tx) => sum + tx.magnitude,
+        (sum, tx) => sum + tx?.magnitude,
         0
       );
-      const totalInStandardUnits = totalMagnitude / 1_000_000;
+      const totalInStandardUnits = (totalMagnitude ?? 0) / 1_000_000;
       setMintedSoFar(totalInStandardUnits);
     } else {
       setMintedSoFar(0);
     }
-    setLockedSoFar(totalLocked);
+    setLockedSoFar(totalLocked ?? 0);
   }, [minaTransactions, ethTransactions, setLockedSoFar, setMintedSoFar]);
 
   if (fetching || ethLoading) {
@@ -220,18 +220,18 @@ const TransactionTable = ({
                 .map((tx) => {
                   // try exact attestationHash match
                   let matchingMinaTx = minaTransactions.find(
-                    (minaTx) => minaTx.ethHash === tx.attestationHash
+                    (minaTx) => minaTx?.ethHash === tx?.attestationHash
                   );
 
                   //If no exact match, try matching by amount and time proximity
                   if (!matchingMinaTx) {
-                    const ethAmount = tx.amount;
-                    const ethTime = tx.dateTimestamp;
+                    const ethAmount = tx?.amount;
+                    const ethTime = tx?.dateTimestamp;
 
                     // Look for Mina tx with same amount that occurred within 1 hour after ETH tx
                     matchingMinaTx = minaTransactions.find((minaTx) => {
-                      const minaAmount = minaTx.magnitude / 1_000_000;
-                      const minaTime = minaTx.dateTimestamp;
+                      const minaAmount = minaTx?.magnitude / 1_000_000;
+                      const minaTime = minaTx?.dateTimestamp;
                       const timeDiff = minaTime - ethTime;
 
                       // Match if amounts are equal and Mina tx is 0-1 hour after ETH tx
@@ -266,26 +266,26 @@ const TransactionTable = ({
                 >
                   <td className="pt-4 pb-1 px-4 w-1/2">
                     <div className="text-xs text-white/50">
-                      {pair.ethTx.date}
+                      {pair.ethTx?.date}
                     </div>
                     <div className="flex flex-row justify-between items-center">
                       <div className="text-base">
-                        {formatDisplayAddress(pair.ethTx.ethHash)}
+                        {formatDisplayAddress(pair.ethTx?.ethHash)}
                       </div>
                       <div className="text-base">
-                        {pair.ethTx.formattedAmount}
+                        {pair.ethTx?.formattedAmount}
                       </div>
                     </div>
                   </td>
                   <td className="pt-4 pb-1 px-4 w-1/2">
                     <div className="text-xs text-white/50">
-                      {pair.minaTx.date}
+                      {pair.minaTx?.date}
                     </div>
                     <div className="flex flex-row justify-between items-center">
                       <div className="text-base">
-                        {formatDisplayAddress(pair.minaTx.minaHash)}
+                        {formatDisplayAddress(pair.minaTx?.minaHash)}
                       </div>
-                      <div className="text-base">{pair.minaTx.nAmount}</div>
+                      <div className="text-base">{pair.minaTx?.nAmount}</div>
                     </div>
                   </td>
                 </tr>
