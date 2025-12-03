@@ -1,15 +1,2 @@
-# Code owners for Nori Bridge ZK App
-# These users have full access and can approve/merge PRs
-
+# Global owners - applies to everything in the repo unless overridden
 * @jk89 @Kirol54
-
-# Frontend specific files
-src/ @jk89 @Kirol54
-public/ @jk89 @Kirol54
-*.tsx @jk89 @Kirol54
-*.ts @jk89 @Kirol54
-*.css @jk89 @Kirol54
-
-# Configuration files
-package.json @jk89 @Kirol54
-*.config.js @jk89 @Kirol54
