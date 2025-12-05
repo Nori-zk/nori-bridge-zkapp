@@ -38,6 +38,7 @@ interface MetaMaskWalletContextType {
   contract: Contract | null;
   chainId: string | null;
   isOnCorrectNetwork: boolean;
+  codeChallenge: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   signMessage: (message: string) => Promise<SignMessageResult>;
@@ -80,6 +81,7 @@ export const MetaMaskWalletProvider = ({
   const [contract, setContract] = useState<Contract | null>(null);
   const [lockedAmount, setLockedAmount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string | null>(null);
+  const [codeChallenge, setCodeChallenge] = useState<string | null>(null);
 
   const rawToast = useToast({
     type: "error",
@@ -108,6 +110,7 @@ export const MetaMaskWalletProvider = ({
     setSigner(null);
     setContract(null);
     setLockedAmount(null);
+    setCodeChallenge(null);
   }, []);
 
   const validateNetwork = useCallback(async (): Promise<void> => {
@@ -411,6 +414,7 @@ export const MetaMaskWalletProvider = ({
 
       try {
         await validateNetwork();
+        setCodeChallenge(codeChallange);
         const codeChallengePKARMBigInt = BigInt(codeChallange);
         const credentialAttestationBigNumberIsh: BigNumberish =
           codeChallengePKARMBigInt;
@@ -595,6 +599,7 @@ export const MetaMaskWalletProvider = ({
       contract,
       chainId,
       isOnCorrectNetwork,
+      codeChallenge,
       connect,
       disconnect,
       signMessage,
@@ -609,6 +614,7 @@ export const MetaMaskWalletProvider = ({
       contract,
       chainId,
       isOnCorrectNetwork,
+      codeChallenge,
       connect,
       disconnect,
       signMessage,

@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "urql";
+import { useEffect, useState, useMemo } from "react";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import { FIND_MINA_TRANSACTIONS_QUERY } from "@/graphql/operations/queries/mina/transactions.ts";
-import { AccountUpdate, ZkappCommand, Block } from "@/types/types.ts";
 import { useAccount } from "wagmina";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { ethers } from "ethers";
+import envConfig from "@/helpers/env.ts";
 
 type TransactionTableProps = {
   setLockedSoFar: (value: number) => void;
@@ -18,84 +16,97 @@ const TransactionTable = ({
   setLockedSoFar,
   setMintedSoFar,
 }: TransactionTableProps) => {
-  const [result] = useQuery({ query: FIND_MINA_TRANSACTIONS_QUERY });
-  const { contract, walletAddress: ethAddress } = useMetaMaskWallet();
-  //use ethError and ethLoading as using graphQL equivs for MINA
+  const {
+    contract,
+    walletAddress: ethAddress,
+    codeChallenge,
+  } = useMetaMaskWallet();
   const [ethTransactions, setEthTransactions] = useState<any[]>([]);
   const [ethLoading, setEthLoading] = useState(false);
   const [ethError, setEthError] = useState<string | null>(null);
 
-  const { data, fetching, error } = result;
+  const [minaTransactions, setMinaTransactions] = useState<any[]>([]);
+  const [minaLoading, setMinaLoading] = useState(false);
+  const [minaError, setMinaError] = useState<string | null>(null);
+
   const { address: minaAddress } = useAccount();
 
-  // Transform the data to match your table structure
-  const minaTransactions = useMemo(
-    () =>
-      data?.bestChain
-        ?.flatMap((block: Block) => {
-          try {
-            return block.transactions.zkappCommands
-              .filter((cmd: ZkappCommand) => {
-                // Check if the transaction was successful (no failure reason)
-                if (cmd.failureReason !== null) {
-                  return false;
-                }
-                // Check if the target public key has any balance change > 0
-                return cmd.zkappCommand.accountUpdates.some(
-                  (update: AccountUpdate) =>
-                    update.body.publicKey === minaAddress &&
-                    parseFloat(update.body.balanceChange.magnitude) > 0
-                );
-              })
-              .map((cmd: ZkappCommand) => {
-                // Find the account update for the target public key with magnitude > 0
-                const targetUpdate = cmd.zkappCommand.accountUpdates.find(
-                  (update: AccountUpdate) =>
-                    update.body.publicKey === minaAddress &&
-                    parseFloat(update.body.balanceChange.magnitude) > 0
-                );
+  useEffect(() => {
+    const fetchMinaTransactions = async () => {
+      if (!minaAddress) {
+        setMinaTransactions([]);
+        return;
+      }
 
-                // Get the magnitude from the target update
-                const magnitude = parseFloat(
-                  targetUpdate?.body.balanceChange.magnitude || "0"
-                );
+      setMinaLoading(true);
+      setMinaError(null);
 
-                // Format amount (assuming token uses standard decimals)
-                const formattedAmount = (magnitude / 1_000_000).toFixed(4);
+      try {
+        const tokenId = "x2BoZdzJ9Sj4QdV9u886PfcaKsh3cSHw96tB7uBNsSpUKmXWSw"; //harcoded for now - to change
+        const url = `https://mina-zkapp-transaction-api.devnet.nori.it.com/api/transactions?zkappAddress=${envConfig.NORI_TOKEN_CONTROLLER_ADDRESS}&userAccount=${minaAddress}&tokenId=${tokenId}&page=1&limit=100`;
 
-                // Parse date as timestamp for sorting
-                const dateTimestamp = parseInt(
-                  block.protocolState.blockchainState.date
-                );
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-                const date = new Date(dateTimestamp);
-                const formattedDate = date.toLocaleDateString("en-GB", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
+        const result = await response.json();
 
-                const ethHash = cmd.zkappCommand.memo;
+        const transactions = result.data.map((tx: any) => {
+          const magnitude = parseFloat(tx.token_minted || "0");
+          const formattedAmount = (magnitude / 1_000_000).toFixed(4);
 
-                return {
-                  ethHash: ethHash,
-                  minaHash: targetUpdate?.body.publicKey, // The receiving public key (claim transaction)
-                  amount: `${formattedAmount} ETH`,
-                  nAmount: `${formattedAmount} nETH`,
-                  date: formattedDate,
-                  dateTimestamp: dateTimestamp, // Keep timestamp for sorting
-                  magnitude: magnitude, // Keep raw magnitude for summing
-                };
-              });
-          } catch (err) {
-            console.error("Error fetching MINA transactions:", err);
+          const date = new Date(tx.tx_time);
+          const dateTimestamp = date.getTime();
+          const formattedDate = date.toLocaleDateString("en-GB", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          let attestationHash = "";
+          if (tx.event_values) {
+            try {
+              const eventValues = JSON.parse(tx.event_values);
+              attestationHash =
+                eventValues.attestationHash || eventValues[0] || "";
+            } catch (e) {
+              attestationHash = tx.event_values;
+            }
           }
-        })
-        .sort((a, b) => b.dateTimestamp - a.dateTimestamp) || [], // Sort by date descending (most recent first)
-    [data, minaAddress]
-  );
+
+          return {
+            ethHash: attestationHash, // This should match with ETH attestationHash
+            minaHash: tx.transaction_hash,
+            amount: `${formattedAmount} ETH`,
+            nAmount: `${formattedAmount} nETH`,
+            date: formattedDate,
+            dateTimestamp: dateTimestamp,
+            magnitude: magnitude,
+            status: tx.status,
+          };
+        });
+
+        // Sort by date descending (most recent first)
+        transactions.sort(
+          (a: any, b: any) => b.dateTimestamp - a.dateTimestamp
+        );
+
+        setMinaTransactions(transactions);
+      } catch (err) {
+        console.error("Error fetching Mina transactions:", err);
+        setMinaError(
+          err instanceof Error ? err.message : "Failed to fetch transactions"
+        );
+      } finally {
+        setMinaLoading(false);
+      }
+    };
+
+    fetchMinaTransactions();
+  }, [minaAddress]);
 
   useEffect(() => {
     const fetchEthTransactions = async () => {
@@ -110,7 +121,16 @@ const TransactionTable = ({
       try {
         // Query TokensLocked events filtered by the user's address
         const filter = contract.filters.TokensLocked(ethAddress);
-        const events = await contract.queryFilter(filter);
+        let events = await contract.queryFilter(filter);
+
+        //further filter by codeChallenge
+        if (codeChallenge) {
+          events = events.filter((e) => {
+            const attestationHashBigInt = e.args[1];
+            const attestationHashStr = attestationHashBigInt.toString();
+            return attestationHashStr === codeChallenge;
+          });
+        }
 
         // Transform events into transaction objects
         const transactions = events.map((event) => {
@@ -130,7 +150,7 @@ const TransactionTable = ({
           // Format amount from Wei to ETH
           const formattedAmount = parseFloat(ethers.formatEther(amount));
 
-          return {
+          const tx = {
             ethHash: event.transactionHash,
             attestationHash: attestationHash.toString(),
             amount: formattedAmount,
@@ -141,6 +161,8 @@ const TransactionTable = ({
             user: user,
             blockNumber: event.blockNumber,
           };
+
+          return tx;
         });
 
         transactions.sort((a, b) => b.dateTimestamp - a.dateTimestamp);
@@ -157,7 +179,7 @@ const TransactionTable = ({
     };
 
     fetchEthTransactions();
-  }, [contract, ethAddress]);
+  }, [contract, ethAddress, codeChallenge]);
 
   useEffect(() => {
     const totalLocked = ethTransactions.reduce((sum, tx) => sum + tx.amount, 0);
@@ -172,9 +194,91 @@ const TransactionTable = ({
       setMintedSoFar(0);
     }
     setLockedSoFar(totalLocked ?? 0);
-  }, [minaTransactions, ethTransactions, setLockedSoFar, setMintedSoFar]);
+  }, [minaTransactions, ethTransactions]); // Removed setLockedSoFar and setMintedSoFar from dependencies
 
-  if (fetching || ethLoading) {
+  // Memoize matched pairs to prevent recalculation on every render
+  const matchedPairs = useMemo(() => {
+    // Track which Mina transactions have been matched to avoid duplicates
+    const usedMinaTxIndices = new Set<number>();
+
+    const pairs = ethTransactions
+      .map((tx) => {
+        // try exact attestationHash match using calculated codeChallenge
+        let matchingMinaTx = null;
+        let matchingMinaTxIndex = -1;
+
+        // First priority: Match using our calculated codeChallenge
+        if (codeChallenge && tx?.attestationHash === codeChallenge) {
+          const index = minaTransactions.findIndex(
+            (minaTx, idx) =>
+              !usedMinaTxIndices.has(idx) &&
+              minaTx?.ethHash &&
+              minaTx?.ethHash === codeChallenge
+          );
+          if (index !== -1) {
+            matchingMinaTx = minaTransactions[index];
+            matchingMinaTxIndex = index;
+          }
+        }
+
+        // Second priority: Try direct attestationHash match (for backwards compatibility)
+        if (!matchingMinaTx && tx?.attestationHash) {
+          const index = minaTransactions.findIndex(
+            (minaTx, idx) =>
+              !usedMinaTxIndices.has(idx) &&
+              minaTx?.ethHash &&
+              minaTx?.ethHash === tx?.attestationHash
+          );
+          if (index !== -1) {
+            matchingMinaTx = minaTransactions[index];
+            matchingMinaTxIndex = index;
+          }
+        }
+
+        //If no exact match, try matching by amount and time proximity
+        if (!matchingMinaTx) {
+          const ethAmount = tx?.amount;
+          const ethTime = tx?.dateTimestamp;
+
+          const TIME_WINDOW = 3 * 60 * 60 * 1000;
+
+          let bestMatch = null;
+          let bestMatchIndex = -1;
+          let smallestTimeDiff = Infinity;
+
+          minaTransactions.forEach((minaTx, idx) => {
+            if (usedMinaTxIndices.has(idx)) return;
+
+            const minaAmount = minaTx?.magnitude / 1_000_000;
+            const minaTime = minaTx?.dateTimestamp;
+            const timeDiff = minaTime - ethTime;
+
+            const amountMatch = Math.abs(minaAmount - ethAmount) < 0.0001;
+            const timeMatch = timeDiff >= 0 && timeDiff <= TIME_WINDOW;
+
+            if (amountMatch && timeMatch && timeDiff < smallestTimeDiff) {
+              bestMatch = minaTx;
+              bestMatchIndex = idx;
+              smallestTimeDiff = timeDiff;
+            }
+          });
+
+          if (bestMatch) {
+            matchingMinaTx = bestMatch;
+            matchingMinaTxIndex = bestMatchIndex;
+          }
+        }
+
+        usedMinaTxIndices.add(matchingMinaTxIndex);
+
+        return matchingMinaTx ? { ethTx: tx, minaTx: matchingMinaTx } : null;
+      })
+      .filter((pair) => pair !== null);
+
+    return pairs;
+  }, [ethTransactions, minaTransactions, codeChallenge]);
+
+  if (minaLoading || ethLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <p className="text-white/60">Loading transactions...</p>
@@ -182,10 +286,10 @@ const TransactionTable = ({
     );
   }
 
-  if (error || ethError) {
+  if (minaError || ethError) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <p className="text-red-400">Error: {error?.message || ethError}</p>
+        <p className="text-red-400">Error: {minaError || ethError}</p>
       </div>
     );
   }
@@ -214,52 +318,14 @@ const TransactionTable = ({
             </tr>
           </thead>
           <tbody>
-            {(() => {
-              // Filter ETH transactions to only those with matching Mina transactions
-              const matchedPairs = ethTransactions
-                .map((tx) => {
-                  // try exact attestationHash match
-                  let matchingMinaTx = minaTransactions.find(
-                    (minaTx) => minaTx?.ethHash === tx?.attestationHash
-                  );
-
-                  //If no exact match, try matching by amount and time proximity
-                  if (!matchingMinaTx) {
-                    const ethAmount = tx?.amount;
-                    const ethTime = tx?.dateTimestamp;
-
-                    // Look for Mina tx with same amount that occurred within 1 hour after ETH tx
-                    matchingMinaTx = minaTransactions.find((minaTx) => {
-                      const minaAmount = minaTx?.magnitude / 1_000_000;
-                      const minaTime = minaTx?.dateTimestamp;
-                      const timeDiff = minaTime - ethTime;
-
-                      // Match if amounts are equal and Mina tx is 0-1 hour after ETH tx
-                      return (
-                        Math.abs(minaAmount - ethAmount) < 0.0001 &&
-                        timeDiff >= 0 &&
-                        timeDiff <= 1 * 60 * 60 * 1000
-                      );
-                    });
-                  }
-
-                  return matchingMinaTx
-                    ? { ethTx: tx, minaTx: matchingMinaTx }
-                    : null;
-                })
-                .filter((pair) => pair !== null);
-
-              if (matchedPairs.length === 0) {
-                return (
-                  <tr>
-                    <td colSpan={2} className="py-8 text-center text-white/60">
-                      No completed transactions found
-                    </td>
-                  </tr>
-                );
-              }
-
-              return matchedPairs.map((pair, index) => (
+            {matchedPairs.length === 0 ? (
+              <tr>
+                <td colSpan={2} className="py-8 text-center text-white/60">
+                  No completed transactions found
+                </td>
+              </tr>
+            ) : (
+              matchedPairs.map((pair, index) => (
                 <tr
                   key={`pair-${index}`}
                   className="border-b border-white/10 hover:bg-white/5 transition-colors h-full w-full"
@@ -289,8 +355,8 @@ const TransactionTable = ({
                     </div>
                   </td>
                 </tr>
-              ));
-            })()}
+              ))
+            )}
           </tbody>
         </table>
       </div>
