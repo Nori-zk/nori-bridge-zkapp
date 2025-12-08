@@ -197,83 +197,82 @@ const TransactionTable = ({
   }, [minaTransactions, ethTransactions]); // Removed setLockedSoFar and setMintedSoFar from dependencies
 
   // Memoize matched pairs to prevent recalculation on every render
+  // Returns ALL eth transactions with optional matching mina transaction
   const matchedPairs = useMemo(() => {
     // Track which Mina transactions have been matched to avoid duplicates
     const usedMinaTxIndices = new Set<number>();
 
-    const pairs = ethTransactions
-      .map((tx) => {
-        // try exact attestationHash match using calculated codeChallenge
-        let matchingMinaTx = null;
-        let matchingMinaTxIndex = -1;
+    const pairs = ethTransactions.map((tx) => {
+      // try exact attestationHash match using calculated codeChallenge
+      let matchingMinaTx = null;
+      let matchingMinaTxIndex = -1;
 
-        // First priority: Match using our calculated codeChallenge
-        if (codeChallenge && tx?.attestationHash === codeChallenge) {
-          const index = minaTransactions.findIndex(
-            (minaTx, idx) =>
-              !usedMinaTxIndices.has(idx) &&
-              minaTx?.ethHash &&
-              minaTx?.ethHash === codeChallenge
-          );
-          if (index !== -1) {
-            matchingMinaTx = minaTransactions[index];
-            matchingMinaTxIndex = index;
-          }
+      // First priority: Match using our calculated codeChallenge
+      if (codeChallenge && tx?.attestationHash === codeChallenge) {
+        const index = minaTransactions.findIndex(
+          (minaTx, idx) =>
+            !usedMinaTxIndices.has(idx) &&
+            minaTx?.ethHash &&
+            minaTx?.ethHash === codeChallenge
+        );
+        if (index !== -1) {
+          matchingMinaTx = minaTransactions[index];
+          matchingMinaTxIndex = index;
         }
+      }
 
-        // Second priority: Try direct attestationHash match (for backwards compatibility)
-        if (!matchingMinaTx && tx?.attestationHash) {
-          const index = minaTransactions.findIndex(
-            (minaTx, idx) =>
-              !usedMinaTxIndices.has(idx) &&
-              minaTx?.ethHash &&
-              minaTx?.ethHash === tx?.attestationHash
-          );
-          if (index !== -1) {
-            matchingMinaTx = minaTransactions[index];
-            matchingMinaTxIndex = index;
-          }
+      // Second priority: Try direct attestationHash match (for backwards compatibility)
+      if (!matchingMinaTx && tx?.attestationHash) {
+        const index = minaTransactions.findIndex(
+          (minaTx, idx) =>
+            !usedMinaTxIndices.has(idx) &&
+            minaTx?.ethHash &&
+            minaTx?.ethHash === tx?.attestationHash
+        );
+        if (index !== -1) {
+          matchingMinaTx = minaTransactions[index];
+          matchingMinaTxIndex = index;
         }
+      }
 
-        //If no exact match, try matching by amount and time proximity
-        if (!matchingMinaTx) {
-          const ethAmount = tx?.amount;
-          const ethTime = tx?.dateTimestamp;
+      //If no exact match, try matching by amount and time proximity
+      if (!matchingMinaTx) {
+        const ethAmount = tx?.amount;
+        const ethTime = tx?.dateTimestamp;
 
-          const TIME_WINDOW = 3 * 60 * 60 * 1000;
+        const TIME_WINDOW = 3 * 60 * 60 * 1000;
 
-          let bestMatch = null;
-          let bestMatchIndex = -1;
-          let smallestTimeDiff = Infinity;
+        let bestMatch = null;
+        let bestMatchIndex = -1;
+        let smallestTimeDiff = Infinity;
 
-          minaTransactions.forEach((minaTx, idx) => {
-            if (usedMinaTxIndices.has(idx)) return;
+        minaTransactions.forEach((minaTx, idx) => {
+          if (usedMinaTxIndices.has(idx)) return;
 
-            const minaAmount = minaTx?.magnitude / 1_000_000;
-            const minaTime = minaTx?.dateTimestamp;
-            const timeDiff = minaTime - ethTime;
+          const minaAmount = minaTx?.magnitude / 1_000_000;
+          const minaTime = minaTx?.dateTimestamp;
+          const timeDiff = minaTime - ethTime;
 
-            const amountMatch = Math.abs(minaAmount - ethAmount) < 0.0001;
-            const timeMatch = timeDiff >= 0 && timeDiff <= TIME_WINDOW;
+          const amountMatch = Math.abs(minaAmount - ethAmount) < 0.0001;
+          const timeMatch = timeDiff >= 0 && timeDiff <= TIME_WINDOW;
 
-            if (amountMatch && timeMatch && timeDiff < smallestTimeDiff) {
-              bestMatch = minaTx;
-              bestMatchIndex = idx;
-              smallestTimeDiff = timeDiff;
-            }
-          });
-
-          if (bestMatch) {
-            matchingMinaTx = bestMatch;
-            matchingMinaTxIndex = bestMatchIndex;
+          if (amountMatch && timeMatch && timeDiff < smallestTimeDiff) {
+            bestMatch = minaTx;
+            bestMatchIndex = idx;
+            smallestTimeDiff = timeDiff;
           }
+        });
+
+        if (bestMatch) {
+          matchingMinaTx = bestMatch;
+          matchingMinaTxIndex = bestMatchIndex;
         }
+      }
 
-        usedMinaTxIndices.add(matchingMinaTxIndex);
+      usedMinaTxIndices.add(matchingMinaTxIndex);
 
-        return matchingMinaTx ? { ethTx: tx, minaTx: matchingMinaTx } : null;
-      })
-      .filter((pair) => pair !== null);
+      return { ethTx: tx, minaTx: matchingMinaTx };
+    });
 
     return pairs;
   }, [ethTransactions, minaTransactions, codeChallenge]);
@@ -321,7 +320,7 @@ const TransactionTable = ({
             {matchedPairs.length === 0 ? (
               <tr>
                 <td colSpan={2} className="py-8 text-center text-white/60">
-                  No completed transactions found
+                  No transactions found
                 </td>
               </tr>
             ) : (
@@ -344,15 +343,29 @@ const TransactionTable = ({
                     </div>
                   </td>
                   <td className="pt-4 pb-1 px-4 w-1/2">
-                    <div className="text-xs text-white/50">
-                      {pair.minaTx?.date}
-                    </div>
-                    <div className="flex flex-row justify-between items-center">
-                      <div className="text-base">
-                        {formatDisplayAddress(pair.minaTx?.minaHash)}
+                    {pair.minaTx ? (
+                      <>
+                        <div className="text-xs text-white/50">
+                          {pair.minaTx?.date}
+                        </div>
+                        <div className="flex flex-row justify-between items-center">
+                          <div className="text-base">
+                            {formatDisplayAddress(pair.minaTx?.minaHash)}
+                          </div>
+                          <div className="text-base">
+                            {pair.minaTx?.nAmount}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="animate-pulse">
+                        <div className="h-3 bg-white/10 rounded w-24 mb-2"></div>
+                        <div className="flex flex-row justify-between items-center">
+                          <div className="h-4 bg-white/10 rounded w-32"></div>
+                          <div className="h-4 bg-white/10 rounded w-20"></div>
+                        </div>
                       </div>
-                      <div className="text-base">{pair.minaTx?.nAmount}</div>
-                    </div>
+                    )}
                   </td>
                 </tr>
               ))
