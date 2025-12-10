@@ -182,7 +182,15 @@ const TransactionTable = ({
   }, [contract, ethAddress, codeChallenge]);
 
   useEffect(() => {
+    // Only update totals after initial loading is complete
+    // This prevents showing 0 on initial render before data is fetched
+    if (ethLoading || minaLoading) {
+      return;
+    }
+
     const totalLocked = ethTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    setLockedSoFar(totalLocked ?? 0);
+
     if (minaTransactions.length > 0) {
       const totalMagnitude = minaTransactions.reduce(
         (sum, tx) => sum + tx?.magnitude,
@@ -193,8 +201,7 @@ const TransactionTable = ({
     } else {
       setMintedSoFar(0);
     }
-    setLockedSoFar(totalLocked ?? 0);
-  }, [minaTransactions, ethTransactions]); // Removed setLockedSoFar and setMintedSoFar from dependencies
+  }, [minaTransactions, ethTransactions, ethLoading, minaLoading]);
 
   // Memoize matched pairs to prevent recalculation on every render
   // Returns ALL eth transactions with optional matching mina transaction

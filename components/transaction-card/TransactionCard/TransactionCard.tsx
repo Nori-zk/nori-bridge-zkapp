@@ -16,8 +16,8 @@ type TransactionCardProps = {
 const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
   const { isConnected: ethConnected } = useMetaMaskWallet();
   const { isConnected: minaConnected } = useAccount();
-  const [mintedSoFar, setMintedSoFar] = useState(0);
-  const [lockedSoFar, setLockedSoFar] = useState(0);
+  const [mintedSoFar, setMintedSoFar] = useState<number | undefined>(undefined);
+  const [lockedSoFar, setLockedSoFar] = useState<number | undefined>(undefined);
 
   return (
     <div
