@@ -6,6 +6,7 @@ import { useAccount } from "wagmina";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { ethers } from "ethers";
 import envConfig from "@/helpers/env.ts";
+import { getCodeChallenge } from "@/helpers/codeChallengeHelper.ts";
 
 type TransactionTableProps = {
   setLockedSoFar: (value: number) => void;
@@ -16,11 +17,7 @@ const TransactionTable = ({
   setLockedSoFar,
   setMintedSoFar,
 }: TransactionTableProps) => {
-  const {
-    contract,
-    walletAddress: ethAddress,
-    codeChallenge,
-  } = useMetaMaskWallet();
+  const { contract, walletAddress: ethAddress } = useMetaMaskWallet();
   const [ethTransactions, setEthTransactions] = useState<any[]>([]);
   const [ethLoading, setEthLoading] = useState(false);
   const [ethError, setEthError] = useState<string | null>(null);
@@ -28,8 +25,23 @@ const TransactionTable = ({
   const [minaTransactions, setMinaTransactions] = useState<any[]>([]);
   const [minaLoading, setMinaLoading] = useState(false);
   const [minaError, setMinaError] = useState<string | null>(null);
+  const [codeChallenge, setCodeChallenge] = useState<string | null>(null);
 
   const { address: minaAddress } = useAccount();
+
+  useEffect(() => {
+    const fetchCodeChallenge = async () => {
+      if (!ethAddress) {
+        setCodeChallenge(null);
+        return;
+      }
+
+      const challenge = await getCodeChallenge(ethAddress, minaAddress);
+      setCodeChallenge(challenge);
+    };
+
+    fetchCodeChallenge();
+  }, [ethAddress, minaAddress]);
 
   useEffect(() => {
     const fetchMinaTransactions = async () => {
@@ -210,7 +222,6 @@ const TransactionTable = ({
     const usedMinaTxIndices = new Set<number>();
 
     const pairs = ethTransactions.map((tx) => {
-      // try exact attestationHash match using calculated codeChallenge
       let matchingMinaTx = null;
       let matchingMinaTxIndex = -1;
 
@@ -242,41 +253,9 @@ const TransactionTable = ({
         }
       }
 
-      //If no exact match, try matching by amount and time proximity
-      if (!matchingMinaTx) {
-        const ethAmount = tx?.amount;
-        const ethTime = tx?.dateTimestamp;
-
-        const TIME_WINDOW = 3 * 60 * 60 * 1000;
-
-        let bestMatch = null;
-        let bestMatchIndex = -1;
-        let smallestTimeDiff = Infinity;
-
-        minaTransactions.forEach((minaTx, idx) => {
-          if (usedMinaTxIndices.has(idx)) return;
-
-          const minaAmount = minaTx?.magnitude / 1_000_000;
-          const minaTime = minaTx?.dateTimestamp;
-          const timeDiff = minaTime - ethTime;
-
-          const amountMatch = Math.abs(minaAmount - ethAmount) < 0.0001;
-          const timeMatch = timeDiff >= 0 && timeDiff <= TIME_WINDOW;
-
-          if (amountMatch && timeMatch && timeDiff < smallestTimeDiff) {
-            bestMatch = minaTx;
-            bestMatchIndex = idx;
-            smallestTimeDiff = timeDiff;
-          }
-        });
-
-        if (bestMatch) {
-          matchingMinaTx = bestMatch;
-          matchingMinaTxIndex = bestMatchIndex;
-        }
+      if (matchingMinaTxIndex !== -1) {
+        usedMinaTxIndices.add(matchingMinaTxIndex);
       }
-
-      usedMinaTxIndices.add(matchingMinaTxIndex);
 
       return { ethTx: tx, minaTx: matchingMinaTx };
     });

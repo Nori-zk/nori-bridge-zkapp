@@ -5,6 +5,7 @@ import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Store } from "@/helpers/localStorage2.ts";
+import { setCodeChallenge } from "@/helpers/codeChallengeHelper.ts";
 
 type FormValues = {
   amount: string;
@@ -13,7 +14,7 @@ type FormValues = {
 const LockTokens = () => {
   const [locking, setLocking] = useState<boolean>(false);
   const [walletCheck, setWalletCheck] = useState<boolean>(false);
-  const { lockTokens, signMessage } = useMetaMaskWallet();
+  const { lockTokens, signMessage, walletAddress } = useMetaMaskWallet();
   const { state, setDepositNumber } = useNoriBridge();
   const {
     register,
@@ -41,6 +42,7 @@ const LockTokens = () => {
         );
         Store.forEth(worker.ethWalletPubKeyBase58).codeVerifier = codeVerify;
         const codeChallange = await worker.createCodeChallenge(codeVerify);
+        setCodeChallenge(walletAddress, codeChallange);
         setLocking(true);
         setWalletCheck(false);
         const blockNubmer = await lockTokens(codeChallange, amount);
