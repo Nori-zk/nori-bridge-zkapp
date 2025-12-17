@@ -31,7 +31,7 @@ const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
         display: "flex",
       }}
     >
-      <BridgeControlCardSVG width={width} height={height}>
+      <BridgeControlCardSVG>
         <div className="flex justify-center w-full h-full">
           <div className="flex flex-col items-center h-full w-4/5 pt-12">
             <h1 className="text-center text-white text-4xl mb-8 font-[400]">

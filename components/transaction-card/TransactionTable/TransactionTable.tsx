@@ -138,14 +138,19 @@ const TransactionTable = ({
         //further filter by codeChallenge
         if (codeChallenge) {
           events = events.filter((e) => {
-            const attestationHashBigInt = e.args[1];
-            const attestationHashStr = attestationHashBigInt.toString();
-            return attestationHashStr === codeChallenge;
+            if ('args' in e) {
+              const attestationHashBigInt = e.args[1];
+              const attestationHashStr = attestationHashBigInt.toString();
+              return attestationHashStr === codeChallenge;
+            }
+            return false;
           });
         }
 
         // Transform events into transaction objects
-        const transactions = events.map((event) => {
+        const transactions = events
+          .filter((event): event is ethers.EventLog => 'args' in event)
+          .map((event) => {
           const { user, attestationHash, amount, when } = event.args;
 
           // Convert BigInt timestamp to Date
