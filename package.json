@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "npm run build:client && npm run build:functions",
     "build:client": "next build --no-lint && cp _headers out/_headers",
-    "build:functions": "cd functions && npm run build",
+    "build:functions": "cd functions && npm ci && npm run build",
     "show-all-errors": "tsc --noEmit",
     "start": "node server.js",
     "lint": "next lint",
