@@ -72,7 +72,7 @@ const FlipCard = ({
 
   // Close on Escape key
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isExpandActive) {
         retreat();
       }

@@ -1,6 +1,6 @@
 import TextType from "@/blocks/TextAnimations/TextType/TextType.tsx";
 import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControlCardSVG/BridgeControlCardSVG.tsx";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import TransactionTable from "@/components/transaction-card/TransactionTable/TransactionTable.tsx";
 import WalletPair from "@/components/ui/WalletPair/WalletPair.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
@@ -16,6 +16,8 @@ type TransactionCardProps = {
 const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
   const { isConnected: ethConnected } = useMetaMaskWallet();
   const { isConnected: minaConnected } = useAccount();
+  const [mintedSoFar, setMintedSoFar] = useState<number | undefined>(undefined);
+  const [lockedSoFar, setLockedSoFar] = useState<number | undefined>(undefined);
 
   return (
     <div
@@ -29,7 +31,7 @@ const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
         display: "flex",
       }}
     >
-      <BridgeControlCardSVG width={width} height={height}>
+      <BridgeControlCardSVG>
         <div className="flex justify-center w-full h-full">
           <div className="flex flex-col items-center h-full w-4/5 pt-12">
             <h1 className="text-center text-white text-4xl mb-8 font-[400]">
@@ -43,13 +45,16 @@ const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
               />
             </h1>
             <WalletPair
-              ethBtnFooterNumericContent={0.002}
-              minaBtnFooterNumericContent={0.00045}
+              ethBtnFooterNumericContent={lockedSoFar}
+              minaBtnFooterNumericContent={mintedSoFar}
             />
             <div className="w-full flex-1 overflow-hidden flex flex-col">
               <div className="flex justify-center mt-1 text-white h-full w-full">
                 {minaConnected && ethConnected ? (
-                  <TransactionTable />
+                  <TransactionTable
+                    setLockedSoFar={setLockedSoFar}
+                    setMintedSoFar={setMintedSoFar}
+                  />
                 ) : (
                   <div className="flex h-full m-12">
                     Please connect both wallets for transaction history

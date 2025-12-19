@@ -1,4 +1,4 @@
-'use client'
+"use client";
 type PrimitiveType = "string" | "number" | "boolean";
 type ComplexType = "date" | "object" | "array";
 type SchemaType = PrimitiveType | ComplexType;
@@ -44,7 +44,7 @@ function serializeByType(value: any, type: SchemaType): string {
     case "object":
     case "array":
       // Only stringify if it's not already a string
-      if (typeof value === 'string') {
+      if (typeof value === "string") {
         // It's already stringified, return as-is
         return value;
       }
@@ -87,8 +87,8 @@ function createStorageObjectFromSchema<T extends Schema>(
     const entry = schema[key];
     Object.defineProperty(obj, key, {
       get() {
-        if (typeof window === 'undefined') {
-          return
+        if (typeof window === "undefined") {
+          return;
         }
         const storageKey = suffix ? `${key}:${suffix}` : key;
         const raw = localStorage.getItem(storageKey);
@@ -96,8 +96,8 @@ function createStorageObjectFromSchema<T extends Schema>(
         return deserialized;
       },
       set(value) {
-        if (typeof window === 'undefined') {
-          return
+        if (typeof window === "undefined") {
+          return;
         }
         const storageKey = suffix ? `${key}:${suffix}` : key;
         if (value === null) {
@@ -139,6 +139,7 @@ export class Store {
   static forEth(ethWallet: string) {
     return createStorageObjectFromSchema(ethWallet, {
       codeVerifier: { type: "string" as const }, // keep
+      codeChallenge: { type: "string" as const }, // keep
     });
   }
 
@@ -153,24 +154,39 @@ export class Store {
   }
 }
 
-
 export function resetLocalStorage(ethWallet: string, minaWallet: string) {
-  const globalTestKeys = ["test_txAmount", "test_codeChallange", "test_activeDepositNumber", "showFactionClaim", "test_lastEthWallet", "test_lastMinaWallet"] as const;
+  const globalTestKeys = [
+    "test_txAmount",
+    "test_codeChallange",
+    "test_activeDepositNumber",
+    "showFactionClaim",
+    "test_lastEthWallet",
+    "test_lastMinaWallet",
+  ] as const;
   globalTestKeys.forEach((key) => {
     Store.global()[key] = null;
   });
-  const pairKeys = ["activeDepositNumber", "computedEthProof", "depositMintTx", "txAmount"] as const;
+  const pairKeys = [
+    "activeDepositNumber",
+    "computedEthProof",
+    "depositMintTx",
+    "txAmount",
+  ] as const;
   pairKeys.forEach((key) => {
     Store.forPair(ethWallet, minaWallet)[key] = null;
   });
 }
 
-export function storageIsSetupAndFinalizedForCurrentMinaKey(minaWallet: string) {
+export function storageIsSetupAndFinalizedForCurrentMinaKey(
+  minaWallet: string
+) {
   return Store.forMina(minaWallet).needsToSetupStorage === false;
   //return needsToSetupStorage === "false"; // If we are specifically told by localStorage that for this mina key we have setup storage then we dont need to again and can skip
 }
 
-export function isSetupStorageInProgressForMinaKey(minaWallet: string): boolean {
+export function isSetupStorageInProgressForMinaKey(
+  minaWallet: string
+): boolean {
   return Store.forMina(minaWallet).setupStorageInProgress === true;
   //return setupStorageInProgress === "true";
 }
