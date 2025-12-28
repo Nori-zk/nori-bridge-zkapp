@@ -4,7 +4,6 @@ import Nori from "@/public/assets/Nori.svg";
 import BottomShadows from "@/public/assets/BottomShadows.svg";
 import ScrollingBridge from "@/components/panels/ScrollingBridge/ScrollingBridge.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useAccount } from "wagmina";
 import Notification from "@/components/ui/Notification/Notification.tsx";
 import ChooseSides from "@/components/choose-side/ChooseSides.tsx";
 import { useBridgeControlCardProps } from "@/helpers/useBridgeControlCardProps.tsx";
@@ -13,6 +12,7 @@ import { useProgress } from "@/providers/ProgressProvider/ProgressProvider.tsx";
 import { Store } from "@/helpers/localStorage2.ts";
 import { useEffect, useState } from "react";
 import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 
 export default function Home() {
   const [showMobileWarning, setShowMobileWarning] = useState<boolean>(false);
@@ -20,7 +20,8 @@ export default function Home() {
   const { showChooseSide } = useProgress();
 
   const { isConnected: ethConnected } = useMetaMaskWallet();
-  const { isConnected: minaConnected } = useAccount();
+  const { isConnected: minaConnected } = useAuroWallet();
+
   const { title, component } = useBridgeControlCardProps();
   const { state: bridgeState } = useNoriBridge();
 

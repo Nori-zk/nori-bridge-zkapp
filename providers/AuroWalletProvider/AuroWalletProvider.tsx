@@ -1,6 +1,7 @@
 "use client";
 import { openExternalLink } from "@/helpers/navigation.tsx";
 import { useToast } from "@/helpers/useToast.tsx";
+import { chain } from "@/config/index.tsx";
 import {
   createContext,
   Dispatch,
@@ -13,10 +14,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { useConnect, useConnectors, useDisconnect } from "wagmina";
+import {
+  useAccount,
+  useConnect,
+  useConnectors,
+  useDisconnect,
+  useSwitchChain,
+} from "wagmina";
 
 interface AuroWalletContextType {
-  walletAddress: string | null;
+  walletAddress: string | undefined;
   isConnectingWalletOpen: boolean;
   isConnected: boolean;
   setIsConnectingWalletOpen: Dispatch<SetStateAction<boolean>>;
@@ -36,93 +43,57 @@ export const useAuroWallet = (): AuroWalletContextType => {
   return context;
 };
 
-const devnet_network_id = "mina:devnet";
-const devnet_short_id = "devnet"; // Handle wagmina's possible short ID
-
 export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const connectors = useConnectors();
+  const { address: walletAddress, isConnected: wagminaConnected, networkId } = useAccount();
+
   const [isConnectingWalletOpen, setIsConnectingWalletOpen] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const lastDisconnectRef = useRef<number>(0); // Timestamp for debouncing disconnect
 
   const { connectAsync: wagminaConnectAsync } = useConnect();
   const { disconnectAsync: wagminaDisconnectAsync } = useDisconnect();
 
-  const connectors = useConnectors();
   const walletConnector = useMemo(() => {
-    const walletId =
-      process.env.NEXT_PUBLIC_WALLET === "pallad"
-        ? "co.pallad"
-        : "com.aurowallet";
-    return connectors.find((c) => c.id === walletId);
+    const palladConnector = connectors.find((c) => c.id === "co.pallad");
+    return (process.env.NEXT_PUBLIC_WALLET === "pallad" && palladConnector)
+        ? palladConnector
+        : connectors.find((c) => c.id === "com.aurowallet");
   }, [connectors]);
 
-  const rawToast = useToast({
-    type: "error",
-    title: "Error",
-    description: "Auro Wallet is not installed",
-    button: {
-      label: "Install",
-      onClick: () => openExternalLink("https://www.aurowallet.com/"),
-    },
-  });
-  const toast = useRef(rawToast);
+  const { switchChainAsync, status: switchChainStatus } = useSwitchChain();
+
+  const toast = useToast();
 
   const connect = useCallback(async () => {
-    try {
-      if (!walletConnector || !window.mina) {
-        return;
-      }
+    if (!walletConnector) {
+      toast({
+        type: "error",
+        title: "Error",
+        description: `Auro Wallet is not installed`,
+        button: {
+          label: "Install",
+          onClick: () => openExternalLink("https://www.aurowallet.com/"),
+        },
+      })
+      return;
+    }
+    let connectedNetworkId = networkId
 
-      console.log("Checking network before connect...");
-      //@ts-expect-error // mina provider client is bit odd
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const network = await window.mina.requestNetwork().catch((err: any) => {
-        console.error("requestNetwork error:", err);
-        return err;
-      });
-      const currentNetworkId = network?.networkID;
-      console.log("Current networkID:", currentNetworkId);
-
-      if (
-        network instanceof Error ||
-        (currentNetworkId !== devnet_network_id &&
-          currentNetworkId !== devnet_short_id)
-      ) {
-        toast.current({
-          type: "error",
-          title: "Wrong Network",
-          description: `Please ensure you are on the Devnet network`,
-        });
-        // Optional: Auto-switch to Devnet
-        try {
-          console.log("Attempting to switch to Devnet...");
-          //@ts-expect-error // mina provider client is bit odd
-          await window.mina.switchChain({ networkID: devnet_network_id });
-          toast.current({
-            type: "notification",
-            title: "Network Switch Requested",
-            description: `Please confirm the switch to Devnet in Auro Wallet.`,
-          });
-          return;
-        } catch (error) {
-          console.error("Failed to switch network:", error);
-          return;
-        }
-      }
-
+    if (!wagminaConnected) {
       setIsConnectingWalletOpen(true);
       try {
         console.log("Connecting to wallet...");
         const result = await wagminaConnectAsync({
           connector: walletConnector,
+          networkId: chain.id,
         });
         const address = result?.accounts?.[0];
+        if (typeof result?.networkId === "string") {
+          connectedNetworkId = result.networkId
+        }
         if (address) {
-          setWalletAddress(address);
-          setIsConnected(true);
           console.log("Wallet connected successfully, address:", address);
-          toast.current({
+          toast({
             type: "notification",
             title: "Success",
             description: "Wallet connected successfully!",
@@ -130,23 +101,37 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("Failed to connect wallet:", error);
-        toast.current({
+        toast({
           type: "error",
           title: "Connection Failed",
-          description: "Failed to connect to Auro Wallet.",
+          description: `Failed to connect to ${walletConnector.name}.`,
         });
       } finally {
         setIsConnectingWalletOpen(false);
       }
-    } catch (error) {
-      console.error("Unexpected error during connect:", error);
-      toast.current({
-        type: "error",
-        title: "Error",
-        description: "Failed to connect wallet.",
-      });
     }
-  }, [wagminaConnectAsync, walletConnector]);
+
+    if (connectedNetworkId && connectedNetworkId !== chain.id) {
+      try {
+        console.log("Attempting to switch to Devnet...");
+        toast({
+          type: "notification",
+          title: "Network Switch Requested",
+          description: `Please confirm the switch to ${chain.name} in ${walletConnector.name}.`,
+        });
+        await switchChainAsync({
+          networkId: chain.id,
+        });
+      } catch (error) {
+        console.error("Failed to switch network:", error);
+        toast({
+          type: "error",
+          title: "Network Switch Failed",
+          description: `Failed to switch network to ${chain.name}.`,
+        });
+      }
+    }
+  }, [wagminaConnected, networkId, switchChainAsync, toast, wagminaConnectAsync, walletConnector]);
 
   const disconnect = useCallback(async () => {
     const now = Date.now();
@@ -159,9 +144,7 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Disconnecting wallet...");
       await wagminaDisconnectAsync();
-      setWalletAddress(null);
-      setIsConnected(false);
-      toast.current({
+      toast({
         type: "notification",
         title: "Disconnected",
         description: "Wallet disconnected successfully.",
@@ -169,76 +152,30 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.warn("Failed to disconnect wallet:", error);
     }
-  }, [wagminaDisconnectAsync]);
+  }, [toast, wagminaDisconnectAsync]);
 
-  // Monitor chain changes via Auro Wallet's event listener (primary source for network changes)
   useEffect(() => {
-    if (!window.mina) return;
-
-    const handleChainChange = (chainInfo: { networkID: string }) => {
-      console.log("chainChanged event fired:", chainInfo);
-      if (
-        chainInfo.networkID !== devnet_network_id &&
-        chainInfo.networkID !== devnet_short_id
-      ) {
-        console.log("Non-Devnet network detected, disconnecting...");
-        toast.current({
-          type: "error",
-          title: "Network Changed",
-          description: `Please ensure you are on the Devnet network`,
-        });
-
-        disconnect();
-      }
-    };
-    //@ts-expect-error // mina provider client is bit odd
-    window.mina.on("chainChanged", handleChainChange);
-    console.log("chainChanged listener attached");
-
-    return () => {
-      //@ts-expect-error // mina provider client is bit odd
-      window.mina?.removeListener?.("chainChanged", handleChainChange);
-      console.log("chainChanged listener removed");
-    };
-  }, [disconnect]);
-
-  // Check initial connection state
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (!window.mina || !walletConnector) return;
-
-      try {
-        //@ts-expect-error // mina provider client is bit odd
-        const network = await window.mina.requestNetwork();
-        //@ts-expect-error // mina provider client is bit odd
-        const accounts = await window.mina.getAccounts();
-        console.log("Initial check - network:", network, "accounts:", accounts);
-        if (
-          accounts.length > 0 &&
-          (network.networkID === devnet_network_id ||
-            network.networkID === devnet_short_id)
-        ) {
-          setWalletAddress(accounts[0]);
-          setIsConnected(true);
-        }
-      } catch (error) {
-        console.error("Error checking initial connection:", error);
-      }
-    };
-
-    checkConnection();
-  }, [walletConnector]);
+    console.log({switchChainStatus})
+    if (networkId && networkId !== chain.id && switchChainStatus !== "pending") {
+      console.log(`Non-${chain.name} network detected`);
+      toast({
+        type: "error",
+        title: "Network Changed",
+        description: `Please ensure you are on the ${chain.name} network`,
+      });
+    }
+  }, [networkId, toast, switchChainStatus]);
 
   const value = useMemo(
     () => ({
-      walletAddress,
+      walletAddress: networkId === chain.id ? walletAddress : undefined,
       isConnectingWalletOpen,
-      isConnected,
+      isConnected: wagminaConnected && networkId === chain.id,
       setIsConnectingWalletOpen,
       connect,
       disconnect,
     }),
-    [walletAddress, isConnectingWalletOpen, isConnected, connect, disconnect]
+    [networkId, walletAddress, isConnectingWalletOpen, wagminaConnected, connect, disconnect],
   );
 
   return (

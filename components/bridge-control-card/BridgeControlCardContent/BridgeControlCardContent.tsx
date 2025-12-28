@@ -4,10 +4,10 @@ import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControl
 import Swap from "@/public/assets/Swap.svg";
 import DepositProgress from "@/components/bridge-control-card/DepositProgress/DepositProgress.tsx";
 import TextType from "@/blocks/TextAnimations/TextType/TextType.tsx";
-import { useAccount } from "wagmina";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 type BridgeControlCardPContentProps = {
   title: string;
   content?: ReactNode;
@@ -25,7 +25,7 @@ const BridgeControlCardContent = ({
 
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
-  const { isConnected: minaConnected, address: minaAddress } = useAccount();
+  const { isConnected: minaConnected, walletAddress: minaAddress } = useAuroWallet();
   const { currentState } = useNoriBridge();
 
   useEffect(() => {
