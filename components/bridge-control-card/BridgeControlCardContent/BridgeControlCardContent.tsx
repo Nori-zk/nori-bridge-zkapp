@@ -1,13 +1,10 @@
-import { ReactNode, useEffect, useState } from "react";
-import WalletButton from "@/components/ui/WalletButton/WalletButton.tsx";
-import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControlCardSVG.tsx";
-import Swap from "@/public/assets/Swap.svg";
+import { ReactNode } from "react";
+import BridgeControlCardSVG from "@/components/bridge-control-card/BridgeControlCardSVG/BridgeControlCardSVG.tsx";
 import DepositProgress from "@/components/bridge-control-card/DepositProgress/DepositProgress.tsx";
 import TextType from "@/blocks/TextAnimations/TextType/TextType.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
-import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
+import WalletPair from "@/components/ui/WalletPair/WalletPair.tsx";
+
 type BridgeControlCardPContentProps = {
   title: string;
   content?: ReactNode;
@@ -21,22 +18,7 @@ const BridgeControlCardContent = ({
   content,
   title,
 }: BridgeControlCardPContentProps) => {
-  const [isMounted, setIsMounted] = useState<boolean>(false);
-
-  const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
-    useMetaMaskWallet();
-  const { isConnected: minaConnected, walletAddress: minaAddress } = useAuroWallet();
   const { currentState } = useNoriBridge();
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const minaButtonContent = isMounted
-    ? minaConnected
-      ? formatDisplayAddress(minaAddress ?? "") || "Connect Wallet"
-      : "Connect Wallet"
-    : "Connect Wallet";
 
   return (
     <div
@@ -45,10 +27,6 @@ const BridgeControlCardContent = ({
         height: height,
         position: "relative",
         overflow: "hidden",
-        boxShadow:
-          ethConnected && minaConnected
-            ? "-30px 0px 20px -15px lightGreen, 30px 0px 20px -15px LightGreen"
-            : "none",
         borderRadius: "20px",
         justifyContent: "center",
         display: "flex",
@@ -68,28 +46,7 @@ const BridgeControlCardContent = ({
               />
             </h1>
             <div className="w-full">
-              <div className="flex text-white justify-between items-center">
-                <WalletButton
-                  id="eth-btn"
-                  types={"Ethereum"}
-                  content={
-                    ethConnected ? ethDisplayAddress ?? "" : "Connect Wallet"
-                  }
-                  width={300}
-                  height={70}
-                />
-                <div className="flex items-center justify-center w-7 h-7 mx-2">
-                  <Swap />
-                </div>
-
-                <WalletButton
-                  id="mina-btn"
-                  types={"Mina"}
-                  content={minaButtonContent}
-                  width={300}
-                  height={70}
-                />
-              </div>
+              <WalletPair />
               <div className="flex justify-center mt-1 text-white">
                 {content}
               </div>
