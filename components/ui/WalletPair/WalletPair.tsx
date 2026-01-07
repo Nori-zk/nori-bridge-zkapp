@@ -1,7 +1,7 @@
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 import WalletButton from "../WalletButton/WalletButton.tsx";
 import Swap from "@/public/assets/Swap.svg";
-import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
 import { useEffect, useState } from "react";
 
@@ -17,7 +17,7 @@ const WalletPair = ({
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
-  const { isConnected: minaConnected, address: minaAddress } = useAccount();
+  const { isConnected: minaConnected, walletAddress: minaAddress } = useAuroWallet();
 
   useEffect(() => {
     setIsMounted(true);
