@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
 import WalletButton from "./ui/WalletButton/WalletButton.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 
 export const DepositMintTestUI: React.FC = () => {
   const [depositNumber, setDepositNumberInput] = useState<string>("12345");
@@ -11,7 +11,7 @@ export const DepositMintTestUI: React.FC = () => {
 
   const { isConnected: ethConnected, displayAddress: ethDisplayAddress } =
     useMetaMaskWallet();
-  const { isConnected: minaConnected, address: minaAddress } = useAccount();
+  const { isConnected: minaConnected, walletAddress: minaAddress } = useAuroWallet();
   const {
     state,
     setDepositNumber,

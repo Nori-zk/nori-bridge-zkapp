@@ -3,6 +3,9 @@ import type ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { fromPromise } from "xstate";
 import { EthProofResult } from "../types.ts";
 import { Store } from "@/helpers/localStorage2.ts";
+import { sendTransaction } from "@wagmina/core";
+import { config, getWalletConnector } from "@/config/index.tsx";
+import { parseMina } from "@mina-js/utils";
 
 export const checkStorageSetupOnChain = fromPromise(
   async ({
@@ -52,18 +55,17 @@ export const submitSetupStorage = fromPromise(
     };
   }) => {
     const { setupStorageTx } = input;
-    const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
+    const fee = parseMina("0.1"); // 0.1 MINA in nanomina
     const memo = "Setting up storage";
-    const onlySign = false;
-    //@ts-expect-error // mina provider client is bit odd
-    const result = await window.mina?.sendTransaction({
-      onlySign: onlySign,
-      transaction: setupStorageTx,
+    const result = await sendTransaction(config, {
+      type: "zkapp",
+      connector: getWalletConnector(),
+      zkappCommand: JSON.parse(setupStorageTx),
       feePayer: {
         fee: fee,
         memo: memo,
       },
-    });
+    })
     console.log("sendTransaction result: ", result);
     return result;
   }
@@ -163,20 +165,17 @@ export const submitMintTx = fromPromise(
     // In a real implementation, this would submit the transaction to the Mina network
     console.log("Submitting mint transaction");
 
-    const fee = (0.1 * 1e9).toString(); // 0.1 MINA in nanomina
+    const fee = parseMina("0.1"); // 0.1 MINA in nanomina
     const memo = "Submit mint tx";
-    const onlySign = false;
-    //@ts-expect-error // mina provider client is bit odd
-    const result = await window.mina?.sendTransaction({
-      // FIXME this is not done in an idiomatic react way, and the type is incomplete.
-      onlySign: onlySign,
-      transaction: input.mintTx,
+    const result = await sendTransaction(config, {
+      type: "zkapp",
+      connector: getWalletConnector(),
+      zkappCommand: JSON.parse(input.mintTx),
       feePayer: {
         fee: fee,
         memo: memo,
       },
-    });
-
+    })
     console.log("submit mint tx result", result);
     return true;
   }
