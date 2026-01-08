@@ -57,9 +57,13 @@ export const submitSetupStorage = fromPromise(
     const { setupStorageTx } = input;
     const fee = parseMina("0.1"); // 0.1 MINA in nanomina
     const memo = "Setting up storage";
+    const connector = getWalletConnector();
+    if (!connector) {
+      throw new Error("Wallet connector not found. Please connect your wallet before submitting the storage setup transaction.");
+    }
     const result = await sendTransaction(config, {
       type: "zkapp",
-      connector: getWalletConnector(),
+      connector,
       zkappCommand: JSON.parse(setupStorageTx),
       feePayer: {
         fee: fee,
