@@ -73,7 +73,11 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
       toast({
         type: "error",
         title: "Error",
-        description: `Auro Wallet is not installed`,
+        description: `${
+          process.env.NEXT_PUBLIC_WALLET === "pallad"
+            ? "Pallad Wallet"
+            : "Auro Wallet"
+        } is not installed`,
         button: {
           label: "Install",
           onClick: () => openExternalLink("https://www.aurowallet.com/"),
@@ -166,7 +170,9 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, wagminaDisconnectAsync]);
 
   useEffect(() => {
-    console.log({ switchChainStatus });
+    console.log({
+      chainSwitchStatus: switchChainStatus,
+    });
     if (
       networkId &&
       networkId !== chain.id &&

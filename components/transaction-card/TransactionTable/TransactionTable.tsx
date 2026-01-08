@@ -344,7 +344,7 @@ const TransactionTable = ({
     //   consumedCount: results.filter((p) => p.state === 'consumed').length,
     //   pendingCount: results.filter((p) => p.state === 'pending').length,
     //   results: results,
-    // });
+    // });åå
 
     // Reverse to show latest first
     return results.reverse();

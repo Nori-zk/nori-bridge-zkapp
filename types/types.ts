@@ -70,7 +70,19 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
 };
 
 export type PairResult = {
-  ethTx: string;
-  minaTx: string | null;
+  ethTx: EthTransaction;
+  minaTx: MinaTransaction | null;
   state: "pending" | "consumed" | "matched";
+};
+
+export type MinaTransaction = {
+  date: string;
+  minaHash: string;
+  nAmount: string;
+};
+
+export type EthTransaction = {
+  date: string;
+  ethHash: string;
+  formattedAmount: string;
 };
