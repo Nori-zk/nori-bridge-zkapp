@@ -45,7 +45,11 @@ export const useAuroWallet = (): AuroWalletContextType => {
 
 export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
   const connectors = useConnectors();
-  const { address: walletAddress, isConnected: wagminaConnected, networkId } = useAccount();
+  const {
+    address: walletAddress,
+    isConnected: wagminaConnected,
+    networkId,
+  } = useAccount();
 
   const [isConnectingWalletOpen, setIsConnectingWalletOpen] = useState(false);
   const lastDisconnectRef = useRef<number>(0); // Timestamp for debouncing disconnect
@@ -55,9 +59,9 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
 
   const walletConnector = useMemo(() => {
     const palladConnector = connectors.find((c) => c.id === "co.pallad");
-    return (process.env.NEXT_PUBLIC_WALLET === "pallad" && palladConnector)
-        ? palladConnector
-        : connectors.find((c) => c.id === "com.aurowallet");
+    return process.env.NEXT_PUBLIC_WALLET === "pallad" && palladConnector
+      ? palladConnector
+      : connectors.find((c) => c.id === "com.aurowallet");
   }, [connectors]);
 
   const { switchChainAsync, status: switchChainStatus } = useSwitchChain();
@@ -74,10 +78,10 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
           label: "Install",
           onClick: () => openExternalLink("https://www.aurowallet.com/"),
         },
-      })
+      });
       return;
     }
-    let connectedNetworkId = networkId
+    let connectedNetworkId = networkId;
 
     if (!wagminaConnected) {
       setIsConnectingWalletOpen(true);
@@ -89,7 +93,7 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
         });
         const address = result?.accounts?.[0];
         if (typeof result?.networkId === "string") {
-          connectedNetworkId = result.networkId
+          connectedNetworkId = result.networkId;
         }
         if (address) {
           console.log("Wallet connected successfully, address:", address);
@@ -131,7 +135,14 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
         });
       }
     }
-  }, [wagminaConnected, networkId, switchChainAsync, toast, wagminaConnectAsync, walletConnector]);
+  }, [
+    wagminaConnected,
+    networkId,
+    switchChainAsync,
+    toast,
+    wagminaConnectAsync,
+    walletConnector,
+  ]);
 
   const disconnect = useCallback(async () => {
     const now = Date.now();
@@ -155,8 +166,12 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, wagminaDisconnectAsync]);
 
   useEffect(() => {
-    console.log({switchChainStatus})
-    if (networkId && networkId !== chain.id && switchChainStatus !== "pending") {
+    console.log({ switchChainStatus });
+    if (
+      networkId &&
+      networkId !== chain.id &&
+      switchChainStatus !== "pending"
+    ) {
       console.log(`Non-${chain.name} network detected`);
       toast({
         type: "error",
@@ -175,7 +190,14 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
       connect,
       disconnect,
     }),
-    [networkId, walletAddress, isConnectingWalletOpen, wagminaConnected, connect, disconnect],
+    [
+      networkId,
+      walletAddress,
+      isConnectingWalletOpen,
+      wagminaConnected,
+      connect,
+      disconnect,
+    ]
   );
 
   return (

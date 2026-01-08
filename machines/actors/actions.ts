@@ -65,7 +65,7 @@ export const submitSetupStorage = fromPromise(
         fee: fee,
         memo: memo,
       },
-    })
+    });
     console.log("sendTransaction result: ", result);
     return result;
   }
@@ -81,7 +81,7 @@ export const computeEthProof = fromPromise(
     };
   }) => {
     let codeVerify = Store.forEth(
-      input.worker.ethWalletPubKeyBase58,
+      input.worker.ethWalletPubKeyBase58
     ).codeVerifier;
 
     if (codeVerify === null) {
@@ -94,9 +94,8 @@ export const computeEthProof = fromPromise(
       });
       const createdCodeVerify =
         await input.worker.getCodeVerifyFromEthSignature(signature);
-      Store.forEth(
-        input.worker.ethWalletPubKeyBase58,
-      ).codeVerifier = createdCodeVerify;
+      Store.forEth(input.worker.ethWalletPubKeyBase58).codeVerifier =
+        createdCodeVerify;
       codeVerify = createdCodeVerify;
     }
 
@@ -111,7 +110,7 @@ export const computeEthProof = fromPromise(
     // Store in localStorage using the new helper
     Store.forPair(
       input.worker.ethWalletPubKeyBase58,
-      input.worker.minaWalletPubKeyBase58,
+      input.worker.minaWalletPubKeyBase58
     ).computedEthProof = JSON.stringify(ethProof);
     console.log(
       "Computed ethProof value :",
@@ -136,7 +135,7 @@ export const computeMintTx = fromPromise(
       input.worker.minaWalletPubKeyBase58
     ).computedEthProof;
     const codeVerify = Store.forEth(
-      input.worker.ethWalletPubKeyBase58,
+      input.worker.ethWalletPubKeyBase58
     ).codeVerifier;
     console.log("codeVerifier", codeVerify);
     const needsToFundAccount = await input.worker.needsToFundAccount();
@@ -154,7 +153,7 @@ export const computeMintTx = fromPromise(
     // Store in localStorage using the new helper
     Store.forPair(
       input.worker.ethWalletPubKeyBase58,
-      input.worker.minaWalletPubKeyBase58,
+      input.worker.minaWalletPubKeyBase58
     ).depositMintTx = mintTxStr;
     return mintTxStr; //JSON of tx that we need to send to wallet - to componet/provider
   }
@@ -167,15 +166,21 @@ export const submitMintTx = fromPromise(
 
     const fee = parseMina("0.1"); // 0.1 MINA in nanomina
     const memo = "Submit mint tx";
+    const connector = getWalletConnector();
+
+    if (!connector) {
+      throw new Error("No wallet connector found");
+    }
+
     const result = await sendTransaction(config, {
       type: "zkapp",
-      connector: getWalletConnector(),
+      connector: connector,
       zkappCommand: JSON.parse(input.mintTx),
       feePayer: {
         fee: fee,
         memo: memo,
       },
-    })
+    });
     console.log("submit mint tx result", result);
     return true;
   }
