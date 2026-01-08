@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // USERS COLLECTION
+    match /users/{userId} {
+      // Allow anyone to read user documents
+      allow read: if true;
+
+      // Only allow updating their role
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && (
+                        !('role' in request.resource.data) ||
+                        request.resource.data.role in ['role1', 'role2', 'role3']
+                    );
+
+      // Deposits subcollection under user
+      match /deposits/{depositId} {
+        allow create: if request.auth != null
+                      && request.auth.uid == userId
+                      && request.resource.data.amount is number
+                      && request.resource.data.blockNumber is int
+                      && request.resource.data.codeChallenge is string
+                      && request.resource.data.roleId == get(/databases/$(database)/documents/users/$(userId)).data.role
+                      && request.resource.data.timestamp == request.time;
+
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow update, delete: if false;
+      }
+    }
+
+    // CLANS COLLECTION (read-only)
+    match /clans/{clanId} {
+      allow read: if true;
+      allow update, create, delete: if false;
+
+      match /deposits/{depositId} {
+        allow read: if true;
+        allow create, update, delete: if false;
+      }
+    }
+
+    // LEADERBOARD COLLECTION (read-only for everyone)
+    match /leaderboard/{docId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+  }
+}
