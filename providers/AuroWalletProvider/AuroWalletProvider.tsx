@@ -74,10 +74,10 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
           label: "Install",
           onClick: () => openExternalLink("https://www.aurowallet.com/"),
         },
-      })
+      });
       return;
     }
-    let connectedNetworkId = networkId
+    let connectedNetworkId = networkId;
 
     if (!wagminaConnected) {
       setIsConnectingWalletOpen(true);
