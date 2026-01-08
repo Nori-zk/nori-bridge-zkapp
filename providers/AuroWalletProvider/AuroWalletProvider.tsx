@@ -155,7 +155,9 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, wagminaDisconnectAsync]);
 
   useEffect(() => {
-    console.log({switchChainStatus})
+    console.log({
+      chainSwitchStatus: switchChainStatus,
+    });
     if (networkId && networkId !== chain.id && switchChainStatus !== "pending") {
       console.log(`Non-${chain.name} network detected`);
       toast({
