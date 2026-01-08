@@ -64,7 +64,7 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
 
   const toast = useToast();
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (): Promise<void> => {
     if (!walletConnector) {
       toast({
         type: "error",
@@ -74,7 +74,7 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
           label: "Install",
           onClick: () => openExternalLink("https://www.aurowallet.com/"),
         },
-      })
+      });
       return;
     }
     let connectedNetworkId = networkId
@@ -133,7 +133,7 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [wagminaConnected, networkId, switchChainAsync, toast, wagminaConnectAsync, walletConnector]);
 
-  const disconnect = useCallback(async () => {
+  const disconnect = useCallback(async (): Promise<void> => {
     const now = Date.now();
     if (now - lastDisconnectRef.current < 1000) {
       console.log("Disconnect skipped (debounced)");
