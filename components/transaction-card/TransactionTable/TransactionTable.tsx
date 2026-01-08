@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import { useAccount } from "wagmina";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 import { ethers } from "ethers";
 import envConfig from "@/helpers/env.ts";
 import { getCodeChallenge } from "@/helpers/codeChallengeHelper.ts";
@@ -27,7 +27,7 @@ const TransactionTable = ({
   const [minaError, setMinaError] = useState<string | null>(null);
   const [codeChallenge, setCodeChallenge] = useState<string | null>(null);
 
-  const { address: minaAddress } = useAccount();
+  const { walletAddress: minaAddress } = useAuroWallet();
 
   useEffect(() => {
     const fetchCodeChallenge = async () => {
@@ -106,6 +106,12 @@ const TransactionTable = ({
           (a: any, b: any) => b.dateTimestamp - a.dateTimestamp
         );
 
+        // console.log('🔍 DEBUG: Mina transactions fetched:', {
+        //   count: transactions.length,
+        //   transactions: transactions,
+        //   rawData: result.data
+        // });
+
         setMinaTransactions(transactions);
       } catch (err) {
         console.error("Error fetching Mina transactions:", err);
@@ -138,7 +144,7 @@ const TransactionTable = ({
         //further filter by codeChallenge
         if (codeChallenge) {
           events = events.filter((e) => {
-            if ('args' in e) {
+            if ("args" in e) {
               const attestationHashBigInt = e.args[1];
               const attestationHashStr = attestationHashBigInt.toString();
               return attestationHashStr === codeChallenge;
@@ -149,40 +155,46 @@ const TransactionTable = ({
 
         // Transform events into transaction objects
         const transactions = events
-          .filter((event): event is ethers.EventLog => 'args' in event)
+          .filter((event): event is ethers.EventLog => "args" in event)
           .map((event) => {
-          const { user, attestationHash, amount, when } = event.args;
+            const { user, attestationHash, amount, when } = event.args;
 
-          // Convert BigInt timestamp to Date
-          const dateTimestamp = Number(when) * 1000; // Convert to milliseconds
-          const date = new Date(dateTimestamp);
-          const formattedDate = date.toLocaleDateString("en-GB", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+            // Convert BigInt timestamp to Date
+            const dateTimestamp = Number(when) * 1000; // Convert to milliseconds
+            const date = new Date(dateTimestamp);
+            const formattedDate = date.toLocaleDateString("en-GB", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            // Format amount from Wei to ETH
+            const formattedAmount = parseFloat(ethers.formatEther(amount));
+
+            const tx = {
+              ethHash: event.transactionHash,
+              attestationHash: attestationHash.toString(),
+              amount: formattedAmount,
+              formattedAmount: `${formattedAmount.toFixed(4)} ETH`,
+              nAmount: `${formattedAmount.toFixed(4)} nETH`,
+              date: formattedDate,
+              dateTimestamp: dateTimestamp,
+              user: user,
+              blockNumber: event.blockNumber,
+            };
+
+            return tx;
           });
 
-          // Format amount from Wei to ETH
-          const formattedAmount = parseFloat(ethers.formatEther(amount));
-
-          const tx = {
-            ethHash: event.transactionHash,
-            attestationHash: attestationHash.toString(),
-            amount: formattedAmount,
-            formattedAmount: `${formattedAmount.toFixed(4)} ETH`,
-            nAmount: `${formattedAmount.toFixed(4)} nETH`,
-            date: formattedDate,
-            dateTimestamp: dateTimestamp,
-            user: user,
-            blockNumber: event.blockNumber,
-          };
-
-          return tx;
-        });
-
         transactions.sort((a, b) => b.dateTimestamp - a.dateTimestamp);
+
+        // console.log("🔍 DEBUG: ETH transactions fetched:", {
+        //   count: transactions.length,
+        //   transactions: transactions,
+        //   codeChallenge: codeChallenge,
+        // });
 
         setEthTransactions(transactions);
       } catch (err) {
@@ -264,6 +276,16 @@ const TransactionTable = ({
 
       return { ethTx: tx, minaTx: matchingMinaTx };
     });
+
+    // console.log("🔍 DEBUG: Matched pairs:", {
+    //   ethCount: ethTransactions.length,
+    //   minaCount: minaTransactions.length,
+    //   pairsCount: pairs.length,
+    //   matchedMinaCount: pairs.filter((p) => p.minaTx !== null).length,
+    //   unmatchedMinaCount: minaTransactions.length - usedMinaTxIndices.size,
+    //   pairs: pairs,
+    //   codeChallenge: codeChallenge,
+    // });
 
     return pairs;
   }, [ethTransactions, minaTransactions, codeChallenge]);

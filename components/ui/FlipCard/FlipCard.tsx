@@ -1,7 +1,7 @@
 "use client";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 import { useState, useRef, useEffect, ReactNode } from "react";
-import { useAccount } from "wagmina";
 
 type FlipCardProps = {
   frontContent: ReactNode;
@@ -24,7 +24,7 @@ const FlipCard = ({
 }: FlipCardProps) => {
   const cardRef = useRef(null);
   const { isConnected: ethConnected } = useMetaMaskWallet();
-  const { isConnected: minaConnected } = useAccount();
+  const { isConnected: minaConnected } = useAuroWallet();
 
   const [rotateX, setRotateX] = useState(0);
   const [showingFront, setShowingFront] = useState(true);

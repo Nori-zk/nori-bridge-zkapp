@@ -2,7 +2,6 @@ import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWa
 import { WalletButtonTypes } from "@/types/types.ts";
 import Mina from "@/public/assets/Mina.svg";
 import Ethereum from "@/public/assets/Ethereum.svg";
-import { useAccount } from "wagmina";
 import { formatDisplayAddress } from "./walletHelper.tsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 import { ReactNode } from "react";
@@ -25,8 +24,13 @@ export function useWalletButtonProps(
   content: string = "Connect Wallet"
 ): WalletButtonUIProps {
   const eth = useMetaMaskWallet();
-  const { address, isConnected } = useAccount();
-  const { isConnectingWalletOpen, connect, disconnect } = useAuroWallet();
+  const {
+    isConnected,
+    isConnectingWalletOpen,
+    connect,
+    disconnect,
+    walletAddress: address,
+  } = useAuroWallet();
   const isEthereum = type === "Ethereum";
 
   if (isEthereum) {

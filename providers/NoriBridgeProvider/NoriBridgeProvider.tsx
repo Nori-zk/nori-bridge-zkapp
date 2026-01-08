@@ -15,7 +15,6 @@ import {
 } from "@/machines/DepositMintMachine.ts";
 import { useSetup } from "../SetupProvider/SetupProvider.tsx";
 import { useMetaMaskWallet } from "../MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useAccount } from "wagmina";
 import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { getBridgeMachine } from "@/machines/BridgeMachine.ts";
 import envConfig from "@/helpers/env.ts";
@@ -25,6 +24,7 @@ import getWorkerClient from "@/singletons/workerSingleton.ts";
 import { Store } from "@/helpers/localStorage2.ts";
 import { useToast } from "@/helpers/useToast.tsx";
 import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 
 // Extract the machine type
 type DepositMachine = ReturnType<typeof getDepositMachine>;
@@ -98,7 +98,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const { ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$ } = useSetup();
   const { walletAddress: ethAddress, disconnect } = useMetaMaskWallet();
-  const { address: minaAddress } = useAccount();
+  const { walletAddress: minaAddress } = useAuroWallet();
   const rawToast = useToast({
     type: "error",
     title: "Error",

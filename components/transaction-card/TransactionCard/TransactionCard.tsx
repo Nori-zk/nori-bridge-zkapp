@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import TransactionTable from "@/components/transaction-card/TransactionTable/TransactionTable.tsx";
 import WalletPair from "@/components/ui/WalletPair/WalletPair.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useAccount } from "wagmina";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 
 type TransactionCardProps = {
   title: string;
@@ -15,7 +15,7 @@ type TransactionCardProps = {
 
 const TransactionCard = ({ width, height, title }: TransactionCardProps) => {
   const { isConnected: ethConnected } = useMetaMaskWallet();
-  const { isConnected: minaConnected } = useAccount();
+  const { isConnected: minaConnected } = useAuroWallet();
   const [mintedSoFar, setMintedSoFar] = useState<number | undefined>(undefined);
   const [lockedSoFar, setLockedSoFar] = useState<number | undefined>(undefined);
 
