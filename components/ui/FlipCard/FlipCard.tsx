@@ -1,7 +1,7 @@
 "use client";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
-import { useState, useRef, useEffect, ReactNode } from "react";
+import { useState, useRef, useEffect, ReactNode, useCallback } from "react";
 
 type FlipCardProps = {
   frontContent: ReactNode;
@@ -50,7 +50,7 @@ const FlipCard = ({
   }, [isExpandActive, setIsTransitioning]);
 
   //https://youtu.be/6T7KK-TVAek?si=tLs82eokPiCDk6hr&t=59
-  const retreat = () => {
+  const retreat = useCallback(() => {
     // Start transition - keep showing back initially
     setIsTransitioning(true);
 
@@ -68,7 +68,7 @@ const FlipCard = ({
     setTimeout(() => {
       setIsTransitioning(false);
     }, 1500);
-  };
+  }, [setIsTransitioning, setIsExpandActive]);
 
   // Close on Escape key
   useEffect(() => {
@@ -80,7 +80,7 @@ const FlipCard = ({
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isExpandActive]);
+  }, [isExpandActive, retreat]);
 
   return (
     <>

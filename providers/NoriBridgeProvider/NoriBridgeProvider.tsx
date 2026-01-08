@@ -263,12 +263,13 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     depositState.context.processingStatus?.time_remaining_sec; // use 0 for ... come back to this
   useEffect(() => {
     if (stateCheckers.hydrating) return; //don't show error if loading
+    if (!isError) return; // don't show error if no error
     toast.current({
       type: "error",
       title: `${depositState.context.errorMessage || "Unknown error"}`,
       description: `${depositState.context.errorReason || "Unknown reason"}`,
     });
-  }, [depositState.context.errorMessage, depositState.context.errorReason, depositState.context.errorTimestamp, isError]);
+  }, [depositState.context.errorMessage, depositState.context.errorReason, depositState.context.errorTimestamp, isError, stateCheckers.hydrating]);
 
   // Derived state
   const contextValue = useMemo(
