@@ -65,7 +65,7 @@ export const submitSetupStorage = fromPromise(
         fee: fee,
         memo: memo,
       },
-    })
+    });
     console.log("sendTransaction result: ", result);
     return result;
   }
