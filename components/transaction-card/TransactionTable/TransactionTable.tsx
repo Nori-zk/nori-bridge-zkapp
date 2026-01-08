@@ -7,6 +7,7 @@ import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider
 import { ethers } from "ethers";
 import envConfig from "@/helpers/env.ts";
 import { getCodeChallenge } from "@/helpers/codeChallengeHelper.ts";
+import { PairResult } from "@/types/types.ts";
 
 type TransactionTableProps = {
   setLockedSoFar: (value: number) => void;
@@ -55,64 +56,81 @@ const TransactionTable = ({
 
       try {
         const tokenId = "x2BoZdzJ9Sj4QdV9u886PfcaKsh3cSHw96tB7uBNsSpUKmXWSw"; //harcoded for now - to change
-        const url = `https://mina-zkapp-transaction-api.devnet.nori.it.com/api/transactions?zkappAddress=${envConfig.NORI_TOKEN_CONTROLLER_ADDRESS}&userAccount=${minaAddress}&tokenId=${tokenId}&page=1&limit=100`;
+        const baseUrl = `https://mina-zkapp-transaction-api.devnet.nori.it.com/api/transactions`;
+        let allTransactions: any[] = [];
+        let page = 1;
+        const limit = 100; // max allowed by API
 
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        // Paginate through all results
+        while (true) {
+          const url = `${baseUrl}?zkappAddress=${envConfig.NORI_TOKEN_CONTROLLER_ADDRESS}&userAccount=${minaAddress}&tokenId=${tokenId}&page=${page}&limit=${limit}`;
 
-        const result = await response.json();
-
-        const transactions = result.data.map((tx: any) => {
-          const magnitude = parseFloat(tx.token_minted || "0");
-          const formattedAmount = (magnitude / 1_000_000).toFixed(4);
-
-          const date = new Date(tx.tx_time);
-          const dateTimestamp = date.getTime();
-          const formattedDate = date.toLocaleDateString("en-GB", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
-          let attestationHash = "";
-          if (tx.event_values) {
-            try {
-              const eventValues = JSON.parse(tx.event_values);
-              attestationHash =
-                eventValues.attestationHash || eventValues[0] || "";
-            } catch (e) {
-              attestationHash = tx.event_values;
-            }
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
 
-          return {
-            ethHash: attestationHash, // This should match with ETH attestationHash
-            minaHash: tx.transaction_hash,
-            amount: `${formattedAmount} ETH`,
-            nAmount: `${formattedAmount} nETH`,
-            date: formattedDate,
-            dateTimestamp: dateTimestamp,
-            magnitude: magnitude,
-            status: tx.status,
-          };
-        });
+          const result = await response.json();
+
+          const transactions = result.data.map((tx: any) => {
+            // Keep as BigInt (10^6 base units for nETH bridge token)
+            const magnitudeBaseUnits = BigInt(tx.token_minted || "0");
+            const formattedAmount = (
+              Number(magnitudeBaseUnits) / 1_000_000
+            ).toFixed(4);
+
+            const date = new Date(tx.tx_time);
+            const dateTimestamp = date.getTime();
+            const formattedDate = date.toLocaleDateString("en-GB", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            let attestationHash = "";
+            if (tx.event_values) {
+              try {
+                const eventValues = JSON.parse(tx.event_values);
+                attestationHash =
+                  eventValues.attestationHash || eventValues[0] || "";
+              } catch (e) {
+                attestationHash = tx.event_values;
+              }
+            }
+
+            return {
+              ethHash: attestationHash, // This should match with ETH attestationHash
+              minaHash: tx.transaction_hash,
+              magnitudeBaseUnits: magnitudeBaseUnits, // BigInt in 10^6 base units
+              nAmount: `${formattedAmount} nETH`, // Only for display
+              date: formattedDate,
+              dateTimestamp: dateTimestamp,
+              status: tx.status,
+            };
+          });
+
+          allTransactions.push(...transactions);
+
+          // Check if there are more pages
+          if (page >= result.pagination.totalPages) {
+            break;
+          }
+          page++;
+        }
 
         // Sort by date descending (most recent first)
-        transactions.sort(
+        allTransactions.sort(
           (a: any, b: any) => b.dateTimestamp - a.dateTimestamp
         );
 
         // console.log('🔍 DEBUG: Mina transactions fetched:', {
-        //   count: transactions.length,
-        //   transactions: transactions,
-        //   rawData: result.data
+        //   count: allTransactions.length,
+        //   transactions: allTransactions,
         // });
 
-        setMinaTransactions(transactions);
+        setMinaTransactions(allTransactions);
       } catch (err) {
         console.error("Error fetching Mina transactions:", err);
         setMinaError(
@@ -170,15 +188,16 @@ const TransactionTable = ({
               minute: "2-digit",
             });
 
-            // Format amount from Wei to ETH
-            const formattedAmount = parseFloat(ethers.formatEther(amount));
+            // Keep amount as BigInt in wei, only format for display
+            const formattedAmount = parseFloat(
+              ethers.formatEther(amount)
+            ).toFixed(4);
 
             const tx = {
               ethHash: event.transactionHash,
               attestationHash: attestationHash.toString(),
-              amount: formattedAmount,
-              formattedAmount: `${formattedAmount.toFixed(4)} ETH`,
-              nAmount: `${formattedAmount.toFixed(4)} nETH`,
+              amountWei: amount, // Keep as BigInt (ethers.js already provides this)
+              formattedAmount: `${formattedAmount} ETH`, // Only for display
               date: formattedDate,
               dateTimestamp: dateTimestamp,
               user: user,
@@ -217,78 +236,119 @@ const TransactionTable = ({
       return;
     }
 
-    const totalLocked = ethTransactions.reduce((sum, tx) => sum + tx.amount, 0);
-    setLockedSoFar(totalLocked ?? 0);
+    // Calculate total locked from BigInt wei amounts
+    const totalLockedWei = ethTransactions.reduce(
+      (sum, tx) => sum + tx.amountWei,
+      0n
+    );
+    const totalLockedETH = Number(totalLockedWei) / 1e18;
+    setLockedSoFar(totalLockedETH);
 
     if (minaTransactions.length > 0) {
-      const totalMagnitude = minaTransactions.reduce(
-        (sum, tx) => sum + tx?.magnitude,
-        0
+      // Calculate total minted from BigInt base units
+      const totalMintedBaseUnits = minaTransactions.reduce(
+        (sum, tx) => sum + tx.magnitudeBaseUnits,
+        0n
       );
-      const totalInStandardUnits = (totalMagnitude ?? 0) / 1_000_000;
-      setMintedSoFar(totalInStandardUnits);
+      const totalMintedNETH = Number(totalMintedBaseUnits) / 1_000_000;
+      setMintedSoFar(totalMintedNETH);
     } else {
       setMintedSoFar(0);
     }
   }, [minaTransactions, ethTransactions, ethLoading, minaLoading]);
 
   // Memoize matched pairs to prevent recalculation on every render
-  // Returns ALL eth transactions with optional matching mina transaction
+  // Uses cumulative lock-to-mint matching algorithm
   const matchedPairs = useMemo(() => {
-    // Track which Mina transactions have been matched to avoid duplicates
-    const usedMinaTxIndices = new Set<number>();
+    // Edge case: no transactions
+    if (ethTransactions.length === 0) {
+      return [];
+    }
 
-    const pairs = ethTransactions.map((tx) => {
-      let matchingMinaTx = null;
-      let matchingMinaTxIndex = -1;
+    // Sort chronologically (oldest first)
+    // Note: ethTransactions filtered by ethAddress + codeChallenge
+    // minaTransactions filtered by userAccount in API
+    const sortedLocks = [...ethTransactions].sort(
+      (a, b) => a.dateTimestamp - b.dateTimestamp
+    );
+    const sortedMints = [...minaTransactions].sort(
+      (a, b) => a.dateTimestamp - b.dateTimestamp
+    );
 
-      // First priority: Match using our calculated codeChallenge
-      if (codeChallenge && tx?.attestationHash === codeChallenge) {
-        const index = minaTransactions.findIndex(
-          (minaTx, idx) =>
-            !usedMinaTxIndices.has(idx) &&
-            minaTx?.ethHash &&
-            minaTx?.ethHash === codeChallenge
-        );
-        if (index !== -1) {
-          matchingMinaTx = minaTransactions[index];
-          matchingMinaTxIndex = index;
+    // Initialize tracking variables
+    const results: PairResult[] = [];
+    let accumulated = 0n; // BigInt accumulator (in nETH bridge token scale: 10^6 base units)
+    let mintIndex = 0;
+    let groupStartIndex = 0;
+    const SCALING_FACTOR = 1_000_000_000_000n; // 10^12 to convert ETH wei to nETH bridge token scale
+
+    // Walk through locks
+    for (let lockIndex = 0; lockIndex < sortedLocks.length; lockIndex++) {
+      const lock = sortedLocks[lockIndex];
+
+      // Add current lock to accumulated total
+      // Convert ETH wei to nETH bridge token scale by dividing by 10^12
+      const lockAmountInBridgeTokenScale = lock.amountWei / SCALING_FACTOR;
+      accumulated += lockAmountInBridgeTokenScale;
+
+      // Check if accumulated matches current mint
+      const currentMint =
+        mintIndex < sortedMints.length ? sortedMints[mintIndex] : null;
+      const currentMintAmount = currentMint
+        ? currentMint.magnitudeBaseUnits
+        : 0n;
+
+      if (currentMint && accumulated === currentMintAmount) {
+        // Exact match using BigInt
+
+        // Mark all locks in this group as consumed (except the last one)
+        for (let i = groupStartIndex; i < lockIndex; i++) {
+          results.push({
+            ethTx: sortedLocks[i],
+            minaTx: null,
+            state: "consumed",
+          });
         }
+
+        // Mark the last lock in the group as matched (show mint here)
+        results.push({
+          ethTx: lock,
+          minaTx: currentMint,
+          state: "matched",
+        });
+
+        // Reset for next group
+        accumulated = 0n; // BigInt zero
+        mintIndex++;
+        groupStartIndex = lockIndex + 1;
       }
+      // If no match, continue to next iteration (lockIndex will increment)
+      // The lock will be handled later if we never find a match
+    }
 
-      // Second priority: Try direct attestationHash match (for backwards compatibility)
-      if (!matchingMinaTx && tx?.attestationHash) {
-        const index = minaTransactions.findIndex(
-          (minaTx, idx) =>
-            !usedMinaTxIndices.has(idx) &&
-            minaTx?.ethHash &&
-            minaTx?.ethHash === tx?.attestationHash
-        );
-        if (index !== -1) {
-          matchingMinaTx = minaTransactions[index];
-          matchingMinaTxIndex = index;
-        }
-      }
+    // Handle remaining locks (no matching mint found)
+    // All locks from groupStartIndex onwards are pending
+    for (let i = groupStartIndex; i < sortedLocks.length; i++) {
+      results.push({
+        ethTx: sortedLocks[i],
+        minaTx: null,
+        state: "pending",
+      });
+    }
 
-      if (matchingMinaTxIndex !== -1) {
-        usedMinaTxIndices.add(matchingMinaTxIndex);
-      }
-
-      return { ethTx: tx, minaTx: matchingMinaTx };
-    });
-
-    // console.log("🔍 DEBUG: Matched pairs:", {
+    // console.log("🔍 DEBUG: Cumulative matched pairs:", {
     //   ethCount: ethTransactions.length,
     //   minaCount: minaTransactions.length,
-    //   pairsCount: pairs.length,
-    //   matchedMinaCount: pairs.filter((p) => p.minaTx !== null).length,
-    //   unmatchedMinaCount: minaTransactions.length - usedMinaTxIndices.size,
-    //   pairs: pairs,
-    //   codeChallenge: codeChallenge,
+    //   resultsCount: results.length,
+    //   matchedCount: results.filter((p) => p.state === 'matched').length,
+    //   consumedCount: results.filter((p) => p.state === 'consumed').length,
+    //   pendingCount: results.filter((p) => p.state === 'pending').length,
+    //   results: results,
     // });
 
-    return pairs;
-  }, [ethTransactions, minaTransactions, codeChallenge]);
+    // Reverse to show latest first
+    return results.reverse();
+  }, [ethTransactions, minaTransactions]);
 
   if (minaLoading || ethLoading) {
     return (
@@ -356,7 +416,8 @@ const TransactionTable = ({
                     </div>
                   </td>
                   <td className="pt-4 pb-1 px-4 w-1/2">
-                    {pair.minaTx ? (
+                    {pair.state === "matched" && pair.minaTx ? (
+                      // Show the actual mint transaction
                       <>
                         <div className="text-xs text-white/50">
                           {pair.minaTx?.date}
@@ -370,13 +431,19 @@ const TransactionTable = ({
                           </div>
                         </div>
                       </>
-                    ) : (
+                    ) : pair.state === "pending" ? (
+                      // Show pending/loading state with animation
                       <div className="animate-pulse">
                         <div className="h-3 bg-white/10 rounded w-24 mb-2"></div>
                         <div className="flex flex-row justify-between items-center">
                           <div className="h-4 bg-white/10 rounded w-32"></div>
                           <div className="h-4 bg-white/10 rounded w-20"></div>
                         </div>
+                      </div>
+                    ) : (
+                      // Show consumed state (blank or subtle indicator)
+                      <div className="text-xs text-white/30 italic">
+                        Included in claim below
                       </div>
                     )}
                   </td>
