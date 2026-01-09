@@ -68,3 +68,21 @@ export const STATUS_EXPLANATIONS: Record<string, string> = {
   [ReplacementStageName.WaitingForConfirmation]:
     "The Mina transaction has been submitted. Depending on block times, confirmation may take anywhere from ~3 minutes up to ~25 minutes. Recently, ~85% of transactions have confirmed within 9 minutes.",
 };
+
+export type PairResult = {
+  ethTx: EthTransaction;
+  minaTx: MinaTransaction | null;
+  state: "pending" | "consumed" | "matched";
+};
+
+export type MinaTransaction = {
+  date: string;
+  minaHash: string;
+  nAmount: string;
+};
+
+export type EthTransaction = {
+  date: string;
+  ethHash: string;
+  formattedAmount: string;
+};
