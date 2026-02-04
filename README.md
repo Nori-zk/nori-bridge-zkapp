@@ -1,1 +1,1 @@
-# nor-bridge-frontend
+# nori-bridge-zkapp
