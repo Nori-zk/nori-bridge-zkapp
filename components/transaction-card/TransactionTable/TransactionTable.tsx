@@ -1,22 +1,19 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo } from "react";
-import { formatDisplayAddress } from "@/helpers/walletHelper.tsx";
-import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
-import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
-import { ethers } from "ethers";
-import envConfig from "@/helpers/env.ts";
-import { getCodeChallenge } from "@/helpers/codeChallengeHelper.ts";
+import { useEffect, useState, useMemo } from 'react';
+import { formatDisplayAddress } from '@/helpers/walletHelper.tsx';
+import { useMetaMaskWallet } from '@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx';
+import { useAuroWallet } from '@/providers/AuroWalletProvider/AuroWalletProvider.tsx';
+import { ethers } from 'ethers';
+import envConfig from '@/helpers/env.ts';
+import { getCodeChallenge } from '@/helpers/codeChallengeHelper.ts';
 
 type TransactionTableProps = {
   setLockedSoFar: (value: number) => void;
   setMintedSoFar: (value: number) => void;
 };
 
-const TransactionTable = ({
-  setLockedSoFar,
-  setMintedSoFar,
-}: TransactionTableProps) => {
+const TransactionTable = ({ setLockedSoFar, setMintedSoFar }: TransactionTableProps) => {
   const { contract, walletAddress: ethAddress } = useMetaMaskWallet();
   const [ethTransactions, setEthTransactions] = useState<any[]>([]);
   const [ethLoading, setEthLoading] = useState(false);
@@ -54,8 +51,13 @@ const TransactionTable = ({
       setMinaError(null);
 
       try {
-        const tokenId = "x2BoZdzJ9Sj4QdV9u886PfcaKsh3cSHw96tB7uBNsSpUKmXWSw"; //harcoded for now - to change
-        const url = `https://mina-zkapp-transaction-api.devnet.nori.it.com/api/transactions?zkappAddress=${envConfig.NORI_TOKEN_CONTROLLER_ADDRESS}&userAccount=${minaAddress}&tokenId=${tokenId}&page=1&limit=100`;
+        const {
+          NORI_TOKEN_CONTROLLER_ADDRESS: noriTokenControllerAddress,
+          TOKEN_BASE_TOKEN_ID: noriBaseTokenId,
+          MINA_ZKAPP_TRANSACTION_RPC_URL: minaZKAppTransactionRpc,
+        } = envConfig;
+
+        const url = `${minaZKAppTransactionRpc}?zkappAddress=${noriTokenControllerAddress}&userAccount=${minaAddress}&tokenId=${noriBaseTokenId}&page=1&limit=100`;
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -65,25 +67,24 @@ const TransactionTable = ({
         const result = await response.json();
 
         const transactions = result.data.map((tx: any) => {
-          const magnitude = parseFloat(tx.token_minted || "0");
+          const magnitude = parseFloat(tx.token_minted || '0');
           const formattedAmount = (magnitude / 1_000_000).toFixed(4);
 
           const date = new Date(tx.tx_time);
           const dateTimestamp = date.getTime();
-          const formattedDate = date.toLocaleDateString("en-GB", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+          const formattedDate = date.toLocaleDateString('en-GB', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
           });
 
-          let attestationHash = "";
+          let attestationHash = '';
           if (tx.event_values) {
             try {
               const eventValues = JSON.parse(tx.event_values);
-              attestationHash =
-                eventValues.attestationHash || eventValues[0] || "";
+              attestationHash = eventValues.attestationHash || eventValues[0] || '';
             } catch (e) {
               attestationHash = tx.event_values;
             }
@@ -102,9 +103,7 @@ const TransactionTable = ({
         });
 
         // Sort by date descending (most recent first)
-        transactions.sort(
-          (a: any, b: any) => b.dateTimestamp - a.dateTimestamp
-        );
+        transactions.sort((a: any, b: any) => b.dateTimestamp - a.dateTimestamp);
 
         // console.log('🔍 DEBUG: Mina transactions fetched:', {
         //   count: transactions.length,
@@ -114,10 +113,8 @@ const TransactionTable = ({
 
         setMinaTransactions(transactions);
       } catch (err) {
-        console.error("Error fetching Mina transactions:", err);
-        setMinaError(
-          err instanceof Error ? err.message : "Failed to fetch transactions"
-        );
+        console.error('Error fetching Mina transactions:', err);
+        setMinaError(err instanceof Error ? err.message : 'Failed to fetch transactions');
       } finally {
         setMinaLoading(false);
       }
@@ -144,7 +141,7 @@ const TransactionTable = ({
         //further filter by codeChallenge
         if (codeChallenge) {
           events = events.filter((e) => {
-            if ("args" in e) {
+            if ('args' in e) {
               const attestationHashBigInt = e.args[1];
               const attestationHashStr = attestationHashBigInt.toString();
               return attestationHashStr === codeChallenge;
@@ -155,19 +152,19 @@ const TransactionTable = ({
 
         // Transform events into transaction objects
         const transactions = events
-          .filter((event): event is ethers.EventLog => "args" in event)
+          .filter((event): event is ethers.EventLog => 'args' in event)
           .map((event) => {
             const { user, attestationHash, amount, when } = event.args;
 
             // Convert BigInt timestamp to Date
             const dateTimestamp = Number(when) * 1000; // Convert to milliseconds
             const date = new Date(dateTimestamp);
-            const formattedDate = date.toLocaleDateString("en-GB", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
+            const formattedDate = date.toLocaleDateString('en-GB', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
             });
 
             // Format amount from Wei to ETH
@@ -198,10 +195,8 @@ const TransactionTable = ({
 
         setEthTransactions(transactions);
       } catch (err) {
-        console.error("Error fetching ETH transactions:", err);
-        setEthError(
-          err instanceof Error ? err.message : "Failed to fetch transactions"
-        );
+        console.error('Error fetching ETH transactions:', err);
+        setEthError(err instanceof Error ? err.message : 'Failed to fetch transactions');
       } finally {
         setEthLoading(false);
       }
@@ -221,10 +216,7 @@ const TransactionTable = ({
     setLockedSoFar(totalLocked ?? 0);
 
     if (minaTransactions.length > 0) {
-      const totalMagnitude = minaTransactions.reduce(
-        (sum, tx) => sum + tx?.magnitude,
-        0
-      );
+      const totalMagnitude = minaTransactions.reduce((sum, tx) => sum + tx?.magnitude, 0);
       const totalInStandardUnits = (totalMagnitude ?? 0) / 1_000_000;
       setMintedSoFar(totalInStandardUnits);
     } else {
@@ -246,9 +238,7 @@ const TransactionTable = ({
       if (codeChallenge && tx?.attestationHash === codeChallenge) {
         const index = minaTransactions.findIndex(
           (minaTx, idx) =>
-            !usedMinaTxIndices.has(idx) &&
-            minaTx?.ethHash &&
-            minaTx?.ethHash === codeChallenge
+            !usedMinaTxIndices.has(idx) && minaTx?.ethHash && minaTx?.ethHash === codeChallenge
         );
         if (index !== -1) {
           matchingMinaTx = minaTransactions[index];
@@ -312,10 +302,8 @@ const TransactionTable = ({
       <div
         className="w-full h-full overflow-auto"
         style={{
-          maskImage:
-            "linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)",
-          WebkitMaskImage:
-            "linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)",
+          maskImage: 'linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black calc(100% - 4rem), transparent 100%)',
         }}
       >
         <table className="w-full text-sm">
@@ -343,31 +331,21 @@ const TransactionTable = ({
                   className="border-b border-white/10 hover:bg-white/5 transition-colors h-full w-full"
                 >
                   <td className="pt-4 pb-1 px-4 w-1/2">
-                    <div className="text-xs text-white/50">
-                      {pair.ethTx?.date}
-                    </div>
+                    <div className="text-xs text-white/50">{pair.ethTx?.date}</div>
                     <div className="flex flex-row justify-between items-center">
-                      <div className="text-base">
-                        {formatDisplayAddress(pair.ethTx?.ethHash)}
-                      </div>
-                      <div className="text-base">
-                        {pair.ethTx?.formattedAmount}
-                      </div>
+                      <div className="text-base">{formatDisplayAddress(pair.ethTx?.ethHash)}</div>
+                      <div className="text-base">{pair.ethTx?.formattedAmount}</div>
                     </div>
                   </td>
                   <td className="pt-4 pb-1 px-4 w-1/2">
                     {pair.minaTx ? (
                       <>
-                        <div className="text-xs text-white/50">
-                          {pair.minaTx?.date}
-                        </div>
+                        <div className="text-xs text-white/50">{pair.minaTx?.date}</div>
                         <div className="flex flex-row justify-between items-center">
                           <div className="text-base">
                             {formatDisplayAddress(pair.minaTx?.minaHash)}
                           </div>
-                          <div className="text-base">
-                            {pair.minaTx?.nAmount}
-                          </div>
+                          <div className="text-base">{pair.minaTx?.nAmount}</div>
                         </div>
                       </>
                     ) : (

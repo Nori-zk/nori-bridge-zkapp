@@ -85,6 +85,7 @@ type NoriBridgeContextType = {
 const minaConfig = {
   networkId: envConfig.MINA_RPC_NETWORK_ID,
   mina: envConfig.MINA_RPC_NETWORK_URL,
+  archive: envConfig.MINA_ARCHIVE_RPC_URL,
 };
 
 const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);

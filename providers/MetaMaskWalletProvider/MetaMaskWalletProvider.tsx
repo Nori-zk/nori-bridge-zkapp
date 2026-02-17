@@ -97,7 +97,7 @@ export const MetaMaskWalletProvider = ({
     return chainId === REQUIRED_NETWORK_ID;
   }, [chainId]);
   const initializeContract = useCallback(async (signer: Signer) => {
-    const contractAddress = envConfig.NORI_TOKEN_BRIDGE_ADDRESS;
+    const { NORI_TOKEN_BRIDGE_ADDRESS: contractAddress } = envConfig;
     console.log("Initializing contract at:", contractAddress);
     return new Contract(contractAddress, noriTokenBridgeJson.abi, signer);
   }, []);
