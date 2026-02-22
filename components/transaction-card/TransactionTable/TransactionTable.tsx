@@ -125,10 +125,10 @@ const TransactionTable = ({
           (a: any, b: any) => b.dateTimestamp - a.dateTimestamp
         );
 
-        // console.log('🔍 DEBUG: Mina transactions fetched:', {
-        //   count: allTransactions.length,
-        //   transactions: allTransactions,
-        // });
+        console.log("🔍 DEBUG: Mina transactions fetched:", {
+          count: allTransactions.length,
+          transactions: allTransactions,
+        });
 
         setMinaTransactions(allTransactions);
       } catch (err) {
@@ -209,11 +209,11 @@ const TransactionTable = ({
 
         transactions.sort((a, b) => b.dateTimestamp - a.dateTimestamp);
 
-        // console.log("🔍 DEBUG: ETH transactions fetched:", {
-        //   count: transactions.length,
-        //   transactions: transactions,
-        //   codeChallenge: codeChallenge,
-        // });
+        console.log("🔍 DEBUG: ETH transactions fetched:", {
+          count: transactions.length,
+          transactions: transactions,
+          codeChallenge: codeChallenge,
+        });
 
         setEthTransactions(transactions);
       } catch (err) {
@@ -336,15 +336,15 @@ const TransactionTable = ({
       });
     }
 
-    // console.log("🔍 DEBUG: Cumulative matched pairs:", {
-    //   ethCount: ethTransactions.length,
-    //   minaCount: minaTransactions.length,
-    //   resultsCount: results.length,
-    //   matchedCount: results.filter((p) => p.state === 'matched').length,
-    //   consumedCount: results.filter((p) => p.state === 'consumed').length,
-    //   pendingCount: results.filter((p) => p.state === 'pending').length,
-    //   results: results,
-    // });åå
+    console.log("🔍 DEBUG: Cumulative matched pairs:", {
+      ethCount: ethTransactions.length,
+      minaCount: minaTransactions.length,
+      resultsCount: results.length,
+      matchedCount: results.filter((p) => p.state === "matched").length,
+      consumedCount: results.filter((p) => p.state === "consumed").length,
+      pendingCount: results.filter((p) => p.state === "pending").length,
+      results: results,
+    });
 
     // Reverse to show latest first
     return results.reverse();
