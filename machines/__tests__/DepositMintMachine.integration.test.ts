@@ -208,9 +208,9 @@ describe("DepositMintMachine Integration Tests", () => {
   describe("Phase 1: High-Value Integration Tests", () => {
     describe("Observable-Driven Transitions", () => {
       it.todo("1. canComputeEthProofActor emission 'CanCompute' triggers computeEthProof transition", async () => {
-        // This test validates the observable → context → guard → transition chain
+        // ❌ TODO: Requires mocking @nori-zk/mina-token-bridge/rx/deposit package
         //
-        // Flow:
+        // This test validates the observable → context → guard → transition chain:
         // 1. Reach monitoringDepositStatus
         // 2. canComputeEthProofActor observes depositProcessingStatus$
         // 3. When depositProcessingStatus$ indicates ready, actor emits "CanCompute"
@@ -218,21 +218,24 @@ describe("DepositMintMachine Integration Tests", () => {
         // 5. Guard canComputeEthProof: ({ context }) => context.canComputeStatus === "CanCompute"
         // 6. Always transition fires → computeEthProof state
         //
-        // Challenge: We need to mock the external bridge package functions
-        // (getCanComputeEthProof$) to emit "CanCompute" at the right time.
-        // This requires unmocking the trigger actors but providing controlled observables.
+        // Why TODO:
+        // - Requires mocking getCanComputeEthProof$ from @nori-zk/mina-token-bridge/rx/deposit
+        // - Current test setup mocks trigger actors to return null (see line 82-84)
+        // - To implement: unmock canComputeEthProofActor and mock getCanComputeEthProof$ instead
         //
-        // For now, this is marked as TODO because it requires either:
-        // 1. Mocking @nori-zk/mina-token-bridge/rx/deposit exports
-        // 2. Or using real bridge observables with test data
+        // Implementation approach:
+        // 1. vi.mock("@nori-zk/mina-token-bridge/rx/deposit") with controlled observables
+        // 2. Create BehaviorSubject that emits proper DepositProcessingStatus values
+        // 3. Emit "CanCompute" at the right time after reaching monitoringDepositStatus
+        // 4. Verify machine transitions to computeEthProof state
         //
-        // The value is HIGH - this would catch breaking the observable-driven transition logic.
+        // Value: HIGH - validates the core observable-driven transition logic
       });
 
       it.todo("2. canMintActor emission 'ReadyToMint' triggers buildingMintTx transition", async () => {
-        // Similar to test #1, but for the mint trigger
+        // ❌ TODO: Requires mocking @nori-zk/mina-token-bridge/rx/deposit package
         //
-        // Flow:
+        // Similar to test #1, but for the mint trigger:
         // 1. Reach hasComputedEthProof state
         // 2. canMintActor observes depositProcessingStatus$
         // 3. When ready, actor emits BridgeDepositProcessingStatus.ReadyToMint
@@ -240,7 +243,17 @@ describe("DepositMintMachine Integration Tests", () => {
         // 5. Guard canMint: ({ context }) => context.canMintStatus === "ReadyToMint"
         // 6. Always transition fires → buildingMintTx state
         //
-        // Same challenge as test #1 - requires mocking/controlling bridge package exports.
+        // Why TODO:
+        // - Same challenge as test #1 - requires mocking getCanMint$ from bridge package
+        // - Current test setup mocks canMintActor to return null (see line 83)
+        //
+        // Implementation approach:
+        // 1. vi.mock("@nori-zk/mina-token-bridge/rx/deposit") with controlled observables
+        // 2. Create BehaviorSubject that emits proper DepositProcessingStatus values
+        // 3. Emit "ReadyToMint" at the right time after computeEthProof completes
+        // 4. Verify machine transitions to buildingMintTx state
+        //
+        // Value: HIGH - validates the observable-driven mint trigger logic
       });
     });
 
@@ -265,7 +278,7 @@ describe("DepositMintMachine Integration Tests", () => {
 
         // Spy on console.error to verify error logging
         const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation((message, error) => {
-          if (message === "setupStorage error:") {
+          if (message === "Failed to setup storage:") {
             errorWasLogged = true;
           }
         });
@@ -323,29 +336,171 @@ describe("DepositMintMachine Integration Tests", () => {
 
     describe("Complete User Journey with Real Observables", () => {
       it.todo("4. Complete happy path from deposit to mint with real observable coordination", async () => {
-        // TODO: This requires setting up all observables to emit the right
-        // values at the right times to simulate a complete user journey.
+        // ❌ TODO: Requires comprehensive mocking of bridge observables
+        //
+        // This is the "golden path" integration test that validates the entire
+        // user journey from deposit to mint with real observable coordination.
         //
         // Expected flow:
         // 1. Start in hydrating
-        // 2. Assign worker → noActiveDepositNumber
-        // 3. Set deposit number → monitoringDepositStatus
+        // 2. Assign worker → checking → noActiveDepositNumber
+        // 3. Set deposit number → hasActiveDepositNumber → monitoringDepositStatus
         // 4. Emit "CanCompute" via depositProcessingStatus$ → computeEthProof
         // 5. computeEthProof completes → hasComputedEthProof
         // 6. Emit "ReadyToMint" via depositProcessingStatus$ → buildingMintTx
-        // 7. buildingMintTx completes → submittingMintTx
-        // 8. submittingMintTx completes → completed
+        // 7. buildingMintTx completes → hasBuiltMintTx → submittingMintTx
+        // 8. submittingMintTx completes → completed (final state)
         //
-        // This is the most valuable integration test but requires understanding
-        // the complete observable data structures.
+        // Why TODO:
+        // - Requires orchestrating multiple observables in sequence
+        // - Depends on implementing tests #1 and #2 first
+        // - Need to mock: getCanComputeEthProof$, getCanMint$, getDepositProcessingStatus$
+        // - Must coordinate timing of observable emissions with actor state transitions
+        //
+        // Implementation approach:
+        // 1. Mock all bridge package observables with BehaviorSubjects
+        // 2. Set up state machine with controlled observables
+        // 3. Progress through each state, emitting appropriate values at right times
+        // 4. Verify context updates at each step (depositNumber, ethProof, mintTx)
+        // 5. Verify localStorage updates at each step
+        // 6. Verify final state is completed
+        //
+        // Value: VERY HIGH - validates the complete user journey end-to-end
+        // Complexity: HIGH - requires deep understanding of bridge observable data structures
       });
     });
   });
 
   describe("Phase 2: Additional Coverage (implement after Phase 1 proves valuable)", () => {
-    it.todo("5. storageIsSetupWithDelayActor polling completes when storage is setup");
-    it.todo("6. Multiple observable actors update context simultaneously without conflicts");
-    it.todo("7. computeEthProof error transitions to checkingDelay and retries");
-    it.todo("8. Resume from crash: localStorage state + observables sync correctly");
+    it("5. storageIsSetupWithDelayActor completes when storage is setup", async () => {
+      const { storageIsSetupAndFinalizedForCurrentMinaKey, isSetupStorageInProgressForMinaKey } = await import("@/helpers/localStorage2");
+      vi.mocked(storageIsSetupAndFinalizedForCurrentMinaKey).mockReturnValue(false);
+      vi.mocked(isSetupStorageInProgressForMinaKey).mockReturnValue(true);
+
+      // Simulate needsToSetupStorage returning false immediately (setup complete)
+      // In real usage, this would poll until storage is ready
+      mockWorker.needsToSetupStorage = vi.fn(async () => false);
+
+      const mockStore = Store.forPair("eth", "mina");
+      mockStore.activeDepositNumber = 100;
+
+      const actor = createActor(machine);
+      actors.push(actor);
+      actor.start();
+      actor.send({ type: "ASSIGN_WORKER", mintWorkerClient: mockWorker as any });
+
+      // Should reach waitForStorageSetupFinalization
+      await vi.waitFor(() => {
+        return actor.getSnapshot().value === "waitForStorageSetupFinalization";
+      }, { timeout: 2000 });
+
+      expect(actor.getSnapshot().value).toBe("waitForStorageSetupFinalization");
+
+      // Wait for the actor to detect that storage is finalized and update localStorage
+      // The storageIsSetupWithDelayActor uses interval + filter + first to poll and complete
+      await vi.waitFor(() => {
+        const minaStore = Store.forMina("B62MINA123");
+        return minaStore.needsToSetupStorage === false && minaStore.setupStorageInProgress === null;
+      }, { timeout: 3000 });
+
+      // Verify the actor was invoked
+      expect(mockWorker.needsToSetupStorage).toHaveBeenCalled();
+
+      // Verify localStorage was updated correctly by the onSnapshot handler
+      const minaStore = Store.forMina("B62MINA123");
+      expect(minaStore.needsToSetupStorage).toBe(false);
+      expect(minaStore.setupStorageInProgress).toBeNull();
+
+      actor.stop();
+    });
+
+    it.todo("6. Multiple observable actors update context simultaneously without conflicts", async () => {
+      // ❌ TODO: Requires coordinating multiple observable actors
+      //
+      // This test validates that multiple observable actors can update context
+      // simultaneously without race conditions or state conflicts.
+      //
+      // Actors to test:
+      // - compressedDepositProcessingStatusActor (updates processingStatus)
+      // - canComputeEthProofActor (updates canComputeStatus)
+      // - canMintActor (updates canMintStatus)
+      //
+      // Why TODO:
+      // - Requires mocking all three actors to emit at the same time
+      // - Need to verify XState handles concurrent context updates correctly
+      // - This is a stress test for the observable coordination logic
+      //
+      // Implementation approach:
+      // 1. Mock all three actors with BehaviorSubjects
+      // 2. Reach monitoringDepositStatus state
+      // 3. Emit from all three observables simultaneously
+      // 4. Verify all three context fields are updated correctly
+      // 5. Verify no context overwrites or lost updates
+      // 6. Verify machine remains in stable state
+      //
+      // Value: MEDIUM - validates robustness but unlikely to fail with XState's assign
+      // Complexity: MEDIUM - requires understanding all three actor data structures
+    });
+
+    it.todo("7. computeEthProof error transitions to checkingDelay and retries", async () => {
+      // ❌ TODO: Requires testing delayed retry with real timers
+      //
+      // This test validates the error recovery flow for computeEthProof:
+      // 1. computeEthProof action fails
+      // 2. Machine transitions to checkingDelay state
+      // 3. Waits 8 seconds (configured delay)
+      // 4. Transitions back to checking state
+      // 5. Re-evaluates conditions and retries
+      //
+      // Why TODO:
+      // - Integration test #3 already validates error context setting
+      // - This test requires advancing fake timers or waiting real 8 seconds
+      // - Vitest fake timers don't work well with XState async actors
+      //
+      // Implementation approach:
+      // 1. Mock computeEthProof actor to fail on first call, succeed on second
+      // 2. Reach computeEthProof state and trigger the action
+      // 3. Verify error is caught and machine transitions to checkingDelay
+      // 4. Either:
+      //    a) Use vi.useFakeTimers() and vi.advanceTimersByTime(8000)
+      //    b) Or wait real 8 seconds with await new Promise(resolve => setTimeout(resolve, 8000))
+      // 5. Verify machine transitions to checking, then retries computeEthProof
+      // 6. Verify retry succeeds
+      //
+      // Value: MEDIUM - validates retry logic but structurally tested in unit tests
+      // Complexity: MEDIUM-HIGH - requires fake timer coordination or long test duration
+      //
+      // Note: Consider manual testing or E2E testing instead of integration test
+    });
+
+    it("8. Resume from crash: localStorage state + observables sync correctly", async () => {
+      const { storageIsSetupAndFinalizedForCurrentMinaKey } = await import("@/helpers/localStorage2");
+      vi.mocked(storageIsSetupAndFinalizedForCurrentMinaKey).mockReturnValue(true);
+
+      // Simulate a crash scenario: user had already computed eth proof
+      const mockStore = Store.forPair("eth", "mina");
+      mockStore.activeDepositNumber = 100;
+      mockStore.computedEthProof = JSON.stringify({
+        ethVerifierProofJson: { proof: "recovered" },
+        depositAttestationInput: { despositSlotRaw: { value: "100" } }
+      });
+
+      const actor = createActor(machine);
+      actors.push(actor);
+      actor.start();
+      actor.send({ type: "ASSIGN_WORKER", mintWorkerClient: mockWorker as any });
+
+      // Machine should hydrate from localStorage and skip to hasComputedEthProof
+      await vi.waitFor(() => {
+        return actor.getSnapshot().value === "hasComputedEthProof";
+      }, { timeout: 2000 });
+
+      expect(actor.getSnapshot().value).toBe("hasComputedEthProof");
+      expect(actor.getSnapshot().context.activeDepositNumber).toBe(100);
+      expect(actor.getSnapshot().context.computedEthProof).toBeDefined();
+      expect(actor.getSnapshot().context.computedEthProof?.ethVerifierProofJson.proof).toBe("recovered");
+
+      actor.stop();
+    });
   });
 });

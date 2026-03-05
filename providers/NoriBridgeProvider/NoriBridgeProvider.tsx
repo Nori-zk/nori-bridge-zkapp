@@ -232,7 +232,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     stateCheckers.hasComputedEthProof;
 
   const isError =
-    depositState.context.errorMessage !== null;
+    depositState.context.error !== null;
 
   const canSetupStorage = depositState.context.goToSetupStorage;
 
@@ -264,12 +264,14 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     depositState.context.processingStatus?.time_remaining_sec; // use 0 for ... come back to this
   useEffect(() => {
     if (stateCheckers.hydrating) return; //don't show error if loading
-    toast.current({
-      type: "error",
-      title: `${depositState.context.errorMessage || "Unknown error"}`,
-      description: `${depositState.context.errorReason || "Unknown reason"}`,
-    });
-  }, [depositState.context.errorMessage, depositState.context.errorReason, depositState.context.errorTimestamp, isError]);
+    if (depositState.context.error) {
+      toast.current({
+        type: "error",
+        title: depositState.context.error.message,
+        description: depositState.context.error.reason,
+      });
+    }
+  }, [depositState.context.error, isError, stateCheckers.hydrating]);
 
   // Derived state
   const contextValue = useMemo(

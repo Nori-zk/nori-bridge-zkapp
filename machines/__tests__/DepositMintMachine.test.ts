@@ -476,7 +476,7 @@ describe("DepositMintMachine", () => {
       expect(context.processingStatus).toBeNull();
       expect(context.canComputeStatus).toBeNull();
       expect(context.canMintStatus).toBeNull();
-      expect(context.errorMessage).toBeNull();
+      expect(context.error).toBeNull(); // Updated: consolidated error object
 
       actor.stop();
     });
@@ -665,10 +665,9 @@ describe("DepositMintMachine", () => {
 
       const context = actor.getSnapshot().context;
 
-      // Verify error tracking fields exist in context
-      expect(context).toHaveProperty("errorMessage");
-      expect(context).toHaveProperty("errorReason");
-      expect(context).toHaveProperty("errorTimestamp");
+      // Verify consolidated error object exists in context
+      expect(context).toHaveProperty("error");
+      expect(context.error).toBeNull(); // Should be null initially
 
       actor.stop();
     });
@@ -700,16 +699,19 @@ describe("DepositMintMachine", () => {
       actor.start();
       actor.send({ type: "ASSIGN_WORKER", mintWorkerClient: mockWorker as any });
 
-      // Manually set error state
-      actor.getSnapshot().context.errorMessage = "Test error";
-      actor.getSnapshot().context.errorReason = "Test reason";
+      // Manually set error state using consolidated error object
+      actor.getSnapshot().context.error = {
+        message: "Test error",
+        reason: "Test reason",
+        timestamp: Date.now(),
+      };
 
       // Send RESET
       mockStore.activeDepositNumber = null;
       actor.send({ type: "RESET" });
 
       // Error should be cleared
-      expect(actor.getSnapshot().context.errorMessage).toBeNull();
+      expect(actor.getSnapshot().context.error).toBeNull();
 
       actor.stop();
     });
@@ -1292,14 +1294,18 @@ describe("DepositMintMachine", () => {
       actor.start();
       actor.send({ type: "ASSIGN_WORKER", mintWorkerClient: mockWorker as any });
 
-      // Manually set error state
-      actor.getSnapshot().context.errorMessage = "Test error";
+      // Manually set error state using consolidated error object
+      actor.getSnapshot().context.error = {
+        message: "Test error",
+        reason: "Test reason",
+        timestamp: Date.now(),
+      };
 
       // Reset should clear errors
       mockStore.activeDepositNumber = null;
       actor.send({ type: "RESET" });
 
-      expect(actor.getSnapshot().context.errorMessage).toBeNull();
+      expect(actor.getSnapshot().context.error).toBeNull();
 
       actor.stop();
     });
@@ -1390,7 +1396,7 @@ describe("DepositMintMachine", () => {
       // 3. Error transitions depend on actual actor execution which is async
       //
       // What we CAN verify:
-      // - Machine has error context fields (errorMessage, errorReason, errorTimestamp)
+      // - Machine has consolidated error object (error: { message, reason, timestamp })
       // - Machine defines onError handlers for actors
       // - checkingDelay state exists for error recovery
       //
@@ -1405,10 +1411,9 @@ describe("DepositMintMachine", () => {
 
       const context = actor.getSnapshot().context;
 
-      // Error tracking fields exist
-      expect(context).toHaveProperty("errorMessage");
-      expect(context).toHaveProperty("errorReason");
-      expect(context).toHaveProperty("errorTimestamp");
+      // Consolidated error object exists
+      expect(context).toHaveProperty("error");
+      expect(context.error).toBeNull(); // Should be null initially
 
       actor.stop();
     });
