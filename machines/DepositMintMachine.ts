@@ -47,10 +47,10 @@ const invokeMonitoringDepositStatus = {
   id: "compressedDepositProcessingStatus",
   src: "compressedDepositProcessingStatusActor" as const,
   input: ({ context }: { context: DepositMintContext }) =>
-  ({
-    compressedDepositProcessingStatus$:
-      context.compressedDepositProcessingStatus$!,
-  } as const),
+    ({
+      compressedDepositProcessingStatus$:
+        context.compressedDepositProcessingStatus$!,
+    } as const),
   onSnapshot: {
     actions: assign<
       DepositMintContext,
@@ -87,7 +87,7 @@ function getErrorReason(event: ErrorActorEvent<unknown, string>) {
 // Error handler factory - reduces duplication across all error handlers
 function createErrorHandler(
   errorMessage: string,
-  targetState: string = "checkingDelay"
+  targetState: string = "checkingDelay",
 ) {
   return {
     target: targetState,
@@ -110,14 +110,12 @@ function createErrorHandler(
 
 // Worker compilation helper - prevents duplicate compilation calls
 function compileWorkerIfNeeded(context: DepositMintContext) {
-  if (
-    context.mintWorker &&
-    context.workerCompilationStatus === "idle"
-  ) {
+  if (context.mintWorker && context.workerCompilationStatus === "idle") {
     console.log("Starting worker compilation...");
     context.workerCompilationStatus = "compiling";
 
-    context.mintWorker.compileIfNeeded()
+    context.mintWorker
+      .compileIfNeeded()
       .then(() => {
         console.log("Worker compilation complete");
         context.workerCompilationStatus = "compiled";
@@ -197,7 +195,7 @@ export type DepositMintEvents =
 export const getDepositMachine = (
   ethStateTopic$: ReturnType<typeof getEthStateTopic$>,
   bridgeStateTopic$: ReturnType<typeof getBridgeStateTopic$>,
-  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>
+  bridgeTimingsTopic$: ReturnType<typeof getBridgeTimingsTopic$>,
 ) =>
   setup({
     types: {
@@ -218,19 +216,19 @@ export const getDepositMachine = (
       // - context.canComputeStatus === "MissedMintingOpportunity" ||
       // - context.canMintStatus === "MissedMintingOpportunity" ||
       // - context.processingStatus?.deposit_processing_status === "MissedMintingOpportunity"
-      isMissedOpportunity: ({ }) => false,
+      isMissedOpportunity: ({}) => false,
 
       storageIsSetupAndFinalizedForCurrentMinaKeyGuard: ({ context }) =>
         storageIsSetupAndFinalizedForCurrentMinaKey(
-          context.mintWorker!.minaWalletPubKeyBase58!
+          context.mintWorker!.minaWalletPubKeyBase58!,
         ), // This browser knows for this mina sender key that we have historically setup storage succesfully.
       setupStorageInProgressGuard: ({ context }) =>
         isSetupStorageInProgressForMinaKey(
-          context.mintWorker!.minaWalletPubKeyBase58!
+          context.mintWorker!.minaWalletPubKeyBase58!,
         ), // This browser has sent a setupStorageTx
       setupStorageNotInProgressGuard: ({ context }) =>
         !isSetupStorageInProgressForMinaKey(
-          context.mintWorker!.minaWalletPubKeyBase58!
+          context.mintWorker!.minaWalletPubKeyBase58!,
         ), // This browser has NOT sent a setupStorageTx
       shouldGotoSetupStorageGuard: ({ context }) =>
         context.goToSetupStorage === true, // An indicator used to after setupStorageOnChainCheck that we should go to setupStorage
@@ -310,7 +308,7 @@ export const getDepositMachine = (
             // Batch localStorage reads for better performance
             const pairStore = Store.forPair(
               context.mintWorker!.ethWalletPubKeyBase58!,
-              context.mintWorker!.minaWalletPubKeyBase58!
+              context.mintWorker!.minaWalletPubKeyBase58!,
             );
             const globalStore = Store.global();
 
@@ -329,7 +327,7 @@ export const getDepositMachine = (
             } catch (err) {
               console.error(
                 "Failed to parse computedEthProof from localStorage",
-                err
+                err,
               );
               // Clear corrupted data
               pairStore.computedEthProof = null;
@@ -371,7 +369,7 @@ export const getDepositMachine = (
                 console.log("Setting activeDepositNumber:", event.value);
                 Store.forPair(
                   context.mintWorker!.ethWalletPubKeyBase58!,
-                  context.mintWorker!.minaWalletPubKeyBase58!
+                  context.mintWorker!.minaWalletPubKeyBase58!,
                 ).activeDepositNumber = event.value; //.toString();
                 return event.value;
               },
@@ -423,7 +421,7 @@ export const getDepositMachine = (
       // Check if we either need to do an on chain setupStorageOnChainCheck, or if we are waiting for setupStorage tx finalization because we have sent a setupStorage tx.
       needsToCheckSetupStorageOrWaitingForStorageSetupFinalization: {
         entry: log(
-          "Entering needsToCheckSetupStorageOrWaitingForStorageSetupFinalization 🚀"
+          "Entering needsToCheckSetupStorageOrWaitingForStorageSetupFinalization 🚀",
         ),
         invoke: invokeMonitoringDepositStatus,
         always: [
@@ -468,7 +466,7 @@ export const getDepositMachine = (
             },
             onError: createErrorHandler(
               "Failed to check storage setup",
-              "checking"
+              "checking",
             ),
           },
         ],
@@ -528,13 +526,13 @@ export const getDepositMachine = (
             onDone: {
               target: "waitForStorageSetupFinalization",
               actions: ({ context }) =>
-              (Store.forMina(
-                context.mintWorker!.minaWalletPubKeyBase58
-              ).setupStorageInProgress = true),
+                (Store.forMina(
+                  context.mintWorker!.minaWalletPubKeyBase58,
+                ).setupStorageInProgress = true),
             },
             onError: createErrorHandler(
               "Failed to submit storage, trying again",
-              "setupStorage"
+              "setupStorage",
             ),
           },
         ],
@@ -559,7 +557,7 @@ export const getDepositMachine = (
                     context.mintWorker?.minaWalletPubKeyBase58;
                   if (!minaWalletPubKeyBase58)
                     throw new Error(
-                      "MinaWalletPubKeyBase58 should exist by now"
+                      "MinaWalletPubKeyBase58 should exist by now",
                     );
                   // Remove setupStorageInProgress flag
                   Store.forMina(minaWalletPubKeyBase58).setupStorageInProgress =
@@ -659,7 +657,7 @@ export const getDepositMachine = (
                   const proof = event.output;
                   Store.forPair(
                     context.mintWorker!.ethWalletPubKeyBase58!,
-                    context.mintWorker!.minaWalletPubKeyBase58!
+                    context.mintWorker!.minaWalletPubKeyBase58!,
                   ).computedEthProof = JSON.stringify(proof);
                   console.log("done comupting and saved to LS");
                   return proof;
@@ -696,7 +694,7 @@ export const getDepositMachine = (
               actions: ({ event }) => {
                 console.error(
                   "canMintActor error in hasComputedEthProof:",
-                  event.error
+                  event.error,
                 );
               },
             },
@@ -725,7 +723,7 @@ export const getDepositMachine = (
                   const tx = event.output;
                   Store.forPair(
                     context.mintWorker!.ethWalletPubKeyBase58!,
-                    context.mintWorker!.minaWalletPubKeyBase58!
+                    context.mintWorker!.minaWalletPubKeyBase58!,
                   ).depositMintTx = tx;
                   return tx;
                 },
@@ -759,23 +757,24 @@ export const getDepositMachine = (
           ({ context }) =>
             resetLocalStorage(
               context.mintWorker!.ethWalletPubKeyBase58,
-              context.mintWorker!.minaWalletPubKeyBase58
+              context.mintWorker!.minaWalletPubKeyBase58,
             ),
         ],
       },
 
       completed: {
-        type: "final", // Mark as final state - machine will wait for external RESET event
+        // allow RESET event from this state
+        // The global RESET handler (in 'on' block) will transition to hydrating
         entry: [
           log("✅ Deposit completed successfully - waiting for user to exit"),
           ({ context }) => {
             // Store completion timestamp for analytics
             console.log(
               "✅ Mint completed for deposit #",
-              context.activeDepositNumber
+              context.activeDepositNumber,
             );
             console.log(
-              "User should click Exit button to reset and start new deposit"
+              "User should click Exit button to reset and start new deposit",
             );
 
             // DO NOT auto-reset or clear localStorage here
@@ -808,11 +807,11 @@ export const getDepositMachine = (
           ({ event }) => {
             console.log(
               "worker ETH address",
-              event.mintWorkerClient.ethWalletPubKeyBase58
+              event.mintWorkerClient.ethWalletPubKeyBase58,
             );
             console.log(
               "worker MINA address",
-              event.mintWorkerClient.minaWalletPubKeyBase58
+              event.mintWorkerClient.minaWalletPubKeyBase58,
             );
           },
         ],
@@ -836,7 +835,7 @@ export const getDepositMachine = (
             if (context.mintWorker) {
               resetLocalStorage(
                 context.mintWorker.ethWalletPubKeyBase58,
-                context.mintWorker.minaWalletPubKeyBase58
+                context.mintWorker.minaWalletPubKeyBase58,
               );
             } else {
               const lastEthWallet = Store.global().test_lastEthWallet;
