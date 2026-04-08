@@ -1,11 +1,13 @@
 "use client";
 import TextInput from "@/components/ui/TextInput.tsx";
+import Tooltip from "@/components/ui/Tooltip/Tooltip.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Store } from "@/helpers/localStorage2.ts";
 import { setCodeChallenge } from "@/helpers/codeChallengeHelper.ts";
+import { createPortal } from "react-dom";
 
 type FormValues = {
   amount: string;
@@ -14,15 +16,113 @@ type FormValues = {
 const LockTokens = () => {
   const [locking, setLocking] = useState<boolean>(false);
   const [walletCheck, setWalletCheck] = useState<boolean>(false);
-  const { lockTokens, signMessage, walletAddress } = useMetaMaskWallet();
+  const [showTooltip, setShowTooltip] = useState<boolean>(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const [estimatedGas, setEstimatedGas] = useState<string | null>(null);
+  const [maxLockable, setMaxLockable] = useState<string>("0.00000000");
+  const tooltipTriggerRef = useRef<HTMLDivElement>(null);
+
+  const { lockTokens, signMessage, walletAddress, balance } =
+    useMetaMaskWallet();
   const { state, setDepositNumber } = useNoriBridge();
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>();
   const amountValue = watch("amount");
+
+  const handleMaxClick = () => {
+    setValue("amount", maxLockable);
+  };
+
+  const handleTooltipMouseEnter = () => {
+    if (tooltipTriggerRef.current) {
+      const rect = tooltipTriggerRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.top,
+        left: rect.left + rect.width / 2,
+      });
+      setShowTooltip(true);
+    }
+  };
+
+  const handleTooltipMouseLeave = () => {
+    setShowTooltip(false);
+  };
+
+  // Clear form when wallet address changes
+  useEffect(() => {
+    setValue("amount", "");
+  }, [walletAddress, setValue]);
+
+  // Estimate gas and calculate max lockable amount
+  useEffect(() => {
+    const estimateGas = async () => {
+      if (!balance || !walletAddress || !window.ethereum) {
+        setMaxLockable("0.00000000");
+        return;
+      }
+
+      try {
+        const provider = new (await import("ethers")).BrowserProvider(
+          window.ethereum,
+        );
+
+        // Get current gas price
+        const feeData = await provider.getFeeData();
+        const effectiveGasPrice = feeData.maxFeePerGas || feeData.gasPrice;
+
+        if (!effectiveGasPrice) {
+          throw new Error("Unable to fetch gas price");
+        }
+
+        // Use a conservative gas limit estimate for lockTokens transaction
+        // Typical lockTokens transactions use around 50,000-100,000 gas
+        // We'll use 100,000 as a safe upper estimate
+        const estimatedGasUnits = 100000n;
+
+        // Calculate total gas cost in wei
+        const gasCostWei = estimatedGasUnits * effectiveGasPrice;
+
+        // Convert to ETH
+        const gasCostEth = (await import("ethers")).ethers.formatEther(
+          gasCostWei,
+        );
+        setEstimatedGas(gasCostEth);
+
+        // Calculate max lockable: balance - gas
+        const balanceNum = parseFloat(balance);
+        const gasNum = parseFloat(gasCostEth);
+        const maxAmount = Math.max(0, balanceNum - gasNum);
+
+        setMaxLockable(maxAmount.toFixed(8));
+
+        console.log(
+          `Gas estimate: ${estimatedGasUnits} units at ${(
+            await import("ethers")
+          ).ethers.formatUnits(
+            effectiveGasPrice,
+            "gwei",
+          )} gwei = ${gasCostEth} ETH`,
+        );
+      } catch (error) {
+        console.error("Error estimating gas:", error);
+        // Fallback: use a conservative 0.001 ETH for gas
+        const fallbackGas = "0.001";
+        setEstimatedGas(fallbackGas);
+        const maxAmount = Math.max(
+          0,
+          parseFloat(balance) - parseFloat(fallbackGas),
+        );
+        setMaxLockable(maxAmount.toFixed(8));
+      }
+    };
+
+    estimateGas();
+  }, [balance, walletAddress]);
 
   const onSubmit = async (data: FormValues) => {
     try {
@@ -35,10 +135,10 @@ const LockTokens = () => {
           throw new Error("Worker not ready but called submit anyway");
         await worker.ready();
         const signatureFromUser = await signMessage(
-          worker!.fixedValueOrSecret!
+          worker!.fixedValueOrSecret!,
         );
         const codeVerify = await worker.getCodeVerifyFromEthSignature(
-          signatureFromUser.signature
+          signatureFromUser.signature,
         );
         Store.forEth(worker.ethWalletPubKeyBase58).codeVerifier = codeVerify;
         const codeChallange = await worker.createCodeChallenge(codeVerify);
@@ -77,25 +177,67 @@ const LockTokens = () => {
           {...register("amount", {
             required: "Amount is required",
             pattern: {
-              value: /^(0|[1-9]\d*)(\.\d{1,6})?$/,
-              message: "Must be a valid decimal with max 6 d.p.",
+              value: /^(0|[1-9]\d*)(\.\d{1,8})?$/,
+              message: "Must be a valid decimal with max 8 d.p.",
             },
             min: {
               value: 0.0001,
               message: "Must be at least 0.0001",
             },
-            max: {
-              value: 0.1,
-              message: "Must be at most 0.1",
+            validate: {
+              minimum: (value) =>
+                parseFloat(value) >= 0.0001 || "Must be at least 0.0001",
+              maximum: (value) =>
+                parseFloat(value) <= parseFloat(maxLockable) ||
+                `Cannot exceed max lockable amount of ${maxLockable} ETH`,
             },
-            validate: (value) =>
-              parseFloat(value) >= 0.0001 || "Must be at least 0.0001",
           })}
         />
         <div className="text-white/20 flex justify-between mt-1">
           <div className="text-sm">1% transaction...</div>
-          <div className="text-sm">Available: 0.05 ETH | Max</div>
+          <div className="text-sm flex items-center gap-1">
+            <span>Available:</span>
+            <span>
+              <button
+                type="button"
+                onClick={handleMaxClick}
+                className="text-white/60 hover:text-white cursor-pointer transition-colors"
+                disabled={state.context.activeDepositNumber != null || locking}
+              >
+                {parseFloat(maxLockable).toFixed(8)} ETH
+              </button>
+            </span>
+            <div
+              ref={tooltipTriggerRef}
+              className="w-4 h-4 rounded-full border border-white/60 flex items-center justify-center cursor-help text-xs text-white/60 hover:text-white hover:border-white transition-colors"
+              onMouseEnter={handleTooltipMouseEnter}
+              onMouseLeave={handleTooltipMouseLeave}
+            >
+              ?
+            </div>
+          </div>
         </div>
+        {/* Tooltip Portal - rendered at document body level to avoid overflow issues */}
+        {showTooltip &&
+          typeof window !== "undefined" &&
+          createPortal(
+            <div
+              style={{
+                position: "fixed",
+                top: tooltipPosition.top,
+                left: tooltipPosition.left,
+                transform: "translate(-50%, -100%)",
+                zIndex: 9999,
+                marginBottom: "8px",
+              }}
+            >
+              <Tooltip
+                title="Available to Lock"
+                content={`Maximum amount to lock is equal wallet balance - estimated fee (estimated fee)`}
+              />
+            </div>,
+            document.body,
+          )}
         {errors.amount && (
           <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
         )}
