@@ -18,8 +18,7 @@ const LockTokens = () => {
   const [walletCheck, setWalletCheck] = useState<boolean>(false);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
-  const [estimatedGas, setEstimatedGas] = useState<string | null>(null);
-  const [maxLockable, setMaxLockable] = useState<string>("0.00000000");
+  const [maxLockable, setMaxLockable] = useState<string | null>(null);
   const tooltipTriggerRef = useRef<HTMLDivElement>(null);
 
   const { lockTokens, signMessage, walletAddress, balance } =
@@ -35,7 +34,7 @@ const LockTokens = () => {
   const amountValue = watch("amount");
 
   const handleMaxClick = () => {
-    setValue("amount", maxLockable);
+    if (maxLockable) setValue("amount", maxLockable);
   };
 
   const handleTooltipMouseEnter = () => {
@@ -62,7 +61,7 @@ const LockTokens = () => {
   useEffect(() => {
     const estimateGas = async () => {
       if (!balance || !walletAddress || !window.ethereum) {
-        setMaxLockable("0.00000000");
+        setMaxLockable(null);
         return;
       }
 
@@ -91,7 +90,6 @@ const LockTokens = () => {
         const gasCostEth = (await import("ethers")).ethers.formatEther(
           gasCostWei,
         );
-        setEstimatedGas(gasCostEth);
 
         // Calculate max lockable: balance - gas
         const balanceNum = parseFloat(balance);
@@ -112,7 +110,6 @@ const LockTokens = () => {
         console.error("Error estimating gas:", error);
         // Fallback: use a conservative 0.001 ETH for gas
         const fallbackGas = "0.001";
-        setEstimatedGas(fallbackGas);
         const maxAmount = Math.max(
           0,
           parseFloat(balance) - parseFloat(fallbackGas),
@@ -173,7 +170,12 @@ const LockTokens = () => {
         <TextInput
           id="amount-input"
           hasValue={!!amountValue && amountValue.length > 0}
-          disabled={state.context.activeDepositNumber != null || locking}
+          disabled={
+            state.context.activeDepositNumber != null ||
+            locking ||
+            !maxLockable ||
+            maxLockable === "0.00000000"
+          }
           {...register("amount", {
             required: "Amount is required",
             pattern: {
@@ -188,6 +190,7 @@ const LockTokens = () => {
               minimum: (value) =>
                 parseFloat(value) >= 0.0001 || "Must be at least 0.0001",
               maximum: (value) =>
+                !maxLockable ||
                 parseFloat(value) <= parseFloat(maxLockable) ||
                 `Cannot exceed max lockable amount of ${maxLockable} ETH`,
             },
@@ -204,7 +207,10 @@ const LockTokens = () => {
                 className="text-white/60 hover:text-white cursor-pointer transition-colors"
                 disabled={state.context.activeDepositNumber != null || locking}
               >
-                {parseFloat(maxLockable).toFixed(8)} ETH
+                {maxLockable
+                  ? parseFloat(maxLockable).toFixed(8)
+                  : "calculating..."}{" "}
+                ETH
               </button>
             </span>
             <div
