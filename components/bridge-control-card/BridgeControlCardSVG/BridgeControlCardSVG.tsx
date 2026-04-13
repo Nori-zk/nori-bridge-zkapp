@@ -7,7 +7,7 @@ const BridgeControlCardSVG = ({ children }: BridgeControlCardSVGProps) => {
     <svg
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
-      viewBox="0 0 830 550"
+      viewBox="0 0 830 549"
       width="100%"
       height="100%"
       preserveAspectRatio="none"
