@@ -29,6 +29,7 @@ const LockTokens = () => {
     handleSubmit,
     watch,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>();
   const amountValue = watch("amount"); //watch as text input inside form
@@ -175,6 +176,7 @@ const LockTokens = () => {
         <TextInput
           id="amount-input"
           hasValue={!!amountValue && amountValue.length > 0}
+          errorMessage={errors.amount?.message}
           disabled={
             state.context.activeDepositNumber != null ||
             locking ||
@@ -183,6 +185,7 @@ const LockTokens = () => {
           }
           {...register("amount", {
             required: "Amount is required",
+            onChange: () => clearErrors("amount"),
             pattern: {
               value: /^(0|[1-9]\d*)(\.\d{1,8})?$/,
               message: "Must be a valid decimal with max 8 d.p.",
@@ -258,23 +261,21 @@ const LockTokens = () => {
             </div>,
             document.body,
           )}
-        {errors.amount && (
-          <p className="text-red-500 text-sm mt-1">{errors.amount.message}</p>
-        )}
+
         <button
           // This disabled check is insufficient
           // Should be disabled if metamask is currently waiting for a pending deposit
           // if the contract is compiling
           // if the contract is compiled
           disabled={
-            locking || !!state.context.mintWorker?.isCompilingContracts()
+            locking || !!state.context.mintWorker?.isCompilingContracts() || !!errors.amount
           }
           type="submit"
-          className={`mt-6 w-full text-white rounded-lg px-4 py-3 ${
-            locking || !!state.context.mintWorker?.isCompilingContracts()
-              ? "border-none"
-              : "border-white"
-          } border-[1px]`}
+          className={`mt-6 w-full rounded-lg px-4 py-3 border-[1px] ${
+            locking || !!state.context.mintWorker?.isCompilingContracts() || !!errors.amount
+              ? "text-white/20 border-white/20"
+              : "text-white border-white"
+          }`}
         >
           {walletCheck
             ? "Check your wallet"

@@ -255,16 +255,31 @@ describe("LockTokens", () => {
   // -------------------------------------------------------------------------
 
   describe("validation", () => {
-    it("shows error when amount exceeds max lockable", async () => {
+    // Errors are no longer shown as inline <p> text — they are surfaced via a
+    // red border + hover-triggered "i" icon on the input. Each test below confirms:
+    //   1. The error icon appears (error state is set)
+    //   2. Hovering the icon reveals the correct message in the tooltip
+
+    const triggerErrorAndGetIcon = async (inputValue?: string) => {
       render(<LockTokens />);
       const input = screen.getByRole("textbox");
       await waitFor(() => expect(input).not.toBeDisabled());
 
-      fireEvent.change(input, { target: { value: "9999" } });
-
-      // Submit the form to trigger validation
+      if (inputValue !== undefined) {
+        fireEvent.change(input, { target: { value: inputValue } });
+      }
       fireEvent.submit(input.closest("form")!);
 
+      await waitFor(() => expect(screen.getByText("i")).toBeInTheDocument());
+
+      // The hover target is the wrapper div that owns onMouseEnter
+      const iconWrapper = screen.getByText("i").parentElement!;
+      return { input, iconWrapper };
+    };
+
+    it("shows error icon and tooltip when amount exceeds max lockable", async () => {
+      const { iconWrapper } = await triggerErrorAndGetIcon("9999");
+      fireEvent.mouseEnter(iconWrapper);
       await waitFor(() =>
         expect(
           screen.getByText(/cannot exceed max lockable amount/i)
@@ -272,14 +287,9 @@ describe("LockTokens", () => {
       );
     });
 
-    it("shows error when amount is below minimum", async () => {
-      render(<LockTokens />);
-      const input = screen.getByRole("textbox");
-      await waitFor(() => expect(input).not.toBeDisabled());
-
-      fireEvent.change(input, { target: { value: "0.00000001" } });
-      fireEvent.submit(input.closest("form")!);
-
+    it("shows error icon and tooltip when amount is below minimum", async () => {
+      const { iconWrapper } = await triggerErrorAndGetIcon("0.00000001");
+      fireEvent.mouseEnter(iconWrapper);
       await waitFor(() =>
         expect(
           screen.getByText(/must be at least 0\.0001/i)
@@ -287,30 +297,38 @@ describe("LockTokens", () => {
       );
     });
 
-    it("shows error when amount field is empty on submit", async () => {
-      render(<LockTokens />);
-      const input = screen.getByRole("textbox");
-      await waitFor(() => expect(input).not.toBeDisabled());
-
-      fireEvent.submit(input.closest("form")!);
-
+    it("shows error icon and tooltip when amount field is empty on submit", async () => {
+      const { iconWrapper } = await triggerErrorAndGetIcon();
+      fireEvent.mouseEnter(iconWrapper);
       await waitFor(() =>
         expect(screen.getByText(/amount is required/i)).toBeInTheDocument()
       );
     });
 
-    it("shows error for invalid decimal format", async () => {
-      render(<LockTokens />);
-      const input = screen.getByRole("textbox");
-      await waitFor(() => expect(input).not.toBeDisabled());
-
-      fireEvent.change(input, { target: { value: "abc" } });
-      fireEvent.submit(input.closest("form")!);
-
+    it("shows error icon and tooltip for invalid decimal format", async () => {
+      const { iconWrapper } = await triggerErrorAndGetIcon("abc");
+      fireEvent.mouseEnter(iconWrapper);
       await waitFor(() =>
         expect(
           screen.getByText(/must be a valid decimal/i)
         ).toBeInTheDocument()
+      );
+    });
+
+    it("applies red border to input on any validation error", async () => {
+      const { input } = await triggerErrorAndGetIcon("9999");
+      expect(input).toHaveClass("border-red-500");
+    });
+
+    it("tooltip hides when mouse leaves the error icon", async () => {
+      const { iconWrapper } = await triggerErrorAndGetIcon("9999");
+      fireEvent.mouseEnter(iconWrapper);
+      await waitFor(() =>
+        expect(screen.getByText(/cannot exceed max lockable amount/i)).toBeInTheDocument()
+      );
+      fireEvent.mouseLeave(iconWrapper);
+      await waitFor(() =>
+        expect(screen.queryByText(/cannot exceed max lockable amount/i)).not.toBeInTheDocument()
       );
     });
   });
@@ -393,6 +411,105 @@ describe("LockTokens", () => {
 
       expect(screen.queryByText(/receive/i)).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: /eth/i })).toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Submit button disabled state styling
+  // -------------------------------------------------------------------------
+
+  describe("submit button disabled state styling", () => {
+    it("has dimmed text and border when disabled due to a validation error", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      fireEvent.change(input, { target: { value: "9999" } });
+      fireEvent.submit(input.closest("form")!);
+
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /lock tokens/i })).toBeDisabled()
+      );
+
+      const button = screen.getByRole("button", { name: /lock tokens/i });
+      expect(button).toHaveClass("text-white/20");
+      expect(button).toHaveClass("border-white/20");
+    });
+
+    it("re-enables the button once the error is cleared by typing", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      // Trigger an error
+      fireEvent.change(input, { target: { value: "9999" } });
+      fireEvent.submit(input.closest("form")!);
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /lock tokens/i })).toBeDisabled()
+      );
+
+      // Type a valid value — clearErrors fires on onChange
+      fireEvent.change(input, { target: { value: "0.5" } });
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: /lock tokens/i })).not.toBeDisabled()
+      );
+    });
+
+    it("button has full-opacity classes in the idle (no error) state", async () => {
+      render(<LockTokens />);
+      await waitFor(() =>
+        expect(screen.getByRole("textbox")).not.toBeDisabled()
+      );
+      const button = screen.getByRole("button", { name: /lock tokens/i });
+      expect(button).toHaveClass("text-white");
+      expect(button).toHaveClass("border-white");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Input error indicator (red border + i icon)
+  // -------------------------------------------------------------------------
+
+  describe("input error indicator", () => {
+    it("shows the error icon on the input after a failed submit", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      fireEvent.change(input, { target: { value: "9999" } });
+      fireEvent.submit(input.closest("form")!);
+
+      await waitFor(() =>
+        expect(screen.getByText("i")).toBeInTheDocument()
+      );
+    });
+
+    it("applies red border to the input after a validation error", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      fireEvent.change(input, { target: { value: "9999" } });
+      fireEvent.submit(input.closest("form")!);
+
+      await waitFor(() =>
+        expect(input).toHaveClass("border-red-500")
+      );
+    });
+
+    it("clears the error icon when the user types after an error", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      fireEvent.change(input, { target: { value: "9999" } });
+      fireEvent.submit(input.closest("form")!);
+      await waitFor(() => expect(screen.getByText("i")).toBeInTheDocument());
+
+      fireEvent.change(input, { target: { value: "0.5" } });
+      await waitFor(() =>
+        expect(screen.queryByText("i")).not.toBeInTheDocument()
+      );
     });
   });
 
