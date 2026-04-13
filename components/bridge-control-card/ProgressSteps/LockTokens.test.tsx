@@ -327,6 +327,76 @@ describe("LockTokens", () => {
   });
 
   // -------------------------------------------------------------------------
+  // Receive / Fee display
+  // -------------------------------------------------------------------------
+
+  describe("Receive and Fee display", () => {
+    it("does not show Receive or Fee before any input is entered", async () => {
+      render(<LockTokens />);
+      await waitFor(() => expect(screen.getByRole("textbox")).not.toBeDisabled());
+
+      expect(screen.queryByText(/receive/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fee/i)).not.toBeInTheDocument();
+    });
+
+    it("shows Receive and Fee once the user types a value", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      fireEvent.change(input, { target: { value: "0.5" } });
+
+      expect(screen.getByText(/receive/i)).toBeInTheDocument();
+      expect(screen.getByText(/fee/i)).toBeInTheDocument();
+    });
+
+    it("displays receive amount as input minus 0.0005 fee", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      fireEvent.change(input, { target: { value: "1.0" } });
+
+      // 1.0 - 0.0005 = 0.99950000
+      await waitFor(() =>
+        expect(screen.getByText(/0\.99950000 neth/i)).toBeInTheDocument()
+      );
+    });
+
+    it("shows hardcoded fee of 0.0005 ETH", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      fireEvent.change(input, { target: { value: "0.5" } });
+
+      expect(screen.getByText(/fee: 0\.0005 eth/i)).toBeInTheDocument();
+    });
+
+    it("receive amount floors at 0 when input is less than fee", async () => {
+      render(<LockTokens />);
+      const input = screen.getByRole("textbox");
+      await waitFor(() => expect(input).not.toBeDisabled());
+
+      fireEvent.change(input, { target: { value: "0.0003" } });
+
+      await waitFor(() =>
+        expect(screen.getByText(/0\.00000000 neth/i)).toBeInTheDocument()
+      );
+    });
+
+    it("Max button remains visible when no input value is entered", async () => {
+      render(<LockTokens />);
+      await waitFor(() =>
+        expect(screen.queryByText(/calculating\.\.\./i)).not.toBeInTheDocument()
+      );
+
+      expect(screen.queryByText(/receive/i)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /eth/i })).toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Available display
   // -------------------------------------------------------------------------
 

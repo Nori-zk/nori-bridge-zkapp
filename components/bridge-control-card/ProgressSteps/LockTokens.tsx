@@ -31,7 +31,12 @@ const LockTokens = () => {
     setValue,
     formState: { errors },
   } = useForm<FormValues>();
-  const amountValue = watch("amount");
+  const amountValue = watch("amount"); //watch as text input inside form
+  const HARDCODED_FEE = 0.0005;
+  const receiveAmount =
+    amountValue && !isNaN(parseFloat(amountValue))
+      ? Math.max(0, parseFloat(amountValue) - HARDCODED_FEE).toFixed(8)
+      : null;
 
   const handleMaxClick = () => {
     if (maxLockable) setValue("amount", maxLockable);
@@ -197,10 +202,16 @@ const LockTokens = () => {
           })}
         />
         <div className="text-white/20 flex justify-between mt-1">
-          <div className="text-sm">1% transaction...</div>
-          <div className="text-sm flex items-center gap-1">
-            <span>Available:</span>
-            <span>
+          <div className="text-sm">
+            {!!amountValue && amountValue.length > 0 && (
+              <span className="text-white/40">
+                Receive: {receiveAmount} nETH
+              </span>
+            )}
+          </div>
+          <div className="text-sm flex flex-col items-end gap-0.5">
+            <div className="flex items-center gap-1">
+              <span className="text-white/60">Max:</span>
               <button
                 type="button"
                 onClick={handleMaxClick}
@@ -212,15 +223,18 @@ const LockTokens = () => {
                   : "calculating..."}{" "}
                 ETH
               </button>
-            </span>
-            <div
-              ref={tooltipTriggerRef}
-              className="w-4 h-4 rounded-full border border-white/60 flex items-center justify-center cursor-help text-xs text-white/60 hover:text-white hover:border-white transition-colors"
-              onMouseEnter={handleTooltipMouseEnter}
-              onMouseLeave={handleTooltipMouseLeave}
-            >
-              ?
+              <div
+                ref={tooltipTriggerRef}
+                className="w-4 h-4 rounded-full border border-white/60 flex items-center justify-center cursor-help text-xs text-white/60 hover:text-white hover:border-white transition-colors"
+                onMouseEnter={handleTooltipMouseEnter}
+                onMouseLeave={handleTooltipMouseLeave}
+              >
+                ?
+              </div>
             </div>
+            {!!amountValue && amountValue.length > 0 && (
+              <span className="text-white/40">Fee: {HARDCODED_FEE} ETH</span>
+            )}
           </div>
         </div>
         {/* Tooltip Portal - rendered at document body level to avoid overflow issues */}
