@@ -92,6 +92,9 @@ export const MetaMaskWalletProvider = ({
   });
   const toast = useRef(rawToast);
 
+  console.log("token address:", envConfig.NORI_TOKEN_BRIDGE_ADDRESS);
+  console.log("token address:", envConfig.NORI_TOKEN_CONTROLLER_ADDRESS);
+
   // Helper to check if we're on the correct network
   const isOnCorrectNetwork = useMemo(() => {
     return chainId === REQUIRED_NETWORK_ID;

@@ -22,12 +22,9 @@ export default function Home() {
   const [showMobileWarning, setShowMobileWarning] = useState<boolean>(false);
   const [isExpandActive, setIsExpandActive] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-
   const { showChooseSide } = useProgress();
-
   const { isConnected: ethConnected } = useMetaMaskWallet();
   const { isConnected: minaConnected } = useAuroWallet();
-
   const { title, component } = useBridgeControlCardProps();
   const { state: bridgeState } = useNoriBridge();
 
