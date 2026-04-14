@@ -1,5 +1,6 @@
 "use client";
-import TextInput from "@/components/ui/TextInput.tsx";
+import TextInput from "@/components/ui/TextInput/TextInput.tsx";
+import TextButton from "@/components/ui/TextButton/TextButton.tsx";
 import Tooltip from "@/components/ui/Tooltip/Tooltip.tsx";
 import { useMetaMaskWallet } from "@/providers/MetaMaskWalletProvider/MetaMaskWalletProvider.tsx";
 import { useNoriBridge } from "@/providers/NoriBridgeProvider/NoriBridgeProvider.tsx";
@@ -262,7 +263,7 @@ const LockTokens = () => {
             document.body,
           )}
 
-        <button
+        <TextButton
           // This disabled check is insufficient
           // Should be disabled if metamask is currently waiting for a pending deposit
           // if the contract is compiling
@@ -271,18 +272,14 @@ const LockTokens = () => {
             locking || !!state.context.mintWorker?.isCompilingContracts() || !!errors.amount
           }
           type="submit"
-          className={`mt-6 w-full rounded-lg px-4 py-3 border-[1px] ${
-            locking || !!state.context.mintWorker?.isCompilingContracts() || !!errors.amount
-              ? "text-white/20 border-white/20"
-              : "text-white border-white"
-          }`}
+          className="mt-6"
         >
           {walletCheck
             ? "Check your wallet"
             : locking
             ? "Locking tokens in progress"
             : "Lock Tokens"}
-        </button>
+        </TextButton>
       </form>
     </>
   );
