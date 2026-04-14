@@ -14,14 +14,17 @@ import { useEffect, useState } from "react";
 import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 import Flip from "@/public/assets/Flip.svg";
+import Settings from "@/public/assets/Settings.svg";
 import FlipCard from "@/components/ui/FlipCard/FlipCard.tsx";
 import TransactionCard from "@/components/transaction-card/TransactionCard/TransactionCard.tsx";
 import { AnimatePresence, motion } from "framer-motion";
+import NetworkSelectCard from "@/components/network-select-card/NetworkSelectCard.tsx";
 
 export default function Home() {
   const [showMobileWarning, setShowMobileWarning] = useState<boolean>(false);
   const [isExpandActive, setIsExpandActive] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { showChooseSide } = useProgress();
 
@@ -128,17 +131,33 @@ export default function Home() {
                       height={"100%"}
                       content={ethConnected && minaConnected ? component : null}
                     />
-                    {!isExpandActive && ethConnected && minaConnected && (
-                      <button
-                        onClick={() => {
-                          setIsExpandActive(true);
-                          console.log("Flip pressed");
-                        }}
-                        className="absolute -top-0 -right-10 z-20"
-                      >
-                        <Flip width={57} height={57} />
-                      </button>
-                    )}
+                    {!isExpandActive &&
+                      ethConnected &&
+                      minaConnected &&
+                      (showSettings ? (
+                        <div className="absolute -top-0 -right-[363px] z-20">
+                          <NetworkSelectCard onClose={() => setShowSettings(false)} />
+                        </div>
+                      ) : (
+                        <div className="flex">
+                          <button
+                            onClick={() => {
+                              setIsExpandActive(true);
+                            }}
+                            className="absolute -top-0 -right-10 z-20"
+                          >
+                            <Flip width={57} height={57} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowSettings(true);
+                            }}
+                            className="absolute top-[58px] -right-[60px] z-20"
+                          >
+                            <Settings width={60} height={60} />
+                          </button>
+                        </div>
+                      ))}
                   </div>
                 }
                 backContent={
