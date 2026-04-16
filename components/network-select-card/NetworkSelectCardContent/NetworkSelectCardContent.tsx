@@ -1,11 +1,18 @@
 import NetworkSelectCardSVG from "@/components/network-select-card/NetworkSelectCardSVG/NetworkSelectCardSVG.tsx";
+import SingleSelect from "@/components/ui/SingleSelect/SingleSelect.tsx";
 import TextButton from "@/components/ui/TextButton/TextButton.tsx";
+import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
+import { chainOptions } from "@/static_data.ts";
 
 type NetworkSelectCardContentProps = {
   onClose: () => void;
 };
 
-const NetworkSelectCardContent = ({ onClose }: NetworkSelectCardContentProps) => {
+const NetworkSelectCardContent = ({
+  onClose,
+}: NetworkSelectCardContentProps) => {
+  const { selectedChain, setSelectedChain } = useAuroWallet();
+
   return (
     <div
       style={{
@@ -23,12 +30,23 @@ const NetworkSelectCardContent = ({ onClose }: NetworkSelectCardContentProps) =>
           <button
             onClick={onClose}
             className="absolute top-3 right-3 text-white/50 hover:text-white transition-colors"
-            aria-label="Close"
           >
             ✕
           </button>
-          <div className="flex flex-col items-center justify-center h-full w-full px-6">
-            <TextButton>Confirm</TextButton>
+          <div className="flex flex-col justify-center items-center h-full w-full px-6">
+            <div className="justify-start w-full text-white/30">RPC URL</div>
+            <div className="w-full text-white/30 my-1">
+              <SingleSelect
+                options={chainOptions}
+                value={selectedChain}
+                onChange={(option) => {
+                  setSelectedChain(option);
+                }}
+              />
+            </div>
+            <div className="flex-col w-full justify-center">
+              <TextButton>Confirm</TextButton>
+            </div>
           </div>
         </div>
       </NetworkSelectCardSVG>
