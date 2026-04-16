@@ -1,13 +1,13 @@
-import React, { useState } from "react";
+import React, { forwardRef, InputHTMLAttributes, useState } from "react";
 import EthereumGrey from "@/public/assets/EthereumGrey.svg";
 import Tooltip from "@/components/ui/Tooltip/Tooltip.tsx";
 
-type TextInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+type TextInputProps = InputHTMLAttributes<HTMLInputElement> & {
   hasValue?: boolean;
   errorMessage?: string;
 };
 
-const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
+const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
   ({ id, hasValue = false, errorMessage, ...props }, ref) => {
     const [showErrorTooltip, setShowErrorTooltip] = useState(false);
     const shouldShowWhiteBorder = hasValue && !props.disabled;
@@ -50,7 +50,7 @@ const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 TextInput.displayName = "TextInput";
