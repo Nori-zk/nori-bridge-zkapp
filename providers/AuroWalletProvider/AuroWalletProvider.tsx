@@ -32,6 +32,8 @@ interface AuroWalletContextType {
   disconnect: () => void;
   selectedChain: ChainOption | null;
   setSelectedChain: Dispatch<SetStateAction<ChainOption | null>>;
+  chainAddress: string | null;
+  setChainAddress: Dispatch<SetStateAction<string | null>>;
 }
 
 const AuroWalletContext = createContext<AuroWalletContextType | undefined>(
@@ -52,6 +54,7 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
 
   const [isConnectingWalletOpen, setIsConnectingWalletOpen] = useState(false);
   const [selectedChain, setSelectedChain] = useState<ChainOption | null>(null);
+  const [chainAddress, setChainAddress] = useState<string | null>(null);
   const lastDisconnectRef = useRef<number>(0); // Timestamp for debouncing disconnect
 
   const { connectAsync: wagminaConnectAsync } = useConnect();
@@ -182,8 +185,10 @@ export const AuroWalletProvider = ({ children }: { children: ReactNode }) => {
       disconnect,
       selectedChain,
       setSelectedChain,
+      chainAddress,
+      setChainAddress,
     }),
-    [networkId, walletAddress, isConnectingWalletOpen, wagminaConnected, connect, disconnect, selectedChain, setSelectedChain],
+    [networkId, walletAddress, isConnectingWalletOpen, wagminaConnected, connect, disconnect, selectedChain, setSelectedChain, chainAddress],
   );
 
   return (

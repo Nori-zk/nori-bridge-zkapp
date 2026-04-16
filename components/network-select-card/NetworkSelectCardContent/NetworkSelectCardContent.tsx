@@ -1,8 +1,10 @@
 import NetworkSelectCardSVG from "@/components/network-select-card/NetworkSelectCardSVG/NetworkSelectCardSVG.tsx";
 import SingleSelect from "@/components/ui/SingleSelect/SingleSelect.tsx";
 import TextButton from "@/components/ui/TextButton/TextButton.tsx";
+import TextInput from "@/components/ui/TextInput/TextInput.tsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 import { chainOptions } from "@/static_data.ts";
+import { useState } from "react";
 
 type NetworkSelectCardContentProps = {
   onClose: () => void;
@@ -11,7 +13,19 @@ type NetworkSelectCardContentProps = {
 const NetworkSelectCardContent = ({
   onClose,
 }: NetworkSelectCardContentProps) => {
-  const { selectedChain, setSelectedChain } = useAuroWallet();
+  const { selectedChain, setSelectedChain, setChainAddress } = useAuroWallet();
+  const [customRpcUrl, setCustomRpcUrl] = useState("");
+  const [urlError, setUrlError] = useState<string | undefined>(undefined);
+  const isCustom = selectedChain?.chainId === "custom";
+
+  const handleConfirm = () => {
+    if (!customRpcUrl.trim()) {
+      setUrlError("RPC URL is required");
+      return;
+    }
+    setUrlError(undefined);
+    setChainAddress(customRpcUrl.trim());
+  };
 
   return (
     <div
@@ -44,9 +58,26 @@ const NetworkSelectCardContent = ({
                 }}
               />
             </div>
-            <div className="flex-col w-full justify-center">
-              <TextButton>Confirm</TextButton>
-            </div>
+            {isCustom && (
+              <>
+                <div className="w-full my-1">
+                  <TextInput
+                    value={customRpcUrl}
+                    onChange={(e) => {
+                      setCustomRpcUrl(e.target.value);
+                      setUrlError(undefined);
+                    }}
+                    placeholder="https://..."
+                    hasValue={customRpcUrl.length > 0}
+                    showIcon={false}
+                    errorMessage={urlError}
+                  />
+                </div>
+                <div className="w-full my-1">
+                  <TextButton onClick={handleConfirm}>Confirm</TextButton>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </NetworkSelectCardSVG>

@@ -5,10 +5,11 @@ import Tooltip from "@/components/ui/Tooltip/Tooltip.tsx";
 type TextInputProps = InputHTMLAttributes<HTMLInputElement> & {
   hasValue?: boolean;
   errorMessage?: string;
+  showIcon?: boolean;
 };
 
 const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
-  ({ id, hasValue = false, errorMessage, ...props }, ref) => {
+  ({ id, hasValue = false, errorMessage, showIcon = true, placeholder = "0.0001", ...props }, ref) => {
     const [showErrorTooltip, setShowErrorTooltip] = useState(false);
     const shouldShowWhiteBorder = hasValue && !props.disabled;
 
@@ -18,7 +19,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
           id={id}
           ref={ref}
           {...props}
-          className={`w-full bg-transparent placeholder-white/20 rounded-lg px-4 py-3 pr-20 focus:outline-none focus:ring-2 focus:ring-white/20
+          className={`w-full bg-transparent text-white placeholder-white/20 rounded-lg px-4 py-3 pr-20 focus:outline-none focus:ring-2 focus:ring-white/20
             ${
               errorMessage
                 ? "border border-red-500 focus:ring-red-500/20"
@@ -26,7 +27,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
                 ? "border border-white"
                 : "border border-white/20"
             }`}
-          placeholder="0.0001"
+          placeholder={placeholder}
         />
         <div className="absolute inset-y-0 right-4 flex items-center gap-2">
           {errorMessage && (
@@ -41,12 +42,14 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
               {showErrorTooltip && <Tooltip content={errorMessage} />}
             </div>
           )}
-          <EthereumGrey
-            title="EthereumSVG"
-            className={`scale-[0.75] ${
-              shouldShowWhiteBorder ? "opacity-100" : "opacity-20"
-            }`}
-          />
+          {showIcon && (
+            <EthereumGrey
+              title="EthereumSVG"
+              className={`scale-[0.75] ${
+                shouldShowWhiteBorder ? "opacity-100" : "opacity-20"
+              }`}
+            />
+          )}
         </div>
       </div>
     );

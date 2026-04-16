@@ -55,6 +55,44 @@ describe("TextInput", () => {
   });
 
   // -------------------------------------------------------------------------
+  // Placeholder
+  // -------------------------------------------------------------------------
+
+  describe("placeholder", () => {
+    it("uses the default placeholder when none is provided", () => {
+      render(<TextInput />);
+      expect(screen.getByRole("textbox")).toHaveAttribute(
+        "placeholder",
+        "0.0001"
+      );
+    });
+
+    it("uses a custom placeholder when provided", () => {
+      render(<TextInput placeholder="https://..." />);
+      expect(screen.getByRole("textbox")).toHaveAttribute(
+        "placeholder",
+        "https://..."
+      );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Ethereum icon
+  // -------------------------------------------------------------------------
+
+  describe("showIcon", () => {
+    it("renders the Ethereum icon by default", () => {
+      render(<TextInput />);
+      expect(screen.getByTitle("EthereumSVG")).toBeInTheDocument();
+    });
+
+    it("hides the Ethereum icon when showIcon is false", () => {
+      render(<TextInput showIcon={false} />);
+      expect(screen.queryByTitle("EthereumSVG")).not.toBeInTheDocument();
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Error state — icon
   // -------------------------------------------------------------------------
 
