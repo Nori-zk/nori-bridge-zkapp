@@ -31,7 +31,7 @@ const NetworkSelectCardContent = ({
     <div
       style={{
         width: "364px",
-        height: "224px",
+        height: "300px",
         position: "relative",
         overflow: "hidden",
         borderRadius: "20px",

@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import LaserFlow from "@/blocks/Animations/LaserFlow/LaserFlow.jsx";
 import { useAuroWallet } from "@/providers/AuroWalletProvider/AuroWalletProvider.tsx";
 import Flip from "@/public/assets/Flip.svg";
-import Settings from "@/public/assets/Settings.svg";
+import SettingsOpaque from "@/public/assets/SettingsOpaque.svg";
 import FlipCard from "@/components/ui/FlipCard/FlipCard.tsx";
 import TransactionCard from "@/components/transaction-card/TransactionCard/TransactionCard.tsx";
 import { AnimatePresence, motion } from "framer-motion";
@@ -135,8 +135,10 @@ export default function Home() {
                       ethConnected &&
                       minaConnected &&
                       (showSettings ? (
-                        <div className="absolute -top-0 -right-[363px] z-20">
-                          <NetworkSelectCard onClose={() => setShowSettings(false)} />
+                        <div className="absolute -top-0 -right-[365px] z-20">
+                          <NetworkSelectCard
+                            onClose={() => setShowSettings(false)}
+                          />
                         </div>
                       ) : (
                         <div className="flex">
@@ -152,9 +154,9 @@ export default function Home() {
                             onClick={() => {
                               setShowSettings(true);
                             }}
-                            className="absolute top-[58px] -right-[60px] z-20"
+                            className="absolute top-[59px] -right-[52px] z-20"
                           >
-                            <Settings width={60} height={60} />
+                            <SettingsOpaque width={60} height={60} />
                           </button>
                         </div>
                       ))}
