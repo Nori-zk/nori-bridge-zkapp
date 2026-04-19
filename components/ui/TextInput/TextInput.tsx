@@ -9,7 +9,17 @@ type TextInputProps = InputHTMLAttributes<HTMLInputElement> & {
 };
 
 const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
-  ({ id, hasValue = false, errorMessage, showIcon = true, placeholder = "0.0001", ...props }, ref) => {
+  (
+    {
+      id,
+      hasValue = false,
+      errorMessage,
+      showIcon = true,
+      placeholder = "0.0001",
+      ...props
+    },
+    ref,
+  ) => {
     const [showErrorTooltip, setShowErrorTooltip] = useState(false);
     const shouldShowWhiteBorder = hasValue && !props.disabled;
 

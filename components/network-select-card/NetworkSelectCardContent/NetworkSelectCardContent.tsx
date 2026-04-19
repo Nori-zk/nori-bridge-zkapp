@@ -27,11 +27,13 @@ const NetworkSelectCardContent = ({
     setChainAddress(customRpcUrl.trim());
   };
 
+  const cardHeight = 300;
+
   return (
     <div
       style={{
         width: "364px",
-        height: "300px",
+        height: `${cardHeight}px`,
         position: "relative",
         overflow: "hidden",
         borderRadius: "20px",
@@ -39,7 +41,7 @@ const NetworkSelectCardContent = ({
         display: "flex",
       }}
     >
-      <NetworkSelectCardSVG>
+      <NetworkSelectCardSVG height={cardHeight}>
         <div className="w-full h-full flex justify-center relative">
           <button
             onClick={onClose}
@@ -60,7 +62,10 @@ const NetworkSelectCardContent = ({
             </div>
             {isCustom && (
               <>
-                <div className="w-full my-1">
+                <div className="w-full my-2">
+                  <div className="justify-start w-full text-white/30">
+                    Your URL
+                  </div>
                   <TextInput
                     value={customRpcUrl}
                     onChange={(e) => {
@@ -73,8 +78,13 @@ const NetworkSelectCardContent = ({
                     errorMessage={urlError}
                   />
                 </div>
-                <div className="w-full my-1">
-                  <TextButton onClick={handleConfirm}>Confirm</TextButton>
+                <div className="w-full my-2">
+                  <TextButton
+                    onClick={handleConfirm}
+                    className="hover:bg-lightGreen hover:text-darkGreen hover:border-lightGreen"
+                  >
+                    Confirm
+                  </TextButton>
                 </div>
               </>
             )}

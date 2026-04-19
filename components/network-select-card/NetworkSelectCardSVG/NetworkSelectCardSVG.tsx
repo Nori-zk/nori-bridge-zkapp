@@ -1,41 +1,36 @@
 type NetworkSelectCardSVGProps = {
   children?: React.ReactNode;
+  height?: number;
 };
 
-const NetworkSelectCardSVG = ({ children }: NetworkSelectCardSVGProps) => {
+const NetworkSelectCardSVG = ({
+  children,
+  height = 224,
+}: NetworkSelectCardSVGProps) => {
+  const innerHeight = height - 1;
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
-      viewBox="0 0 364 224"
+      viewBox={`0 0 364 ${height}`}
       width="100%"
       height="100%"
-      preserveAspectRatio="none"
       style={{ display: "block" }}
     >
+      <rect x="0.5" y="0.5" width="363" height={innerHeight} rx="19.5" fill="#060B09" />
       <rect
         x="0.5"
         y="0.5"
         width="363"
-        height="223"
-        rx="19.5"
-        fill="#060A08"
-        fillOpacity="0.4"
-      />
-      <rect
-        x="0.5"
-        y="0.5"
-        width="363"
-        height="223"
+        height={innerHeight}
         rx="19.5"
         fill="url(#paint0_radial_nsc)"
-        fillOpacity="0.2"
       />
       <rect
         x="0.5"
         y="0.5"
         width="363"
-        height="223"
+        height={innerHeight}
         rx="19.5"
         stroke="url(#paint1_linear_nsc)"
         strokeOpacity="0.1"
@@ -44,7 +39,7 @@ const NetworkSelectCardSVG = ({ children }: NetworkSelectCardSVGProps) => {
         x="0.5"
         y="0.5"
         width="363"
-        height="223"
+        height={innerHeight}
         rx="19.5"
         stroke="url(#paint2_radial_nsc)"
       />
@@ -52,11 +47,11 @@ const NetworkSelectCardSVG = ({ children }: NetworkSelectCardSVGProps) => {
         x="0.5"
         y="0.5"
         width="363"
-        height="223"
+        height={innerHeight}
         rx="19.5"
         stroke="url(#paint3_radial_nsc)"
       />
-      <foreignObject x="0" y="0" width="364" height="224">
+      <foreignObject x="0" y="0" width="364" height={height}>
         {children}
       </foreignObject>
       <defs>
@@ -66,18 +61,18 @@ const NetworkSelectCardSVG = ({ children }: NetworkSelectCardSVGProps) => {
           cy="0"
           r="1"
           gradientUnits="userSpaceOnUse"
-          gradientTransform="rotate(31.6075) scale(427.401 694.527)"
+          gradientTransform={`rotate(90) scale(${height} 371.107)`}
         >
-          <stop stopColor="#03FF9F" stopOpacity="0.2" />
-          <stop offset="0.2" stopColor="#03FF9F" stopOpacity="0.1" />
-          <stop offset="0.48" stopColor="#03FF9F" stopOpacity="0" />
+          <stop stopColor="#03FF9F" stopOpacity="0.15" />
+          <stop offset="0.37529" stopColor="#03FF9F" stopOpacity="0.075" />
+          <stop offset="1" stopColor="#03FF9F" stopOpacity="0" />
         </radialGradient>
         <linearGradient
           id="paint1_linear_nsc"
           x1="182"
           y1="0"
           x2="182"
-          y2="224"
+          y2={height}
           gradientUnits="userSpaceOnUse"
         >
           <stop stopColor="white" />
