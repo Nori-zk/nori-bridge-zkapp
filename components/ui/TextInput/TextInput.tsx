@@ -1,4 +1,4 @@
-import React, { forwardRef, InputHTMLAttributes, useState } from "react";
+import React, { forwardRef, InputHTMLAttributes, useRef, useState } from "react";
 import EthereumGrey from "@/public/assets/EthereumGrey.svg";
 import Tooltip from "@/components/ui/Tooltip/Tooltip.tsx";
 
@@ -21,6 +21,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     ref,
   ) => {
     const [showErrorTooltip, setShowErrorTooltip] = useState(false);
+    const iconRef = useRef<HTMLDivElement>(null);
     const shouldShowWhiteBorder = hasValue && !props.disabled;
 
     return (
@@ -32,7 +33,7 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
           className={`w-full bg-transparent text-white placeholder-white/20 rounded-lg px-4 py-3 pr-20 focus:outline-none focus:ring-2 focus:ring-white/20
             ${
               errorMessage
-                ? "border border-red-500 focus:ring-red-500/20"
+                ? "border border-tooltipErrorred focus:ring-red-500/20"
                 : shouldShowWhiteBorder
                 ? "border border-white"
                 : "border border-white/20"
@@ -46,10 +47,16 @@ const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
               onMouseEnter={() => setShowErrorTooltip(true)}
               onMouseLeave={() => setShowErrorTooltip(false)}
             >
-              <div className="w-4 h-4 rounded-full border border-red-500 flex items-center justify-center cursor-help text-xs text-red-500 italic font-serif">
+              <div ref={iconRef} className="w-4 h-4 rounded-full border border-tooltipErrorred flex items-center justify-center cursor-help text-xs text-tooltipErrorred italic font-serif">
                 i
               </div>
-              {showErrorTooltip && <Tooltip content={errorMessage} />}
+              {showErrorTooltip && (
+                <Tooltip
+                  content={errorMessage}
+                  isError
+                  anchorRect={iconRef.current?.getBoundingClientRect()}
+                />
+              )}
             </div>
           )}
           {showIcon && (

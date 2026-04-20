@@ -27,6 +27,9 @@ const config: Config = {
     "hover:border-glow-red",
     "hover:border-glow-blue",
     "hover:border-glow-green",
+    "text-tooltipErrorred",
+    "border-tooltipErrorred",
+    "focus:ring-tooltipErrorred",
   ],
   theme: {
     extend: {
@@ -40,6 +43,7 @@ const config: Config = {
         veryDarkRed: "#3F1717",
         darkRed: "#950606",
         lightRed: "#FF0000",
+        tooltipErrorred: "#EA5C5C",
         neonRed: "#FB635E",
         neonBlue: "#84F7FC",
         neonGreen: "#48EDE7",
@@ -63,7 +67,11 @@ const config: Config = {
     },
   },
   plugins: [
-    function ({ addUtilities }: { addUtilities: (utilities: Record<string, Record<string, string>>) => void }) {
+    function ({
+      addUtilities,
+    }: {
+      addUtilities: (utilities: Record<string, Record<string, string>>) => void;
+    }) {
       addUtilities({
         ".text-glow-neon-red": {
           "text-shadow":

@@ -35,7 +35,6 @@ const NetworkSelectCardContent = ({
         width: "364px",
         height: `${cardHeight}px`,
         position: "relative",
-        overflow: "hidden",
         borderRadius: "20px",
         justifyContent: "center",
         display: "flex",
