@@ -92,8 +92,14 @@ function createErrorHandler(
   return {
     target: targetState,
     actions: [
-      assign({
-        error: ({ event }: { event: ErrorActorEvent<unknown, string> }) => ({
+      assign<
+        DepositMintContext,
+        ErrorActorEvent<unknown, string>,
+        undefined,
+        DepositMintEvents,
+        never
+      >({
+        error: ({ event }) => ({
           message: errorMessage,
           reason: getErrorReason(event),
           timestamp: Date.now(),
