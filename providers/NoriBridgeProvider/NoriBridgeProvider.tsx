@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -19,7 +20,12 @@ import ZkappMintWorkerClient from "@/workers/mintWorkerClient.ts";
 import { getBridgeMachine } from "@/machines/BridgeMachine.ts";
 import envConfig from "@/helpers/env.ts";
 import { DepositStates } from "@/types/types.ts";
-import { ReplacementStageNameValues, ReplacementDepositProcessingStatusValues, ReplacementDepositProcessingStatus, ReplacementStageName } from "@/machines/actors/statuses.ts";
+import {
+  ReplacementStageNameValues,
+  ReplacementDepositProcessingStatusValues,
+  ReplacementDepositProcessingStatus,
+  ReplacementStageName,
+} from "@/machines/actors/statuses.ts";
 import getWorkerClient from "@/singletons/workerSingleton.ts";
 import { Store } from "@/helpers/localStorage2.ts";
 import { useToast } from "@/helpers/useToast.tsx";
@@ -85,6 +91,7 @@ type NoriBridgeContextType = {
 const minaConfig = {
   networkId: envConfig.MINA_RPC_NETWORK_ID,
   mina: envConfig.MINA_RPC_NETWORK_URL,
+  archive: envConfig.MINA_ARCHIVE_RPC_URL,
 };
 
 const NoriBridgeContext = createContext<NoriBridgeContextType | null>(null);
@@ -93,7 +100,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [mintWorker, setMintWorker] = useState<ZkappMintWorkerClient | null>(
-    null
+    null,
   );
 
   const { ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$ } = useSetup();
@@ -103,14 +110,13 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     type: "error",
     title: "Error",
     description: "Error",
-
   });
   const toast = useRef(rawToast);
 
   // Setup the bridgeMachine
   const bridgeMachine = useMemo(
     () => getBridgeMachine(bridgeStateTopic$, bridgeTimingsTopic$),
-    [bridgeStateTopic$, bridgeTimingsTopic$]
+    [bridgeStateTopic$, bridgeTimingsTopic$],
   );
 
   // Use the bridge machine
@@ -119,13 +125,8 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
   // Setup the depositMintMachine
   const depositMintMachine = useMemo(
     () =>
-      getDepositMachine(
-        ethStateTopic$,
-        bridgeStateTopic$,
-        bridgeTimingsTopic$,
-
-      ),
-    [ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$]
+      getDepositMachine(ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$),
+    [ethStateTopic$, bridgeStateTopic$, bridgeTimingsTopic$],
   );
 
   // Use the deposit machine
@@ -133,58 +134,49 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     if (minaAddress && ethAddress) {
-
-      if (Store.forMina(minaAddress).ethWallet !== null && Store.forMina(minaAddress).ethWallet !== ethAddress) {
-        toast.current({
-          type: "error",
-          title: "Error",
-          description: `Connected ETH wallet does not match the one linked to this MINA wallet. Use ${formatDisplayAddress(Store.forMina(minaAddress).ethWallet)} or connect a different MINA wallet.`,
+      if (!mintWorker) {
+        const worker = getWorkerClient();
+        worker.setWallets({
+          minaPubKeyBase58: minaAddress,
+          ethPubKeyBase58: ethAddress,
         });
-        disconnect();
+        worker.minaSetup(minaConfig);
+        console.log("creating worker: ", worker);
+        setMintWorker(worker);
+        sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
       } else {
-        if (!mintWorker) {
-          const worker = getWorkerClient()
-          worker.setWallets({
-            minaPubKeyBase58: minaAddress,
-            ethPubKeyBase58: ethAddress,
-          });
-          worker.minaSetup(minaConfig);
-          console.log("creating worker: ", worker);
-          setMintWorker(worker);
-          sendDepositMachine({ type: "ASSIGN_WORKER", mintWorkerClient: worker });
-        } else {
-          //update existing worker
-          mintWorker.setWallets({
-            minaPubKeyBase58: minaAddress,
-            ethPubKeyBase58: ethAddress,
-          });
-          sendDepositMachine({
-            type: "ASSIGN_WORKER",
-            mintWorkerClient: mintWorker,
-          });
-        }
+        //update existing worker
+        mintWorker.setWallets({
+          minaPubKeyBase58: minaAddress,
+          ethPubKeyBase58: ethAddress,
+        });
+        sendDepositMachine({
+          type: "ASSIGN_WORKER",
+          mintWorkerClient: mintWorker,
+        });
       }
     }
-  }, [minaAddress, ethAddress, mintWorker, sendDepositMachine]);
-
-
+  }, [minaAddress, ethAddress, mintWorker]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper functions
-  const setDepositNumber = (depositNumber: number) => {
-    sendDepositMachine({ type: "SET_DEPOSIT_NUMBER", value: depositNumber });
-  };
+  const setDepositNumber = useCallback(
+    (depositNumber: number) => {
+      sendDepositMachine({ type: "SET_DEPOSIT_NUMBER", value: depositNumber });
+    },
+    [sendDepositMachine],
+  );
 
-  const setPresentation = (presentationJsonStr: string) => {
+  const setPresentation = useCallback((presentationJsonStr: string) => {
     console.log("Setting presentation:", presentationJsonStr);
-  };
+  }, []);
 
-  const retry = () => {
+  const retry = useCallback(() => {
     sendDepositMachine({ type: "CHECK_STATUS" });
-  };
+  }, [sendDepositMachine]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     sendDepositMachine({ type: "RESET" });
-  };
+  }, [sendDepositMachine]);
 
   // Type-safe current state
   const currentState = depositState.value as DepositStates;
@@ -212,7 +204,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     ];
 
     return states.reduce((acc, state) => {
-      acc[state] = depositState.matches(state);
+      acc[state] = depositState.matches(state as never);
       return acc;
     }, {} as StateCheckers);
   }, [depositState]);
@@ -227,11 +219,9 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     stateCheckers.submittingMintTx;
 
   const isReady =
-    stateCheckers.monitoringDepositStatus ||
-    stateCheckers.hasComputedEthProof;
+    stateCheckers.monitoringDepositStatus || stateCheckers.hasComputedEthProof;
 
-  const isError =
-    depositState.context.errorMessage !== null;
+  const isError = depositState.context.error !== null;
 
   const canSetupStorage = depositState.context.goToSetupStorage;
 
@@ -263,12 +253,14 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
     depositState.context.processingStatus?.time_remaining_sec; // use 0 for ... come back to this
   useEffect(() => {
     if (stateCheckers.hydrating) return; //don't show error if loading
-    toast.current({
-      type: "error",
-      title: `${depositState.context.errorMessage || "Unknown error"}`,
-      description: `${depositState.context.errorReason || "Unknown reason"}`,
-    });
-  }, [depositState.context.errorMessage, depositState.context.errorReason, depositState.context.errorTimestamp, isError]);
+    if (depositState.context.error) {
+      toast.current({
+        type: "error",
+        title: depositState.context.error.message,
+        description: depositState.context.error.reason,
+      });
+    }
+  }, [depositState.context.error, isError, stateCheckers.hydrating]);
 
   // Derived state
   const contextValue = useMemo(
@@ -334,7 +326,7 @@ export const NoriBridgeProvider: React.FC<{ children: React.ReactNode }> = ({
       setPresentation,
       retry,
       reset,
-    ]
+    ],
   );
 
   return (

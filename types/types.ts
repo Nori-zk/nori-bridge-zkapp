@@ -4,6 +4,11 @@ import {
 } from "@/machines/actors/statuses.ts";
 
 export type WalletButtonTypes = "Mina" | "Ethereum";
+
+export type ChainOption = {
+  name: string;
+  chainId: string;
+};
 export type ChooseSideTypes = "red" | "green" | "blue";
 
 export type ProgressStep =

@@ -35,6 +35,7 @@ interface MetaMaskWalletContextType {
   displayAddress: string | null;
   isConnected: boolean;
   lockedAmount: string | null;
+  balance: string | null;
   contract: Contract | null;
   chainId: string | null;
   isOnCorrectNetwork: boolean;
@@ -44,6 +45,7 @@ interface MetaMaskWalletContextType {
   bridgeOperator: () => Promise<void>;
   lockTokens: (codeChallange: string, amount: number) => Promise<number>;
   getLockedTokens: () => Promise<void>;
+  getBalance: () => Promise<void>;
 }
 
 declare global {
@@ -79,6 +81,7 @@ export const MetaMaskWalletProvider = ({
   const [signer, setSigner] = useState<Signer | null>(null);
   const [contract, setContract] = useState<Contract | null>(null);
   const [lockedAmount, setLockedAmount] = useState<string | null>(null);
+  const [balance, setBalance] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string | null>(null);
 
   const rawToast = useToast({
@@ -97,7 +100,7 @@ export const MetaMaskWalletProvider = ({
     return chainId === REQUIRED_NETWORK_ID;
   }, [chainId]);
   const initializeContract = useCallback(async (signer: Signer) => {
-    const contractAddress = envConfig.NORI_TOKEN_BRIDGE_ADDRESS;
+    const { NORI_TOKEN_BRIDGE_ADDRESS: contractAddress } = envConfig;
     console.log("Initializing contract at:", contractAddress);
     return new Contract(contractAddress, noriTokenBridgeJson.abi, signer);
   }, []);
@@ -108,6 +111,7 @@ export const MetaMaskWalletProvider = ({
     setSigner(null);
     setContract(null);
     setLockedAmount(null);
+    setBalance(null);
   }, []);
 
   const validateNetwork = useCallback(async (): Promise<void> => {
@@ -254,6 +258,7 @@ export const MetaMaskWalletProvider = ({
           console.log("Re-initializing connection on correct network");
           initializeWalletConnection(walletAddress).then((success) => {
             if (success) {
+              fetchBalance(walletAddress);
               toast.current({
                 type: "notification",
                 title: "Network Connected",
@@ -303,6 +308,7 @@ export const MetaMaskWalletProvider = ({
       if (accounts.length > 0) {
         const success = await initializeWalletConnection(accounts[0]);
         if (success) {
+          await fetchBalance(accounts[0]);
           toast.current({
             type: "notification",
             title: "Success",
@@ -496,6 +502,31 @@ export const MetaMaskWalletProvider = ({
     }
   }, [contract, walletAddress, isOnCorrectNetwork]);
 
+  // Helper function to get balance (not a callback to avoid circular deps)
+  const fetchBalance = async (address: string) => {
+    if (!address || !window.ethereum) {
+      console.log("Cannot get balance: wallet not connected");
+      return;
+    }
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const balanceWei = await provider.getBalance(address);
+      const balanceEth = ethers.formatEther(balanceWei);
+      setBalance(balanceEth);
+      console.log(`Wallet balance: ${balanceEth} ETH`);
+    } catch (error) {
+      console.error("Error getting wallet balance:", error);
+      setBalance(null);
+    }
+  };
+
+  const getBalance = useCallback(async () => {
+    if (walletAddress) {
+      await fetchBalance(walletAddress);
+    }
+  }, [walletAddress]);
+
   // Check existing connection on mount
   useEffect(() => {
     const checkConnection = async () => {
@@ -516,6 +547,7 @@ export const MetaMaskWalletProvider = ({
           // If we're already on the correct network, initialize immediately
           if (isOnCorrectNetwork) {
             await initializeWalletConnection(address);
+            await fetchBalance(address);
           } else {
             // Just store the address, the chain change effect will handle the rest
             setWalletAddress(address);
@@ -552,6 +584,8 @@ export const MetaMaskWalletProvider = ({
           if (isOnCorrectNetwork) {
             // Re-initialize with new account if on correct network
             initializeWalletConnection(newAddress).then(() => {
+              // Get balance for the new account
+              fetchBalance(newAddress);
               toast.current({
                 type: "notification",
                 title: "Account Changed",
@@ -592,6 +626,7 @@ export const MetaMaskWalletProvider = ({
       displayAddress: formatDisplayAddress(walletAddress),
       isConnected,
       lockedAmount,
+      balance,
       contract,
       chainId,
       isOnCorrectNetwork,
@@ -601,11 +636,13 @@ export const MetaMaskWalletProvider = ({
       bridgeOperator,
       lockTokens,
       getLockedTokens,
+      getBalance,
     }),
     [
       walletAddress,
       isConnected,
       lockedAmount,
+      balance,
       contract,
       chainId,
       isOnCorrectNetwork,
@@ -615,6 +652,7 @@ export const MetaMaskWalletProvider = ({
       bridgeOperator,
       lockTokens,
       getLockedTokens,
+      getBalance,
     ]
   );
 

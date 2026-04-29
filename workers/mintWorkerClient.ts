@@ -32,9 +32,10 @@ type CompiledVerificationKeys = {
 };
 
 // Env
-const noriTokenControllerAddressBase58 =
-  envConfig.NORI_TOKEN_CONTROLLER_ADDRESS;
-const noriTokenBaseBase58 = envConfig.TOKEN_BASE_ADDRESS;
+const {
+  NORI_TOKEN_CONTROLLER_ADDRESS: noriTokenControllerAddressBase58,
+  TOKEN_BASE_ADDRESS: noriTokenBaseBase58,
+} = envConfig;
 
 export default class ZkappMintWorkerClient {
   // Worker ==================================================
@@ -277,7 +278,8 @@ export default class ZkappMintWorkerClient {
       return this.#mintWorker.computeDepositAttestationWitnessAndEthVerifier(
         codeChallengePKARMStr,
         depositBlockNumber,
-        this.ethWalletPubKeyBase58.toLowerCase() // Make sure its lower!
+        this.ethWalletPubKeyBase58.toLowerCase(), // Make sure its lower!
+        envConfig.NORI_PCS_URL
       );
     });
     return this.#o1MethodResolver as Promise<EthProofResult>;

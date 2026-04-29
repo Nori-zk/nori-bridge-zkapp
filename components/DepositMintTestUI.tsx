@@ -90,7 +90,7 @@ export const DepositMintTestUI: React.FC = () => {
         {isLoading && <div className="text-yellow-600 mt-1">⏳ Loading...</div>}
         {isError && (
           <div className="text-red-600 mt-1">
-            ❌ Error: {state.context.errorMessage}
+            ❌ Error: {state.context.error?.message}
           </div>
         )}
         {isReady && <div className="text-green-600 mt-1">✅ Ready</div>}

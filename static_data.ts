@@ -1,4 +1,11 @@
 import { ProgressTrackerStepProps } from "@/components/ui/ProgressTracker/ProgressTrackerStep/ProgressTrackerStep.tsx";
+import { ChainOption } from "@/types/types.ts";
+
+export const chainOptions: ChainOption[] = [
+  { name: "Mainnet", chainId: "mainnet" },
+  { name: "Mesa Testnet", chainId: "mesatestnet" },
+  { name: "Custom", chainId: "custom" },
+];
 
 //progress steps
 export const progressSteps = [
