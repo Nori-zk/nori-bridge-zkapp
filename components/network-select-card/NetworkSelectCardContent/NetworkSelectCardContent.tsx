@@ -13,8 +13,9 @@ type NetworkSelectCardContentProps = {
 const NetworkSelectCardContent = ({
   onClose,
 }: NetworkSelectCardContentProps) => {
-  const { selectedChain, setSelectedChain, setChainAddress } = useAuroWallet();
-  const [customRpcUrl, setCustomRpcUrl] = useState("");
+  const { selectedChain, setSelectedChain, chainAddress, setChainAddress } =
+    useAuroWallet();
+  const [customRpcUrl, setCustomRpcUrl] = useState(chainAddress ?? "");
   const [urlError, setUrlError] = useState<string | undefined>(undefined);
   const isCustom = selectedChain?.chainId === "custom";
 
